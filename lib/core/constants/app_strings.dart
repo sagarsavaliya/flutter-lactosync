@@ -412,6 +412,13 @@ abstract final class AppStrings {
   static const settingsOrderScheduleHint =
       'Orders are created automatically at these times for active subscriptions.';
 
+  // Contact picker
+  static const contactsPermissionDenied =
+      'Contacts permission denied. Grant it in Settings to use this feature.';
+  static const contactNoPhone = 'No phone number found for this contact.';
+  static const contactImportError = 'Could not import contact. Please try again.';
+  static const importFromContacts = 'Import from contacts';
+
   // Legacy
   static const registerTitle = 'Create account';
   static const registerSubtitle = 'Set up your farm and sign-in PIN.';
