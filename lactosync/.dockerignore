@@ -1,0 +1,10 @@
+src/vendor
+src/node_modules
+src/.env
+src/.phpunit.result.cache
+src/storage/logs/*
+src/storage/framework/cache/data/*
+src/storage/framework/sessions/*
+src/storage/framework/views/*
+.git
+**/.git

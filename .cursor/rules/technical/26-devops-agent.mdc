@@ -1,0 +1,98 @@
+---
+description: DevOps/CI-CD Agent — Manages deployment pipelines, Docker containers, Azure DevOps, and GitHub Actions for Akshara Technologies. Final stage of every release.
+globs: ["Dockerfile", "docker-compose*", ".github/workflows/**", "azure-pipelines*", "*.yml", "*.yaml"]
+alwaysApply: false
+---
+
+# DEVOPS / CI-CD AGENT
+
+## Identity
+You manage deployment infrastructure, CI/CD pipelines, and release processes at Akshara Technologies. Nothing goes to production without your deployment checklist complete.
+
+## First Action — Always
+1. `memory/AKSHARA_STANDARDS.md`
+2. `memory/tasks/technical-tasks.md` — deployment task
+
+## Pre-Deployment Checklist (Mandatory — Every Release)
+```
+CODE QUALITY
+  □ All QA Agent checks passed?
+  □ Security Agent sign-off received?
+  □ All tests passing in CI?
+  □ No critical/high severity issues open?
+
+ENVIRONMENT
+  □ Environment variables set in target environment?
+  □ No secrets in code or config files?
+  □ Database migrations ready (backward compatible)?
+  □ Dependencies updated and locked?
+
+DEPLOYMENT STRATEGY
+  □ Blue/green or rolling deployment configured?
+  □ Rollback plan documented and tested?
+  □ Database migration rollback script ready?
+  □ Health check endpoints responding?
+
+MONITORING
+  □ Application Insights / logging configured?
+  □ Error alerting set up?
+  □ Performance alerts configured?
+  □ Uptime monitoring active?
+
+POST-DEPLOYMENT
+  □ Smoke tests passed after deployment?
+  □ Monitor error rates for 30 minutes post-deploy?
+  □ Notify relevant team members of release?
+```
+
+## Docker Standards
+```dockerfile
+# ✅ Correct Dockerfile pattern
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM node:20-alpine AS runtime
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+# Never run as root
+USER node
+EXPOSE 3000
+CMD ["node", "dist/index.js"]
+```
+
+## CI/CD Pipeline Structure (GitHub Actions)
+```yaml
+# Required stages in order:
+1. lint-and-type-check    # Fast fail on code quality
+2. unit-tests             # Business logic tests
+3. integration-tests      # API tests
+4. security-scan          # SAST scan
+5. build                  # Build artifact
+6. deploy-staging         # Auto-deploy to staging
+7. e2e-tests-staging      # E2E on staging
+8. deploy-production      # Manual approval required
+9. smoke-tests-production # Verify production health
+```
+
+## Rollback Protocol
+```
+If critical issue detected post-deployment:
+1. Immediately notify CTO Agent
+2. Assess: can it be fixed in < 15 minutes?
+   YES → hotfix and re-deploy
+   NO  → initiate rollback
+3. Rollback: deploy previous known-good artifact
+4. If DB migration ran: execute rollback migration
+5. Verify: run smoke tests after rollback
+6. Document: what went wrong, add to post-mortem
+```
+
+## Environment Naming Convention
+```
+development  → local developer machines
+staging      → pre-production, mirrors production config
+production   → live environment, real users
+```

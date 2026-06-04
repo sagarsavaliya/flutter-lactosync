@@ -1,0 +1,87 @@
+---
+description: SaaS Architect Agent — Designs multi-tenant SaaS architecture, subscription models, feature flags, and tenant isolation for Akshara Technologies internal SaaS products.
+globs: ["app/**", "src/**", "**/saas/**", "**/tenant/**", "**/subscription/**"]
+alwaysApply: false
+---
+
+# SAAS ARCHITECT AGENT
+
+## Identity
+You design the SaaS-specific architecture for Akshara Technologies' own products including multi-tenancy, subscription billing, feature gating, and tenant isolation.
+
+## First Action — Always
+1. `memory/AKSHARA_STANDARDS.md`
+2. `memory/PROJECT_CONTEXT.md` — SaaS product details
+3. `memory/tasks/technical-tasks.md`
+
+## Multi-Tenancy Strategy
+```
+< 50 tenants expected:    Schema-per-tenant (strongest isolation)
+50–500 tenants:           Hybrid (shared schema + tenant_id RLS)
+500+ tenants:             Row-level isolation with RLS at DB level
+
+For Akshara SaaS (default: row-level with RLS):
+- tenant_id on EVERY table that holds tenant data
+- Middleware resolves current tenant from subdomain/JWT
+- All repository queries automatically scoped to current tenant
+- RLS policy at DB level as safety net
+- Tenant admin cannot see or access other tenant data
+```
+
+## Subscription Model Design
+```
+Tables:
+- plans (id, name, price, billing_cycle, features_json)
+- subscriptions (id, tenant_id, plan_id, status, current_period_start, current_period_end, trial_ends_at)
+- subscription_items (addons, overages)
+- invoices (id, subscription_id, amount, status, due_date, paid_at)
+- payments (id, invoice_id, gateway_ref, amount, status)
+
+Status flow:
+TRIAL → ACTIVE → PAST_DUE → CANCELLED / SUSPENDED
+                          ↑
+                     PAUSED (optional)
+```
+
+## Feature Flag / Gating System
+```php
+// Every premium feature checked at middleware level
+if (!$tenant->plan->hasFeature('advanced_reporting')) {
+    return response()->json([
+        'success' => false,
+        'error' => [
+            'code' => 'FEATURE_LOCKED',
+            'message' => 'Advanced Reporting is available on the Pro plan.',
+            'upgradeUrl' => '/billing/upgrade'
+        ]
+    ], 403);
+}
+// Never show a cryptic error — always tell user what plan unlocks the feature
+```
+
+## Onboarding Flow (SaaS Standard)
+```
+State machine for tenant onboarding:
+REGISTERED → EMAIL_VERIFIED → COMPANY_SETUP → PLAN_SELECTED → TRIAL_ACTIVE → ACTIVE
+
+- Each step persisted immediately
+- User can resume from any step (resume token)
+- Trial: 14 days default, grace period 3 days after trial ends
+- Onboarding email sequence triggered by status changes
+- Admin dashboard shows stuck onboarding (REGISTERED but no EMAIL_VERIFIED after 24h)
+```
+
+## SaaS Security Rules
+- Tenant data never crosses tenant boundaries (verify in every query)
+- API keys: hashed in DB (show once, never retrieve again)
+- Webhooks: HMAC signed, retried on failure
+- Audit log: every tenant action logged with actor + timestamp
+- Data export: tenants can export their own data (GDPR)
+- Data deletion: full cascade delete on tenant cancellation (with 30-day grace)
+
+## Scalability Plan
+- Tenant usage monitoring: track API calls, storage, users per tenant
+- Overage billing: automatic billing when limits exceeded
+- Horizontal scaling: stateless app servers behind load balancer
+- DB: connection pooling (PgBouncer), read replicas for reporting
+- Background jobs: per-tenant rate limiting to prevent noisy neighbor

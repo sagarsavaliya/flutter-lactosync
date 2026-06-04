@@ -1,0 +1,146 @@
+# LactoSync Flutter App API — Hostinger production stack
+# Server path: /var/www/lactosync_flutter_app/repo/deploy/hostinger
+
+name: lactosync_flutter_app
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.prod
+    image: lactosync-flutter-app-api:latest
+    container_name: lactosync_flutter_app_api
+    restart: always
+    env_file: .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      MIGRATE_ON_START: "1"
+      OPTIMIZE_ON_START: "1"
+    volumes:
+      - lactosync_storage:/var/www/html/storage
+      - lactosync_bootstrap_cache:/var/www/html/bootstrap/cache
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lactosync_flutter_app_net
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan --version >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: lactosync_flutter_app
+    restart: always
+    volumes:
+      - ./nginx/api.prod.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - lactosync_flutter_app_net
+      - proxy-net
+
+  mysql:
+    image: mysql:8.4
+    container_name: lactosync_flutter_app_mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-lactosync}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME:-lactosync}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - lactosync_mysql_data:/var/lib/mysql
+    networks:
+      - lactosync_flutter_app_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  redis:
+    image: redis:7-alpine
+    container_name: lactosync_flutter_app_redis
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - lactosync_redis_data:/data
+    networks:
+      - lactosync_flutter_app_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  scheduler:
+    image: lactosync-flutter-app-api:latest
+    pull_policy: never
+    container_name: lactosync_flutter_app_scheduler
+    restart: always
+    env_file: .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      MIGRATE_ON_START: "0"
+      OPTIMIZE_ON_START: "0"
+    command: php artisan schedule:work
+    volumes:
+      - lactosync_storage:/var/www/html/storage
+      - lactosync_bootstrap_cache:/var/www/html/bootstrap/cache
+    depends_on:
+      app:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lactosync_flutter_app_net
+
+  queue:
+    image: lactosync-flutter-app-api:latest
+    pull_policy: never
+    container_name: lactosync_flutter_app_queue
+    restart: always
+    env_file: .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      MIGRATE_ON_START: "0"
+      OPTIMIZE_ON_START: "0"
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    volumes:
+      - lactosync_storage:/var/www/html/storage
+      - lactosync_bootstrap_cache:/var/www/html/bootstrap/cache
+    depends_on:
+      app:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lactosync_flutter_app_net
+
+volumes:
+  lactosync_mysql_data:
+  lactosync_redis_data:
+  lactosync_storage:
+  lactosync_bootstrap_cache:
+
+networks:
+  lactosync_flutter_app_net:
+    driver: bridge
+  proxy-net:
+    external: true

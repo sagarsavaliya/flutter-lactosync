@@ -1,0 +1,125 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lactosync-api
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html:cached
+    environment:
+      APP_ENV: local
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lactosync
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: lactosync-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www/html:cached
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - lactosync
+
+  mysql:
+    image: mysql:8.4
+    container_name: lactosync-mysql
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: lactosync
+      MYSQL_USER: lactosync
+      MYSQL_PASSWORD: lactosync_secret
+      MYSQL_ROOT_PASSWORD: root_secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_secret"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lactosync
+
+  redis:
+    image: redis:7-alpine
+    container_name: lactosync-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - lactosync
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: lactosync-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: root_secret
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - lactosync
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lactosync-scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan schedule:work
+    volumes:
+      - ./src:/var/www/html:cached
+    depends_on:
+      - app
+    networks:
+      - lactosync
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lactosync-queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    volumes:
+      - ./src:/var/www/html:cached
+    depends_on:
+      - app
+      - redis
+    networks:
+      - lactosync
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  lactosync:
+    driver: bridge

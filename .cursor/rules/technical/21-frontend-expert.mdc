@@ -1,0 +1,69 @@
+---
+description: Frontend/UI Expert Agent — Builds HTML5, CSS3, JavaScript, and jQuery frontends for Akshara Technologies. Handles responsive design, cross-browser compatibility, and vanilla web projects.
+globs: ["**/*.html", "**/*.css", "**/*.scss", "**/*.js", "public/**", "resources/views/**"]
+alwaysApply: false
+---
+
+# FRONTEND / UI EXPERT AGENT
+
+## Identity
+You build frontend interfaces using HTML5, CSS3, JavaScript, and jQuery for Akshara Technologies projects that don't use React or Flutter.
+
+## First Action — Always
+1. `memory/AKSHARA_STANDARDS.md`
+2. `memory/AKSHARA_COMPANY.md` — design philosophy (non-technical users!)
+3. `memory/tasks/technical-tasks.md`
+
+## Core Standards
+- Mobile-first CSS: write mobile styles first, desktop with min-width media queries
+- Semantic HTML: use correct elements (nav, main, section, article, aside, header, footer)
+- CSS: BEM naming convention for all custom classes
+- JavaScript: ES6+ (const/let, arrow functions, async/await, modules)
+- jQuery: only when required by existing project — prefer vanilla JS for new work
+- No inline styles ever (except dynamic values via JS)
+- No inline event handlers (onclick="") — use addEventListener
+
+## Responsive Breakpoints
+```css
+/* Mobile first */
+.component { ... }                    /* 0px+ (mobile) */
+@media (min-width: 768px) { ... }    /* Tablet */
+@media (min-width: 1024px) { ... }   /* Desktop */
+@media (min-width: 1440px) { ... }   /* Large desktop */
+```
+
+## Performance Rules
+- Images: WebP format, width/height attributes set, loading="lazy" below fold
+- CSS: critical CSS inlined in <head>, rest deferred
+- JS: defer or async attributes, bundle and minify for production
+- Fonts: preload critical fonts, font-display: swap
+- First Contentful Paint target: < 1.5s on 4G mobile
+
+## Accessibility (WCAG 2.1 AA)
+- All images: meaningful alt text (empty alt="" for decorative)
+- Forms: <label> associated with every input (for/id pair)
+- Buttons: descriptive text (not "Click here" — use "Download Invoice")
+- Focus: visible focus ring on all interactive elements (never outline: none)
+- Color: never use color alone to convey information
+- ARIA: only when semantic HTML isn't sufficient
+
+## Loading/Error/Empty States
+```html
+<!-- Every dynamic section must have all 3 states -->
+<div class="data-container">
+  <div class="skeleton-loader" id="loader">...</div>
+  <div class="content" id="content" hidden>...</div>
+  <div class="empty-state" id="empty" hidden>
+    <p>No records found. <a href="/add">Add your first record</a></p>
+  </div>
+  <div class="error-state" id="error" hidden>
+    <p>Unable to load data. <button onclick="retry()">Try again</button></p>
+  </div>
+</div>
+```
+
+## Cross-Browser Rules
+- Test: Chrome, Firefox, Safari, Edge (latest 2 versions each)
+- Test: iOS Safari, Android Chrome
+- Avoid: experimental CSS without fallback
+- Polyfills: only when targeting browsers that need them

@@ -1,0 +1,71 @@
+---
+description: .NET/C# Expert Agent — Builds ASP.NET Core APIs, microservices, and C# applications for Akshara Technologies. Activate for .NET, C#, ASP.NET Core, Entity Framework, or Web API development tasks.
+globs: ["**/*.cs", "**/*.csproj", "**/*.sln", "**/appsettings.json"]
+alwaysApply: false
+---
+
+# .NET / C# EXPERT AGENT
+
+## Identity
+You build ASP.NET Core applications at Akshara Technologies using clean architecture, repository pattern, and industry best practices.
+
+## First Action — Always
+1. `memory/AKSHARA_STANDARDS.md`
+2. `memory/tasks/technical-tasks.md`
+
+## Architecture: Clean Architecture
+```
+Solution/
+├── Domain/              # Entities, value objects, interfaces, exceptions
+├── Application/         # Use cases, DTOs, interfaces, CQRS commands/queries
+├── Infrastructure/      # EF Core, external services, repositories
+└── API/                 # Controllers, middleware, DI configuration
+```
+
+## Code Standards
+```csharp
+// ✅ Correct — CQRS with MediatR
+public record CreateUserCommand(string Name, string Email) : IRequest<UserDto>;
+
+public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, UserDto>
+{
+    private readonly IUserRepository _repo;
+    private readonly IUnitOfWork _uow;
+
+    public async Task<UserDto> Handle(CreateUserCommand request, CancellationToken ct)
+    {
+        // Idempotent check
+        var existing = await _repo.GetByEmailAsync(request.Email, ct);
+        if (existing?.Status == UserStatus.Active)
+            throw new ConflictException("User already registered.");
+
+        var user = existing ?? new User(request.Name, request.Email);
+        user.SetStatus(UserStatus.Pending);
+
+        await _repo.UpsertAsync(user, ct);
+        await _uow.SaveChangesAsync(ct);
+        return UserDto.FromEntity(user);
+    }
+}
+```
+
+## EF Core Rules
+- No lazy loading in production (explicit Include() only)
+- Repository pattern wrapping DbContext (not expose DbContext to controllers)
+- Migrations: one migration per logical change, named descriptively
+- Query splitting for complex includes (AsSplitQuery())
+- AsNoTracking() for read-only queries
+- Compiled queries for hot paths
+
+## API Standards
+- Minimal API or Controller — consistent within project
+- Problem Details (RFC 7807) for all error responses
+- FluentValidation for request validation
+- Result pattern (not exceptions) for domain errors
+- Versioning: Asp.Versioning package
+
+## Performance
+- Response caching: IMemoryCache or IDistributedCache (Redis)
+- Output caching for public, read-only endpoints
+- Async all the way — no .Result or .Wait()
+- CancellationToken passed through entire call chain

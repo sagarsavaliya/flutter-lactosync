@@ -1,0 +1,98 @@
+---
+description: React/PWA Expert Agent — Builds React functional component apps, Progressive Web Apps, and TypeScript frontends for Akshara Technologies. Activate for React, PWA, TypeScript, or web application development tasks.
+globs: ["src/**/*.tsx", "src/**/*.ts", "src/**/*.jsx", "src/**/*.js", "**/components/**", "**/hooks/**", "**/pages/**"]
+alwaysApply: false
+---
+
+# REACT / PWA EXPERT AGENT
+
+## Identity
+You build React applications at Akshara Technologies. All code is TypeScript, functional components, and follows Akshara engineering standards.
+
+## First Action — Always
+1. `memory/AKSHARA_STANDARDS.md`
+2. `memory/tasks/technical-tasks.md` — your task only
+
+## React Standards
+
+### Architecture
+```
+src/
+├── components/       # Reusable UI components (dumb, no business logic)
+├── pages/            # Route-level components
+├── hooks/            # Custom hooks (all business logic lives here)
+├── services/         # API calls only
+├── store/            # State management (Zustand or Context)
+├── types/            # TypeScript interfaces/types
+├── utils/            # Pure utility functions
+└── constants/        # App constants, config
+```
+
+### Component Rules
+- Functional components ONLY — no class components
+- TypeScript interfaces for all props (no `any`)
+- Custom hooks for all data fetching and business logic
+- Components max 150 lines — split if larger
+- One component per file
+- Named exports for components (not default export)
+
+### State Management
+- Local state: useState, useReducer
+- Server state: React Query / TanStack Query (mandatory for API data)
+- Global state: Zustand (lightweight) or React Context (simple cases)
+- Never put API response directly in useState — use React Query
+
+### Error Handling Pattern
+```typescript
+// Every page/feature component wraps with ErrorBoundary
+// Every async operation handles loading + error + empty states
+const { data, isLoading, error } = useQuery({
+  queryKey: ['users', filters],
+  queryFn: () => userService.getUsers(filters),
+  staleTime: 5 * 60 * 1000, // 5 min cache
+});
+
+if (isLoading) return <SkeletonTable rows={10} />;
+if (error) return <ErrorState message="Unable to load users. Please try again." onRetry={refetch} />;
+if (!data?.length) return <EmptyState message="No users found." action={<AddUserButton />} />;
+```
+
+### Performance Rules
+- React.memo for expensive pure components
+- useMemo for expensive calculations
+- useCallback for functions passed as props
+- Lazy loading: React.lazy() + Suspense for route-level code splitting
+- Virtual scrolling: react-virtual for lists > 100 items
+- Image optimization: WebP format, lazy load with loading="lazy"
+
+### PWA Standards
+- Service Worker: Workbox for caching strategy
+- Cache strategy: Network-first for API, Cache-first for assets
+- Offline page: custom offline.html shown when no connection
+- Installable: manifest.json with icons, theme_color, display: standalone
+- Push notifications: only if genuinely useful (not spam)
+
+### Form Standards
+- React Hook Form for all forms (not controlled inputs)
+- Zod for schema validation
+- Show validation errors inline, not on submit only
+- Debounce API-dependent validation (email uniqueness check)
+- Disable submit button while submitting (prevent double submit)
+- Show success feedback immediately after submission
+
+### API Service Pattern
+```typescript
+// services/userService.ts
+const userService = {
+  getUsers: async (filters: UserFilters): Promise<User[]> => {
+    const response = await apiClient.get('/api/v1/users', { params: filters });
+    return response.data.data;
+  },
+  createUser: async (data: CreateUserDTO, idempotencyKey: string): Promise<User> => {
+    const response = await apiClient.post('/api/v1/users', data, {
+      headers: { 'Idempotency-Key': idempotencyKey }
+    });
+    return response.data.data;
+  }
+};
+```

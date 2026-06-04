@@ -1,0 +1,116 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/constants/app_strings.dart';
+import '../../../../core/network/dio_provider.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_text_field.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+
+class SignupOtpPage extends ConsumerStatefulWidget {
+  const SignupOtpPage({
+    super.key,
+    required this.mobile,
+    required this.firstName,
+    required this.lastName,
+  });
+
+  final String mobile;
+  final String firstName;
+  final String lastName;
+
+  @override
+  ConsumerState<SignupOtpPage> createState() => _SignupOtpPageState();
+}
+
+class _SignupOtpPageState extends ConsumerState<SignupOtpPage> {
+  final _otpController = TextEditingController();
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _verify() async {
+    if (_otpController.text.trim().length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.otpInvalid)),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final token = await ref.read(authRepositoryProvider).signupVerifyOtp(
+            mobile: widget.mobile,
+            otp: _otpController.text.trim(),
+          );
+      if (!mounted) return;
+      context.push(
+        '/signup/role',
+        extra: {'mobile': widget.mobile, 'signup_token': token},
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(mapDioError(e).message)),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text(AppStrings.verifyOtpTitle)),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpace.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                AppStrings.verifyOtpSubtitle,
+                style: AppText.body.copyWith(color: inkMuted),
+              ),
+              const SizedBox(height: AppSpace.xs),
+              Text(
+                widget.mobile,
+                style: AppText.label,
+              ),
+              const SizedBox(height: AppSpace.lg),
+              AppTextField(
+                label: AppStrings.otpLabel,
+                hint: AppStrings.otpHint,
+                controller: _otpController,
+                keyboardType: TextInputType.number,
+                prefixIcon: Icons.sms_outlined,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(6),
+                ],
+              ),
+              const Spacer(),
+              AppButton(
+                label: AppStrings.verifyOtp,
+                loading: _loading,
+                onPressed: _verify,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

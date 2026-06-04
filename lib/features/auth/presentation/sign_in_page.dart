@@ -1,0 +1,230 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/constants/app_strings.dart';
+import '../../../core/network/dio_provider.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_logo.dart';
+import '../../../core/widgets/app_text_field.dart';
+import 'providers/auth_provider.dart';
+
+enum _SignInRole { farmOwner, customer }
+
+class SignInPage extends ConsumerStatefulWidget {
+  const SignInPage({super.key});
+
+  @override
+  ConsumerState<SignInPage> createState() => _SignInPageState();
+}
+
+class _SignInPageState extends ConsumerState<SignInPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _mobileController = TextEditingController();
+  final _pinController = TextEditingController();
+  _SignInRole _role = _SignInRole.farmOwner;
+  bool _obscurePin = true;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _mobileController.dispose();
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _loading = true);
+    try {
+      await ref.read(authRepositoryProvider).login(
+            mobile: _mobileController.text.trim(),
+            pin: _pinController.text.trim(),
+          );
+      final session = await ref.read(authRepositoryProvider).readStoredSession();
+      ref.invalidate(authSessionProvider);
+      if (!mounted) return;
+      context.go(session?.onboardingRoute ?? '/dashboard');
+    } catch (e) {
+      if (!mounted) return;
+      final message = mapDioError(e).message;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppColors.darkInk : AppColors.ink;
+    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
+    final primary = isDark ? AppColors.darkPrimary : AppColors.primary;
+
+    return Scaffold(
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: AppSpace.xxl),
+                      const Center(child: AppLogo(size: 48)),
+                      const SizedBox(height: AppSpace.lg),
+                      Text(
+                        AppStrings.signInTitle,
+                        textAlign: TextAlign.center,
+                        style: AppText.screenTitle.copyWith(color: ink),
+                      ),
+                      const SizedBox(height: AppSpace.xs),
+                      Text(
+                        AppStrings.signInSubtitle,
+                        textAlign: TextAlign.center,
+                        style: AppText.body.copyWith(color: inkMuted),
+                      ),
+                      const SizedBox(height: AppSpace.lg),
+                      SegmentedButton<_SignInRole>(
+                        segments: const [
+                          ButtonSegment(
+                            value: _SignInRole.farmOwner,
+                            label: Text(AppStrings.roleFarmOwner),
+                          ),
+                          ButtonSegment(
+                            value: _SignInRole.customer,
+                            label: Text(AppStrings.roleCustomer),
+                          ),
+                        ],
+                        selected: {_role},
+                        onSelectionChanged: (s) => setState(() => _role = s.first),
+                      ),
+                      const SizedBox(height: AppSpace.lg),
+                      if (_role == _SignInRole.customer) ...[
+                        const Icon(
+                          Icons.local_drink_outlined,
+                          size: 48,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(height: AppSpace.md),
+                        Text(
+                          AppStrings.customerComingSoonTitle,
+                          textAlign: TextAlign.center,
+                          style: AppText.sectionTitle.copyWith(color: ink),
+                        ),
+                        const SizedBox(height: AppSpace.sm),
+                        Text(
+                          AppStrings.customerComingSoonBody,
+                          textAlign: TextAlign.center,
+                          style: AppText.body.copyWith(color: inkMuted),
+                        ),
+                        const SizedBox(height: AppSpace.xl),
+                        AppButton(
+                          label: AppStrings.createAccount,
+                          variant: AppButtonVariant.secondary,
+                          onPressed: () => context.push('/signup'),
+                        ),
+                      ] else ...[
+                        Text(
+                          AppStrings.signInOwnerHint,
+                          textAlign: TextAlign.center,
+                          style: AppText.meta.copyWith(color: inkMuted),
+                        ),
+                        const SizedBox(height: AppSpace.md),
+                        AppTextField(
+                          label: AppStrings.mobileLabel,
+                          hint: AppStrings.mobileHint,
+                          controller: _mobileController,
+                          keyboardType: TextInputType.phone,
+                          prefixIcon: Icons.phone_android_outlined,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(10),
+                          ],
+                          validator: _validateMobile,
+                        ),
+                        const SizedBox(height: AppSpace.md),
+                        AppTextField(
+                          label: AppStrings.pinLabel,
+                          hint: AppStrings.pinHint,
+                          controller: _pinController,
+                          obscureText: _obscurePin,
+                          keyboardType: TextInputType.number,
+                          prefixIcon: Icons.lock_outline,
+                          suffixIcon: _obscurePin
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          onSuffixTap: () => setState(() => _obscurePin = !_obscurePin),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(4),
+                          ],
+                          validator: _validatePin,
+                        ),
+                        const SizedBox(height: AppSpace.xxs),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpace.xs,
+                                vertical: AppSpace.xxs,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () => context.push('/forgot-pin'),
+                            child: Text(
+                              AppStrings.forgotPin,
+                              style: AppText.label.copyWith(color: primary),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpace.lg),
+                        AppButton(label: AppStrings.signIn, loading: _loading, onPressed: _submit),
+                        const SizedBox(height: AppSpace.md),
+                        Center(
+                          child: TextButton(
+                            onPressed: () => context.push('/signup'),
+                            child: Text(
+                              AppStrings.createAccount,
+                              style: AppText.label.copyWith(color: primary),
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpace.lg),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  String? _validateMobile(String? value) {
+    final digits = value?.trim() ?? '';
+    if (digits.isEmpty) return AppStrings.mobileRequired;
+    if (digits.length != 10) return AppStrings.mobileInvalid;
+    return null;
+  }
+
+  String? _validatePin(String? value) {
+    final pin = value?.trim() ?? '';
+    if (pin.isEmpty) return AppStrings.pinRequired;
+    if (pin.length != 4 || int.tryParse(pin) == null) return AppStrings.pinInvalid;
+    return null;
+  }
+}

@@ -1,0 +1,158 @@
+import 'package:flutter/material.dart';
+
+import 'customer_list_styles.dart';
+
+/// Shared mint-green outline used on customer list search/sort and all owner inputs.
+abstract final class OwnerFormTheme {
+  static const borderColor = CustomerListColors.border;
+  static const accentColor = CustomerListColors.accent;
+  static const searchRowHeight = CustomerListMetrics.searchRowHeight;
+
+  static OutlineInputBorder outlineBorder([Color? color, double width = 1]) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: color ?? borderColor, width: width),
+    );
+  }
+
+  static InputDecoration searchDecoration({
+    required String hintText,
+    Color? hintColor,
+  }) {
+    final border = outlineBorder();
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(fontSize: 14, height: 1.0, color: hintColor ?? CustomerListColors.addressMuted),
+      isDense: true,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+      prefixIcon: const Icon(Icons.search, size: 20, color: CustomerListColors.searchIcon),
+      prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: searchRowHeight),
+      border: border,
+      enabledBorder: border,
+      focusedBorder: outlineBorder(accentColor, 1.5),
+    );
+  }
+}
+
+/// Search field + square sort button (44px height).
+class OwnerSearchSortRow extends StatelessWidget {
+  const OwnerSearchSortRow({
+    super.key,
+    required this.controller,
+    required this.hintText,
+    required this.onChanged,
+    required this.onSort,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onSort;
+
+  @override
+  Widget build(BuildContext context) {
+    const height = OwnerFormTheme.searchRowHeight;
+
+    return SizedBox(
+      height: height,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              style: const TextStyle(fontSize: 14, height: 1.0),
+              maxLines: 1,
+              textAlignVertical: TextAlignVertical.center,
+              decoration: OwnerFormTheme.searchDecoration(hintText: hintText),
+            ),
+          ),
+          const SizedBox(width: 8),
+          _SortButton(onSort: onSort),
+        ],
+      ),
+    );
+  }
+}
+
+class _SortButton extends StatelessWidget {
+  const _SortButton({required this.onSort});
+
+  final VoidCallback onSort;
+
+  @override
+  Widget build(BuildContext context) {
+    const height = OwnerFormTheme.searchRowHeight;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onSort,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: OwnerFormTheme.borderColor),
+          ),
+          alignment: Alignment.center,
+          child: const Icon(Icons.swap_vert, size: 16, color: CustomerListColors.sortIcon),
+        ),
+      ),
+    );
+  }
+}
+
+/// Green-outlined compact button for secondary actions (e.g. Skip on daily orders).
+/// Height shared by daily-order qty dropdown and Skip button.
+const kOwnerCompactActionHeight = 36.0;
+
+class OwnerOutlineButton extends StatelessWidget {
+  const OwnerOutlineButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.enabled = true,
+    this.height = kOwnerCompactActionHeight,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool enabled;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: enabled ? onPressed : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: height,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: enabled ? OwnerFormTheme.borderColor : OwnerFormTheme.borderColor.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: enabled ? CustomerListColors.sortIcon : CustomerListColors.addressMuted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

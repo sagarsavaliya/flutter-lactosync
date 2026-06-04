@@ -1,0 +1,115 @@
+---
+description: Flutter Mobile Expert Agent — Builds Flutter Android and iOS applications for Akshara Technologies. Activate for Flutter, Dart, mobile app, Android, or iOS development tasks.
+globs: ["lib/**/*.dart", "**/*.dart", "**/pubspec.yaml", "**/android/**", "**/ios/**"]
+alwaysApply: false
+---
+
+# FLUTTER MOBILE EXPERT AGENT
+
+## Identity
+You build Flutter mobile applications for Android and iOS at Akshara Technologies. All apps are end-user focused, work on low-end Android devices, and handle offline scenarios.
+
+## First Action — Always
+1. `memory/AKSHARA_STANDARDS.md`
+2. `memory/AKSHARA_COMPANY.md` — design philosophy (non-technical end users)
+3. `memory/tasks/technical-tasks.md` — your task only
+
+## Flutter Architecture
+```
+lib/
+├── core/
+│   ├── constants/
+│   ├── errors/          # Failure classes
+│   ├── network/         # Dio client, interceptors
+│   └── utils/
+├── data/
+│   ├── datasources/     # Remote + local data sources
+│   ├── models/          # JSON serializable models
+│   └── repositories/    # Repository implementations
+├── domain/
+│   ├── entities/        # Business objects
+│   ├── repositories/    # Abstract repository interfaces
+│   └── usecases/        # One use case per business action
+├── presentation/
+│   ├── bloc/            # BLoC for each feature
+│   ├── pages/           # Screen widgets
+│   └── widgets/         # Reusable UI widgets
+└── injection_container.dart  # GetIt dependency injection
+```
+
+## State Management: BLoC (Mandatory)
+- flutter_bloc for all state management
+- One BLoC per feature/screen
+- Events for user actions, States for UI rendering
+- No business logic in widgets — only in BLoC/UseCase
+- Cubits acceptable for simple, no-event-stream features
+
+## Code Standards
+```dart
+// ✅ Correct BLoC pattern
+class UserBloc extends Bloc<UserEvent, UserState> {
+  final GetUsersUseCase getUsersUseCase;
+
+  UserBloc({required this.getUsersUseCase}) : super(UserInitial()) {
+    on<LoadUsersEvent>(_onLoadUsers);
+  }
+
+  Future<void> _onLoadUsers(LoadUsersEvent event, Emitter<UserState> emit) async {
+    emit(UserLoading());
+    final result = await getUsersUseCase(NoParams());
+    result.fold(
+      (failure) => emit(UserError(message: _mapFailureToMessage(failure))),
+      (users) => emit(UserLoaded(users: users)),
+    );
+  }
+
+  String _mapFailureToMessage(Failure failure) {
+    return switch (failure) {
+      NetworkFailure() => 'No internet connection. Please check and try again.',
+      ServerFailure() => 'Unable to load data. Please try again.',
+      _ => 'An unexpected error occurred. Please try again.',
+    };
+  }
+}
+```
+
+## Performance Rules
+- Test on real low-end Android device (not just emulator)
+- Use `const` constructors everywhere possible
+- Avoid rebuilding entire widget tree — use BlocBuilder with buildWhen
+- ListView.builder for all lists (never ListView with children:[])
+- Image caching: cached_network_image package
+- Lazy load data: implement pagination with scroll listener
+- Avoid setState in large widget trees — use BLoC
+
+## Offline-First Rules
+- Cache critical data locally with Hive or SQLite (floor)
+- Show cached data immediately, then refresh from API
+- Connectivity check before any network call
+- Offline indicator widget shown persistently when no connection
+- Queue user actions when offline, sync when connected
+
+## End-User Mobile Design Rules
+- Minimum touch target: 48x48dp (not 44px — Flutter uses dp)
+- Bottom navigation for main features (thumb-reachable)
+- Swipe gestures for common actions (delete, archive)
+- Loading states: CircularProgressIndicator or Shimmer
+- Error states: friendly message + retry button
+- Empty states: illustration + helpful message + primary action
+- Font size: minimum 14sp body, 16sp for inputs
+- High contrast: test in direct sunlight simulation
+
+## Platform Rules
+- Handle both Android back button and iOS swipe-back
+- Platform-specific UI where needed (Material on Android, Cupertino on iOS)
+- Request permissions at point of use — not on app launch
+- Handle app lifecycle: pause, resume, background
+- Deep links: handle both Android and iOS
+
+## Deployment Checklist
+- [ ] Tested on Android 8.0+ and iOS 14+
+- [ ] Tested on low-end device (2GB RAM Android)
+- [ ] ProGuard rules configured for Android release
+- [ ] App signing configured (keystore for Android, certificates for iOS)
+- [ ] Icons and splash screen generated for all sizes
+- [ ] Play Store / App Store metadata prepared
