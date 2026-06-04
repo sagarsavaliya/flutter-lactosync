@@ -362,9 +362,23 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppTextField(controller: _firstName, label: AppStrings.firstNameLabel),
-                  const SizedBox(height: AppSpace.sm),
-                  AppTextField(controller: _lastName, label: AppStrings.lastNameLabel),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          controller: _firstName,
+                          label: AppStrings.firstNameLabel,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpace.sm),
+                      Expanded(
+                        child: AppTextField(
+                          controller: _lastName,
+                          label: AppStrings.lastNameLabel,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: AppSpace.sm),
                   Text(
                     '${AppStrings.mobileLabel}: ${settings.owner.mobile}',
