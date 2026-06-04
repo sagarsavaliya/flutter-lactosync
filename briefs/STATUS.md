@@ -1,8 +1,8 @@
 # STATUS — LactoSync
 
-> **Where we are / what's next:** S6-16 contact picker shipped on `feature/s6-16-contact-picker`. Sprint 6 schema/UX specs done. Sprint 5 field validation still pending on live farms.
+> **Where we are / what's next:** Sprint 6 fully implemented — 7 feature branches await your review and approval on GitHub. Resume by saying "CEO, resume" to pick up where we left off.
 >
-> _Last updated: 2026-06-04 by Flutter Engineer_
+> _Last updated: 2026-06-04 by CEO (sign-off)_
 
 ---
 
@@ -81,15 +81,21 @@ Full log → `memory/DECISIONS.md`
 
 ---
 
-## Current sprint: Sprint 6 — Dynamic data model
+## Current sprint: Sprint 6 — Settings redesign + Dynamic product types + UX polish
 
-| Story | Owner | Status | Notes |
-| ----- | ----- | ------ | ----- |
-| S6-01 — Pincode lookup table | DBMS Architect → Laravel Engineer | ✅ done | Schema spec at `briefs/specs/schema-s6-01-pincode.md`; seeding Gujarat first |
-| S6-02 — Dynamic milk types + container types + products migration | DBMS Architect → Laravel Engineer | ✅ done | Schema spec at `briefs/specs/schema-s6-02-dynamic-milk-containers.md`; data migration mapping documented; old VARCHAR columns kept nullable |
-| S6-03 — Settings: Farm profile card + Owner profile card redesign | UX/UI Designer → Flutter Engineer | ✅ done | UX spec at `briefs/specs/ux-s6-03-settings-profile-cards.md` |
-| S6-04 — Settings: Milk types + Container types management sections | UX/UI Designer → Flutter Engineer | ✅ done | UX spec at `briefs/specs/ux-s6-04-milk-container-management.md` |
-| S6-16 — Contact picker for customer creation and editing | Flutter Engineer | ✅ done | Branch `feature/s6-16-contact-picker`; flutter_contacts added; picker in add-customer form + edit sheet; auto-fills first name, last name, 10-digit mobile |
+| Story | Owner | Status | Branch | Notes |
+| ----- | ----- | ------ | ------ | ----- |
+| S6-09 — Order schedule 24hr → 12hr display | Flutter Engineer | ⏳ awaiting review | `feature/s6-09-time-12hr` | 1-method change |
+| S6-10 — Owner first/last name in one row | Flutter Engineer | ⏳ awaiting review | `feature/s6-10-owner-name-row` | Layout change |
+| S6-01 — Pincode schema spec | DBMS Architect | ✅ done | `main` | `briefs/specs/schema-s6-01-pincode.md` |
+| S6-02 — Dynamic milk/container types schema + products migration spec | DBMS Architect | ✅ done | `main` | `briefs/specs/schema-s6-02-dynamic-milk-containers.md` |
+| S6-03 — Settings profile cards UX spec | UX/UI Designer | ✅ done | `main` | `briefs/specs/ux-s6-03-settings-profile-cards.md` |
+| S6-04 — Milk/container management UI spec | UX/UI Designer | ✅ done | `main` | `briefs/specs/ux-s6-04-milk-container-management.md` |
+| S6-05 — Pincode lookup table + API | Laravel Engineer | ⏳ awaiting review | `feature/s6-05-pincode-api` | Gujarat seed + `GET /owner/pincode/{code}` |
+| S6-06/07/08 — Dynamic types backend | Laravel Engineer | ⏳ awaiting review | `feature/s6-06-08-dynamic-types` | 5 migrations + 4 models + CRUD controller; products FK migration |
+| S6-11/12 — Settings farm + owner profile cards | Flutter Engineer | ⏳ awaiting review | `feature/s6-11-12-settings-profile-cards` | Read cards + edit sheets + ZIP pincode auto-fill; also contains S6-13/14/15 code |
+| S6-13/14/15 — Milk/container types UI + product form dynamic dropdowns | Flutter Engineer | ⏳ awaiting review | `feature/s6-13-15-dynamic-types-ui` | Stacks on branch above — merge second |
+| S6-16 — Contact picker for customer creation + editing | Flutter Engineer | ⏳ awaiting review | `feature/s6-16-contact-picker` | `flutter_contacts` added; auto-fills name + 10-digit mobile |
 
 ---
 
