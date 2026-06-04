@@ -1,8 +1,8 @@
 # STATUS — LactoSync
 
-> **Where we are / what's next:** Owner module is feature-complete at v4.8.4+8 (API live). Next step is field-validating the APK on the 3 live farm accounts, then deciding the next feature sprint.
+> **Where we are / what's next:** Sprint 6 schema specs (S6-01, S6-02) and UX specs (S6-03, S6-04) complete. Laravel Engineer can begin migrations; Flutter Engineer can begin settings redesign + milk/container management UI. Sprint 5 field validation still pending on live farms.
 >
-> _Last updated: 2026-06-04 by CEO_
+> _Last updated: 2026-06-04 by UX/UI Designer_
 
 ---
 
@@ -15,6 +15,8 @@
 | API | Deployed on Hostinger VPS — 2026-05-30 |
 | Stack | Flutter 3 · Riverpod · go_router · Dio / Laravel 13 · PHP 8.4 · MySQL 8 · Redis |
 | Live farm accounts | 3 (Shreeji Gir Gaushala · Farenidham Gaushala · Gokul Dairy Farm) |
+| Git remote | https://github.com/sagarsavaliya/flutter-lactosync.git |
+| Default branch | `main` — **never commit directly; feature branches + PR + human approval required** |
 
 ---
 
@@ -76,6 +78,17 @@ Full log → `memory/DECISIONS.md`
 | ----- | ----- | ------ | ----- |
 | S5-01 — Install & smoke-test v4.8.4+8 on live farms | QA / Human | ⚪ pending | Test bill recalc, Send button on invoice detail, WhatsApp delivery to a customer who messaged in last 24 h |
 | S5-02 — Decide next feature sprint | CEO / Human | ⚪ pending | Options: Customer app (Phase 4), QA harness, new owner features |
+
+---
+
+## Current sprint: Sprint 6 — Dynamic data model
+
+| Story | Owner | Status | Notes |
+| ----- | ----- | ------ | ----- |
+| S6-01 — Pincode lookup table | DBMS Architect → Laravel Engineer | ✅ done | Schema spec at `briefs/specs/schema-s6-01-pincode.md`; seeding Gujarat first |
+| S6-02 — Dynamic milk types + container types + products migration | DBMS Architect → Laravel Engineer | ✅ done | Schema spec at `briefs/specs/schema-s6-02-dynamic-milk-containers.md`; data migration mapping documented; old VARCHAR columns kept nullable |
+| S6-03 — Settings: Farm profile card + Owner profile card redesign | UX/UI Designer → Flutter Engineer | ✅ done | UX spec at `briefs/specs/ux-s6-03-settings-profile-cards.md` |
+| S6-04 — Settings: Milk types + Container types management sections | UX/UI Designer → Flutter Engineer | ✅ done | UX spec at `briefs/specs/ux-s6-04-milk-container-management.md` |
 
 ---
 
