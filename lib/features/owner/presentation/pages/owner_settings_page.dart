@@ -80,8 +80,12 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
     );
   }
 
-  String _formatTime(TimeOfDay time) =>
-      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
 
   Future<void> _pickOrderTime({required bool morning}) async {
     final initial = morning ? _morningOrderTime : _eveningOrderTime;
