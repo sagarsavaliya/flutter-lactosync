@@ -77,6 +77,7 @@ Route::prefix('v1')->group(function () {
             Route::patch('/settings', [OwnerSettingsController::class, 'update']);
             Route::patch('/products/{product}', [OwnerSettingsController::class, 'updateProduct']);
             Route::delete('/products/{product}', [OwnerSettingsController::class, 'destroyProduct']);
+            Route::get('/pincode/{pincode}', [OwnerSettingsController::class, 'pincodeLookup']);
         });
     });
 });
