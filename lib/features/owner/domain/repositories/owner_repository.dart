@@ -47,6 +47,8 @@ abstract class OwnerRepository {
 
   Future<PaymentsListResult> fetchPayments(PaymentsQuery query);
 
+  Future<PincodeResult> lookupPincode(String pincode);
+
   Future<OwnerSettings> fetchSettings();
 
   Future<OwnerSettings> updateSettings(OwnerSettingsUpdate update);
@@ -107,5 +109,19 @@ abstract class OwnerRepository {
   Future<List<FarmActivity>> fetchActivities();
 
   Future<void> restoreActivity(int activityLogId);
+
+  // ── Milk types ────────────────────────────────────────────────────────────
+  Future<List<MilkTypeItem>> fetchMilkTypes();
+  Future<MilkTypeItem> addMilkType(String name);
+  Future<void> deleteMilkType(int id);
+  Future<void> hideMilkType(int id);
+  Future<void> unhideMilkType(int id);
+
+  // ── Container types ───────────────────────────────────────────────────────
+  Future<List<ContainerTypeItem>> fetchContainerTypes();
+  Future<ContainerTypeItem> addContainerType({required String material, required String size});
+  Future<void> deleteContainerType(int id);
+  Future<void> hideContainerType(int id);
+  Future<void> unhideContainerType(int id);
 }
 

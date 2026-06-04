@@ -1,8 +1,8 @@
 # STATUS — LactoSync
 
-> **Where we are / what's next:** Sprint 6 schema specs (S6-01, S6-02) and UX specs (S6-03, S6-04) complete. Laravel Engineer can begin migrations; Flutter Engineer can begin settings redesign + milk/container management UI. Sprint 5 field validation still pending on live farms.
+> **Where we are / what's next:** S6-11 through S6-15 implemented on two feature branches. Branch `feature/s6-11-12-settings-profile-cards` delivers farm + owner profile read cards with edit bottom sheets and ZIP pincode auto-fill. Branch `feature/s6-13-15-dynamic-types-ui` delivers milk types + container types management sections and dynamic dropdowns in the product edit form. Both pushed; awaiting PR review + Laravel branch merge for full end-to-end.
 >
-> _Last updated: 2026-06-04 by UX/UI Designer_
+> _Last updated: 2026-06-04 by Flutter Engineer_
 
 ---
 
@@ -89,6 +89,11 @@ Full log → `memory/DECISIONS.md`
 | S6-02 — Dynamic milk types + container types + products migration | DBMS Architect → Laravel Engineer | ✅ done | Schema spec at `briefs/specs/schema-s6-02-dynamic-milk-containers.md`; data migration mapping documented; old VARCHAR columns kept nullable |
 | S6-03 — Settings: Farm profile card + Owner profile card redesign | UX/UI Designer → Flutter Engineer | ✅ done | UX spec at `briefs/specs/ux-s6-03-settings-profile-cards.md` |
 | S6-04 — Settings: Milk types + Container types management sections | UX/UI Designer → Flutter Engineer | ✅ done | UX spec at `briefs/specs/ux-s6-04-milk-container-management.md` |
+| S6-11 — Settings: Farm profile card (read view + edit sheet + ZIP lookup) | Flutter Engineer | ✅ done | Branch `feature/s6-11-12-settings-profile-cards` |
+| S6-12 — Settings: Owner profile card (read view + edit sheet) | Flutter Engineer | ✅ done | Branch `feature/s6-11-12-settings-profile-cards` |
+| S6-13 — Milk types management section | Flutter Engineer | ✅ done | Branch `feature/s6-13-15-dynamic-types-ui` |
+| S6-14 — Container types management section | Flutter Engineer | ✅ done | Branch `feature/s6-13-15-dynamic-types-ui` |
+| S6-15 — Product form dynamic dropdowns | Flutter Engineer | ✅ done | Branch `feature/s6-13-15-dynamic-types-ui` |
 
 ---
 
