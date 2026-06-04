@@ -1,8 +1,8 @@
 # STATUS — LactoSync
 
-> **Where we are / what's next:** Sprint 6 schema specs (S6-01, S6-02) and UX specs (S6-03, S6-04) complete. Laravel Engineer can begin migrations; Flutter Engineer can begin settings redesign + milk/container management UI. Sprint 5 field validation still pending on live farms.
+> **Where we are / what's next:** S6-16 contact picker shipped on `feature/s6-16-contact-picker`. Sprint 6 schema/UX specs done. Sprint 5 field validation still pending on live farms.
 >
-> _Last updated: 2026-06-04 by UX/UI Designer_
+> _Last updated: 2026-06-04 by Flutter Engineer_
 
 ---
 
@@ -89,6 +89,7 @@ Full log → `memory/DECISIONS.md`
 | S6-02 — Dynamic milk types + container types + products migration | DBMS Architect → Laravel Engineer | ✅ done | Schema spec at `briefs/specs/schema-s6-02-dynamic-milk-containers.md`; data migration mapping documented; old VARCHAR columns kept nullable |
 | S6-03 — Settings: Farm profile card + Owner profile card redesign | UX/UI Designer → Flutter Engineer | ✅ done | UX spec at `briefs/specs/ux-s6-03-settings-profile-cards.md` |
 | S6-04 — Settings: Milk types + Container types management sections | UX/UI Designer → Flutter Engineer | ✅ done | UX spec at `briefs/specs/ux-s6-04-milk-container-management.md` |
+| S6-16 — Contact picker for customer creation and editing | Flutter Engineer | ✅ done | Branch `feature/s6-16-contact-picker`; flutter_contacts added; picker in add-customer form + edit sheet; auto-fills first name, last name, 10-digit mobile |
 
 ---
 
