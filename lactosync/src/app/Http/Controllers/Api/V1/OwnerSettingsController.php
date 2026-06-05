@@ -157,15 +157,19 @@ class OwnerSettingsController extends Controller
 
     private function productPayload(Product $product): array
     {
+        $product->loadMissing(['milkType', 'containerType']);
+
         return [
             'id'                   => $product->id,
             'name'                 => $product->name,
-            'milk_type'            => $product->milk_type->value,
-            'milk_type_label'      => $product->milk_type->label(),
+            'milk_type_id'         => $product->milk_type_id,
+            'milk_type'            => $product->milk_type,
+            'milk_type_label'      => $product->milkType?->name ?? $product->milk_type,
             'rate'                 => (float) $product->rate,
             'unit'                 => $product->unit,
-            'container_type'       => $product->container_type->value,
-            'container_type_label' => $product->container_type->label(),
+            'container_type_id'    => $product->container_type_id,
+            'container_type'       => $product->container_type,
+            'container_type_label' => $product->containerType?->name ?? $product->container_type,
         ];
     }
 }

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\OnboardingController;
 use App\Http\Controllers\Api\V1\OwnerBillingController;
 use App\Http\Controllers\Api\V1\OwnerController;
+use App\Http\Controllers\Api\V1\OwnerProductTypesController;
 use App\Http\Controllers\Api\V1\OwnerSettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -78,6 +79,21 @@ Route::prefix('v1')->group(function () {
             Route::patch('/products/{product}', [OwnerSettingsController::class, 'updateProduct']);
             Route::delete('/products/{product}', [OwnerSettingsController::class, 'destroyProduct']);
             Route::get('/pincode/{pincode}', [OwnerSettingsController::class, 'pincodeLookup']);
+
+            // Dynamic product types (milk + container)
+            Route::get('/milk-types', [OwnerProductTypesController::class, 'indexMilkTypes']);
+            Route::post('/milk-types', [OwnerProductTypesController::class, 'storeMilkType']);
+            Route::patch('/milk-types/{milkType}', [OwnerProductTypesController::class, 'updateMilkType']);
+            Route::delete('/milk-types/{milkType}', [OwnerProductTypesController::class, 'destroyMilkType']);
+            Route::post('/milk-types/{milkType}/hide', [OwnerProductTypesController::class, 'hideMilkType']);
+            Route::delete('/milk-types/{milkType}/hide', [OwnerProductTypesController::class, 'unhideMilkType']);
+
+            Route::get('/container-types', [OwnerProductTypesController::class, 'indexContainerTypes']);
+            Route::post('/container-types', [OwnerProductTypesController::class, 'storeContainerType']);
+            Route::patch('/container-types/{containerType}', [OwnerProductTypesController::class, 'updateContainerType']);
+            Route::delete('/container-types/{containerType}', [OwnerProductTypesController::class, 'destroyContainerType']);
+            Route::post('/container-types/{containerType}/hide', [OwnerProductTypesController::class, 'hideContainerType']);
+            Route::delete('/container-types/{containerType}/hide', [OwnerProductTypesController::class, 'unhideContainerType']);
         });
     });
 });
