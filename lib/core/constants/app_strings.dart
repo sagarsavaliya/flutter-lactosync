@@ -412,6 +412,48 @@ abstract final class AppStrings {
   static const settingsOrderScheduleHint =
       'Orders are created automatically at these times for active subscriptions.';
 
+  // Settings — profile cards (S6-11/12)
+  static const settingsEditFarmTitle = 'Edit farm details';
+  static const settingsEditOwnerTitle = 'Edit owner profile';
+  static const settingsFarmEditTooltip = 'Edit farm details';
+  static const settingsOwnerEditTooltip = 'Edit owner profile';
+  static const settingsPincodeError = 'Pincode not found, please enter city/state manually';
+  static const settingsCityStatePinRow = 'City / State / PIN';
+  static const settingsAddressLabel = 'Address';
+  static const settingsPinCodeLabel = 'PIN code';
+  static const settingsCityLabel = 'City';
+  static const settingsStateLabel = 'State';
+
+  // Settings — milk types + container types (S6-13/14/15)
+  static const settingsMilkTypesSection = 'Milk types';
+  static const settingsContainerTypesSection = 'Container types';
+  static const settingsAddMilkType = 'Add milk type';
+  static const settingsAddContainerType = 'Add container type';
+  static const settingsAddMilkTypeTitle = 'Add milk type';
+  static const settingsAddContainerTypeTitle = 'Add container type';
+  static const settingsMilkTypeNameLabel = 'Milk type name';
+  static const settingsMilkTypeNameHint = 'e.g. A2 Cow';
+  static const settingsMilkTypeNameRequired = 'Enter milk type name';
+  static const settingsSystemDefault = 'System default';
+  static const settingsDeleteTypeTooltip = 'Delete';
+  static const settingsMilkTypesEmpty =
+      'No milk types visible. Add a custom type or enable a system default.';
+  static const settingsContainerTypesEmpty =
+      'No container types visible. Add a custom type or enable a system default.';
+  static const settingsToggleError = 'Could not update. Please try again.';
+  static const settingsDeleteTypeTitle = 'Delete'; // prefix; append type name + '?'
+  static const settingsDeleteTypeMessage = 'Remove this type? This cannot be undone.';
+  static const settingsDeleteTypeBlocked =
+      'Cannot delete — this type is used by a product. Update those products first.';
+  static const settingsMilkTypeAdded = 'Milk type added';
+  static const settingsContainerTypeAdded = 'Container type added';
+  static const settingsMaterialLabel = 'Material';
+  static const settingsMaterialHint = 'Select material';
+  static const settingsMaterialRequired = 'Select a material';
+  static const settingsSizeLabel = 'Size';
+  static const settingsSizeHint = 'e.g. 1L, 500ml';
+  static const settingsSizeRequired = 'Enter size (e.g. 1L)';
+
   // Legacy
   static const registerTitle = 'Create account';
   static const registerSubtitle = 'Set up your farm and sign-in PIN.';

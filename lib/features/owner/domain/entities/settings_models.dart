@@ -1,3 +1,15 @@
+class PincodeResult {
+  final String city;
+  final String district;
+  final String state;
+  const PincodeResult({required this.city, required this.district, required this.state});
+  factory PincodeResult.fromJson(Map<String, dynamic> json) => PincodeResult(
+        city: json['city'] as String,
+        district: json['district'] as String,
+        state: json['state'] as String,
+      );
+}
+
 class OwnerSettings {
   const OwnerSettings({
     required this.farm,
@@ -117,6 +129,8 @@ class SettingsProduct {
     required this.unit,
     required this.containerType,
     required this.containerTypeLabel,
+    this.milkTypeId,
+    this.containerTypeId,
   });
 
   final int id;
@@ -127,6 +141,8 @@ class SettingsProduct {
   final String unit;
   final String containerType;
   final String containerTypeLabel;
+  final int? milkTypeId;
+  final int? containerTypeId;
 
   factory SettingsProduct.fromJson(Map<String, dynamic> json) {
     return SettingsProduct(
@@ -138,8 +154,54 @@ class SettingsProduct {
       unit: json['unit'] as String? ?? 'ltr',
       containerType: json['container_type'] as String? ?? 'glass_bottle',
       containerTypeLabel: json['container_type_label'] as String? ?? '',
+      milkTypeId: json['milk_type_id'] as int?,
+      containerTypeId: json['container_type_id'] as int?,
     );
   }
+}
+
+class MilkTypeItem {
+  final int id;
+  final String name;
+  final bool isSystem;
+  final bool isHidden;
+  final bool isActive;
+  const MilkTypeItem({
+    required this.id,
+    required this.name,
+    required this.isSystem,
+    required this.isHidden,
+    required this.isActive,
+  });
+  factory MilkTypeItem.fromJson(Map<String, dynamic> json) => MilkTypeItem(
+        id: json['id'] as int,
+        name: json['name'] as String,
+        isSystem: json['is_system'] as bool? ?? false,
+        isHidden: json['is_hidden'] as bool? ?? false,
+        isActive: json['is_active'] as bool? ?? true,
+      );
+}
+
+class ContainerTypeItem {
+  final int id;
+  final String name;
+  final bool isSystem;
+  final bool isHidden;
+  final bool isActive;
+  const ContainerTypeItem({
+    required this.id,
+    required this.name,
+    required this.isSystem,
+    required this.isHidden,
+    required this.isActive,
+  });
+  factory ContainerTypeItem.fromJson(Map<String, dynamic> json) => ContainerTypeItem(
+        id: json['id'] as int,
+        name: json['name'] as String,
+        isSystem: json['is_system'] as bool? ?? false,
+        isHidden: json['is_hidden'] as bool? ?? false,
+        isActive: json['is_active'] as bool? ?? true,
+      );
 }
 
 enum DocumentShareFormat { text, image }
