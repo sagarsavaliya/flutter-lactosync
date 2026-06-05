@@ -59,8 +59,12 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
     );
   }
 
-  String _formatTime(TimeOfDay time) =>
-      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
 
   /// 12-hour display e.g. "5:00 AM", "3:00 PM"
   String _displayTime(TimeOfDay time) {
