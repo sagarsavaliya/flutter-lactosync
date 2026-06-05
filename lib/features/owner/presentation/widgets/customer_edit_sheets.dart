@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_strings.dart';
@@ -47,6 +48,7 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
   late bool _whatsappEnabled;
   late bool _suspendDelivery;
   bool _loading = false;
+  bool _importingContact = false;
 
   @override
   void initState() {
@@ -77,6 +79,45 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
     _stateController.dispose();
     _zipController.dispose();
     super.dispose();
+  }
+
+  Future<void> _importContact() async {
+    setState(() => _importingContact = true);
+    try {
+      final granted = await FlutterContacts.requestPermission(readonly: true);
+      if (!mounted) return;
+      if (!granted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.contactsPermissionDenied)),
+        );
+        return;
+      }
+      final contact = await FlutterContacts.openExternalPick();
+      if (contact == null) return;
+      final full = await FlutterContacts.getContact(contact.id, withProperties: true);
+      if (full == null) return;
+      _firstController.text = full.name.first.trim();
+      _lastController.text = full.name.last.trim();
+      if (full.phones.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.contactNoPhone)),
+        );
+        return;
+      }
+      final phone = full.phones.first;
+      final raw = (phone.normalizedNumber.isNotEmpty ? phone.normalizedNumber : phone.number)
+          .replaceAll(RegExp(r'[^\d]'), '');
+      final last10 = raw.length >= 10 ? raw.substring(raw.length - 10) : raw;
+      _contactController.text = last10;
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.contactImportError)),
+      );
+    } finally {
+      if (mounted) setState(() => _importingContact = false);
+    }
   }
 
   Future<void> _save() async {
@@ -124,6 +165,31 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
           children: [
             OwnerSheetTitle(AppStrings.editCustomerTitle),
             const SizedBox(height: AppSpace.lg),
+            AppLabelRow(
+              label: AppStrings.customerInfoTitle,
+              trailing: Tooltip(
+                message: AppStrings.importFromContacts,
+                child: InkWell(
+                  onTap: _importingContact ? null : _importContact,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: _importingContact
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            Icons.contacts_outlined,
+                            size: 20,
+                            color: Theme.of(context).hintColor,
+                          ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpace.xs),
               Row(
                 children: [
                   Expanded(

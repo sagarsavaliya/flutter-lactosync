@@ -454,6 +454,13 @@ abstract final class AppStrings {
   static const settingsSizeHint = 'e.g. 1L, 500ml';
   static const settingsSizeRequired = 'Enter size (e.g. 1L)';
 
+  // Contact picker
+  static const contactsPermissionDenied =
+      'Contacts permission denied. Grant it in Settings to use this feature.';
+  static const contactNoPhone = 'No phone number found for this contact.';
+  static const contactImportError = 'Could not import contact. Please try again.';
+  static const importFromContacts = 'Import from contacts';
+
   // Legacy
   static const registerTitle = 'Create account';
   static const registerSubtitle = 'Set up your farm and sign-in PIN.';
