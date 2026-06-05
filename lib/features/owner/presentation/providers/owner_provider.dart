@@ -90,3 +90,11 @@ final ownerSettingsProvider = FutureProvider.autoDispose<OwnerSettings>((ref) {
   return ref.watch(ownerRepositoryProvider).fetchSettings();
 });
 
+final milkTypesProvider = FutureProvider<List<MilkTypeItem>>((ref) async {
+  return ref.watch(ownerRepositoryProvider).fetchMilkTypes();
+});
+
+final containerTypesProvider = FutureProvider<List<ContainerTypeItem>>((ref) async {
+  return ref.watch(ownerRepositoryProvider).fetchContainerTypes();
+});
+
