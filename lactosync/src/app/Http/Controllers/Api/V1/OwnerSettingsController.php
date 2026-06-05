@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Owner\UpdateOwnerSettingsRequest;
 use App\Http\Requests\Owner\UpdateOwnerProductRequest;
 use App\Models\FarmOwner;
+use App\Models\Pincode;
 use App\Models\Product;
 use App\Support\ApiResponse;
 use App\Support\DocumentSettings;
@@ -109,6 +110,25 @@ class OwnerSettingsController extends Controller
         return ApiResponse::success(['deleted' => true]);
     }
 
+    public function pincodeLookup(Request $request, string $pincode): JsonResponse
+    {
+        if (! preg_match('/^\d{6}$/', $pincode)) {
+            return ApiResponse::error('VALIDATION_ERROR', 'Pincode must be exactly 6 digits.', 422);
+        }
+
+        $row = Pincode::where('pincode', $pincode)->first();
+
+        if (! $row) {
+            return ApiResponse::error('PINCODE_NOT_FOUND', 'Pincode not found.', 404);
+        }
+
+        return ApiResponse::success([
+            'city'     => $row->city,
+            'district' => $row->district,
+            'state'    => $row->state,
+        ]);
+    }
+
     private function farmPayload($farm): array
     {
         return [
@@ -138,13 +158,13 @@ class OwnerSettingsController extends Controller
     private function productPayload(Product $product): array
     {
         return [
-            'id' => $product->id,
-            'name' => $product->name,
-            'milk_type' => $product->milk_type->value,
-            'milk_type_label' => $product->milk_type->label(),
-            'rate' => (float) $product->rate,
-            'unit' => $product->unit,
-            'container_type' => $product->container_type->value,
+            'id'                   => $product->id,
+            'name'                 => $product->name,
+            'milk_type'            => $product->milk_type->value,
+            'milk_type_label'      => $product->milk_type->label(),
+            'rate'                 => (float) $product->rate,
+            'unit'                 => $product->unit,
+            'container_type'       => $product->container_type->value,
             'container_type_label' => $product->container_type->label(),
         ];
     }
