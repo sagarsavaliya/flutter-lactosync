@@ -183,6 +183,15 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                             ),
                           ),
                         ),
+                        Center(
+                          child: TextButton(
+                            onPressed: () => context.push('/delivery-boy/login'),
+                            child: Text(
+                              'Delivery Boy? Login here',
+                              style: AppText.label.copyWith(color: inkMuted),
+                            ),
+                          ),
+                        ),
                       ],
                       const SizedBox(height: AppSpace.lg),
                     ],

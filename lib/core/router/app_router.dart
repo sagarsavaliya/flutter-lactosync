@@ -32,15 +32,25 @@ import '../../features/owner/presentation/pages/billing_page.dart';
 import '../../features/owner/presentation/pages/customer_detail_page.dart';
 import '../../features/owner/presentation/pages/customers_list_page.dart';
 import '../../features/owner/presentation/pages/daily_orders_page.dart';
+import '../../features/delivery_boy/presentation/pages/delivery_boy_home_page.dart';
+import '../../features/delivery_boy/presentation/pages/delivery_boy_login_page.dart';
+import '../../features/delivery_boy/presentation/pages/delivery_boy_route_sheet_page.dart';
+import '../../features/delivery_boy/presentation/pages/delivery_boy_set_pin_page.dart';
+import '../../features/delivery_boy/presentation/shell/delivery_boy_shell.dart';
+import '../../features/owner/presentation/pages/delivery_boys_page.dart';
 import '../../features/owner/presentation/pages/invoice_detail_page.dart';
 import '../../features/owner/presentation/pages/owner_home_page.dart';
+import '../../features/owner/presentation/pages/owner_route_sheet_page.dart';
 import '../../features/owner/presentation/pages/owner_settings_page.dart';
 import '../../features/owner/presentation/pages/payments_page.dart';
+import '../../features/owner/presentation/pages/route_detail_page.dart';
+import '../../features/owner/presentation/pages/routes_page.dart';
 import '../../features/owner/presentation/shell/owner_shell.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 final shellNavigatorKey = GlobalKey<NavigatorState>();
 final customerShellNavigatorKey = GlobalKey<NavigatorState>();
+final deliveryBoyShellNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
@@ -158,6 +168,10 @@ final appRouter = GoRouter(
           builder: (context, state) => const DailyOrdersPage(),
         ),
         GoRoute(
+          path: '/owner/routes',
+          builder: (context, state) => const RoutesPage(),
+        ),
+        GoRoute(
           path: '/owner/billing',
           builder: (context, state) => const BillingPage(),
         ),
@@ -191,6 +205,24 @@ final appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       path: '/owner/activity',
       builder: (context, state) => const ActivityPage(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/owner/routes/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        return RouteDetailPage(routeId: id);
+      },
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/owner/delivery-boys',
+      builder: (context, state) => const DeliveryBoysPage(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/owner/route-sheet',
+      builder: (context, state) => const OwnerRouteSheetPage(),
     ),
     GoRoute(
       path: '/forgot-pin',
@@ -250,6 +282,31 @@ final appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       path: '/customer/vacation',
       builder: (context, state) => const CustomerVacationPage(),
+    ),
+
+    // ── Delivery Boy ─────────────────────────────────────────────────────────
+    GoRoute(
+      path: '/delivery-boy/login',
+      builder: (context, state) => const DeliveryBoyLoginPage(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/delivery-boy/change-pin',
+      builder: (context, state) => const DeliveryBoySetPinPage(),
+    ),
+    ShellRoute(
+      navigatorKey: deliveryBoyShellNavigatorKey,
+      builder: (context, state, child) => DeliveryBoyShell(child: child),
+      routes: [
+        GoRoute(
+          path: '/delivery-boy/home',
+          builder: (context, state) => const DeliveryBoyHomePage(),
+        ),
+        GoRoute(
+          path: '/delivery-boy/route-sheet',
+          builder: (context, state) => const DeliveryBoyRouteSheetPage(),
+        ),
+      ],
     ),
 
     // ── Customer shell + tabs ────────────────────────────────────────────────

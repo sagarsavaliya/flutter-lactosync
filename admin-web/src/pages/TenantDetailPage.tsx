@@ -17,6 +17,7 @@ import {
   FileText,
   ToggleLeft,
   ToggleRight,
+  Layers,
 } from 'lucide-react'
 import AdminShell from '../components/layout/AdminShell'
 import { Card, CardContent, CardTitle } from '../components/ui/card'
@@ -388,12 +389,42 @@ export default function TenantDetailPage() {
   const [deletePayment, setDeletePayment] = useState<PaymentRecord | null>(null)
   const [planModalType, setPlanModalType] = useState<'assign' | 'change' | 'pause' | 'resume' | null>(null)
   const [editProfileOpen, setEditProfileOpen] = useState(false)
+  const [savingModules, setSavingModules] = useState<string | null>(null)
 
   const { data: tenant, isLoading, isError, refetch } = useQuery<TenantDetail>({
     queryKey: ['tenant', id],
     queryFn: () => apiClient.get(`/api/admin/v1/tenants/${id}`).then((r) => r.data.data),
     enabled: !!id,
   })
+
+  interface ModuleEntry { module_slug: string; is_enabled: boolean; has_override: boolean }
+  const { data: modulesData, refetch: refetchModules } = useQuery<ModuleEntry[]>({
+    queryKey: ['tenant-modules', id],
+    queryFn: () => apiClient.get(`/api/admin/v1/tenants/${id}/modules`).then((r) => r.data.data),
+    enabled: !!id,
+  })
+
+  const MODULE_LABELS: Record<string, string> = {
+    route_delivery:         'Route-based Delivery',
+    customer_app:           'Customer App',
+    whatsapp_notifications: 'WhatsApp Notifications',
+    billing_invoices:       'Billing & Invoices',
+  }
+
+  const handleModuleToggle = async (slug: string, currentEnabled: boolean) => {
+    setSavingModules(slug)
+    try {
+      await apiClient.put(`/api/admin/v1/tenants/${id}/modules`, {
+        modules: { [slug]: !currentEnabled },
+      })
+      refetchModules()
+      toast({ title: `${MODULE_LABELS[slug] ?? slug} ${!currentEnabled ? 'enabled' : 'disabled'}.` })
+    } catch {
+      toast({ title: 'Failed to update module.', variant: 'destructive' })
+    } finally {
+      setSavingModules(null)
+    }
+  }
 
   const handleDeletePayment = async () => {
     if (!deletePayment) return
@@ -757,6 +788,45 @@ export default function TenantDetailPage() {
                 <span>{formatDate(profile.created_at)}</span>
               </div>
             </CardContent>
+          </Card>
+
+          {/* Module Overrides card */}
+          <Card className="p-5 mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Layers className="w-4 h-4 text-green-700" />
+              <CardTitle className="text-sm font-semibold text-gray-700">Module Access</CardTitle>
+            </div>
+            {!modulesData ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {modulesData.map((mod) => (
+                  <div key={mod.module_slug} className="flex items-center justify-between py-1.5">
+                    <div>
+                      <p className="text-sm text-gray-700">{MODULE_LABELS[mod.module_slug] ?? mod.module_slug}</p>
+                      {mod.has_override && (
+                        <p className="text-[10px] text-amber-500">Override active</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleModuleToggle(mod.module_slug, mod.is_enabled)}
+                      disabled={savingModules === mod.module_slug}
+                      className="disabled:opacity-40 transition-opacity"
+                      title={mod.is_enabled ? 'Click to disable' : 'Click to enable'}
+                    >
+                      {mod.is_enabled
+                        ? <ToggleRight className="w-7 h-7 text-green-600" />
+                        : <ToggleLeft className="w-7 h-7 text-gray-300" />
+                      }
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
 
           {/* Payment Summary card */}

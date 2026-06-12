@@ -5,6 +5,7 @@ namespace App\Models\Admin;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A SaaS pricing tier that the operator creates and assigns to tenants.
@@ -65,5 +66,34 @@ class SubscriptionPlan extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(TenantPlanAssignment::class);
+    }
+
+    /** Syncs the plan_modules rows for this plan to exactly the given slugs. */
+    public function syncModules(array $slugs): void
+    {
+        DB::table('plan_modules')->where('subscription_plan_id', $this->id)->delete();
+
+        if (empty($slugs)) {
+            return;
+        }
+
+        $now  = now()->toDateTimeString();
+        $rows = array_map(fn ($slug) => [
+            'subscription_plan_id' => $this->id,
+            'module_slug'          => $slug,
+            'created_at'           => $now,
+            'updated_at'           => $now,
+        ], array_unique($slugs));
+
+        DB::table('plan_modules')->insert($rows);
+    }
+
+    /** Returns the module slugs enabled for this plan. */
+    public function moduleSlugList(): array
+    {
+        return DB::table('plan_modules')
+            ->where('subscription_plan_id', $this->id)
+            ->pluck('module_slug')
+            ->all();
     }
 }

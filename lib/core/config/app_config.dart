@@ -38,4 +38,12 @@ abstract final class AppConfig {
     if (Platform.isAndroid) return 'http://127.0.0.1:8080/api';
     return 'http://localhost:8080/api';
   }
+
+  /// Base URL for delivery boy API routes (prefix: /api/delivery-boy/v1/...).
+  static String get apiBaseUrlDeliveryBoy {
+    if (kReleaseMode) return '$productionHost/api';
+    if (kIsWeb) return 'http://localhost:8080/api';
+    if (Platform.isAndroid) return 'http://127.0.0.1:8080/api';
+    return 'http://localhost:8080/api';
+  }
 }

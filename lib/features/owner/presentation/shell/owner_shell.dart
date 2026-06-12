@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/models/subscription_status.dart';
+import '../../../../core/providers/module_provider.dart';
 import '../../../../core/providers/subscription_status_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../features/subscription/presentation/widgets/subscription_warning_banner.dart';
@@ -36,81 +37,61 @@ class OwnerShell extends ConsumerStatefulWidget {
 
 
 class _OwnerShellState extends ConsumerState<OwnerShell> {
+  // ── Nav item definitions ────────────────────────────────────────────────────
 
-  int _indexFromLocation(String location) {
+  static const _baseItems = [
+    _NavDef(icon: Icons.home_rounded,        label: 'Home',       path: '/owner/home'),
+    _NavDef(icon: Icons.group_outlined,       label: 'Customers',  path: '/owner/customers'),
+    _NavDef(icon: Icons.local_shipping_outlined, label: 'Orders',  path: '/owner/daily-orders'),
+    _NavDef(icon: Icons.receipt_long_outlined, label: 'Billing',   path: '/owner/billing'),
+    _NavDef(icon: Icons.payments_outlined,    label: 'Payments',   path: '/owner/payment'),
+  ];
 
-    if (location.startsWith('/owner/customers')) return 1;
+  static const _routesItem = _NavDef(
+    icon: Icons.route_outlined,
+    label: 'Routes',
+    path: '/owner/routes',
+  );
 
-    if (location.startsWith('/owner/daily-orders')) return 2;
+  List<_NavDef> _navItems(bool routeDeliveryEnabled) {
+    if (!routeDeliveryEnabled) return _baseItems;
+    // Insert Routes after Orders (index 2), before Billing.
+    return [
+      _baseItems[0],
+      _baseItems[1],
+      _baseItems[2],
+      _routesItem,
+      _baseItems[3],
+      _baseItems[4],
+    ];
+  }
 
-    if (location.startsWith('/owner/billing')) return 3;
-
-    if (location.startsWith('/owner/payment')) return 4;
-
-    if (location.startsWith('/owner/settings')) return 5;
-
+  int _indexFromLocation(String location, List<_NavDef> items) {
+    for (var i = 0; i < items.length; i++) {
+      if (location.startsWith(items[i].path)) return i;
+    }
     return 0;
-
   }
 
-
-
-  void _onTap(int index) {
-
-    final path = switch (index) {
-
-      1 => '/owner/customers',
-
-      2 => '/owner/daily-orders',
-
-      3 => '/owner/billing',
-
-      4 => '/owner/payment',
-
-      5 => '/owner/settings',
-
-      _ => '/owner/home',
-
-    };
-
-    context.go(path);
-
+  String _titleForIndex(int index, List<_NavDef> items) {
+    if (index < items.length) return items[index].label;
+    return AppStrings.dashboardTitle;
   }
-
-
-
-  String _titleForIndex(int index) {
-
-    return switch (index) {
-
-      1 => AppStrings.customersScreenTitle,
-
-      2 => AppStrings.navDailyOrders,
-
-      3 => AppStrings.navBilling,
-
-      4 => AppStrings.navPayment,
-
-      5 => AppStrings.settingsTitle,
-
-      _ => AppStrings.dashboardTitle,
-
-    };
-
-  }
-
-
 
   @override
-
   Widget build(BuildContext context) {
-
     final location = GoRouterState.of(context).uri.toString();
-
-    final index = _indexFromLocation(location);
-
+    final moduleState = ref.watch(moduleProvider);
+    final routeDeliveryEnabled = moduleState.isEnabled('route_delivery');
+    final items = _navItems(routeDeliveryEnabled);
+    final index = _indexFromLocation(location, items);
     final isHome = index == 0;
     final isCustomers = index == 1;
+
+    // Fallback title for settings (not in bottom nav).
+    final title = location.startsWith('/owner/settings')
+        ? AppStrings.settingsTitle
+        : _titleForIndex(index, items);
 
     return Scaffold(
       backgroundColor: isHome
@@ -119,7 +100,7 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
               ? CustomerListColors.background
               : AppColors.bg,
       appBar: OwnerTopBar(
-        screenTitle: _titleForIndex(index),
+        screenTitle: title,
         dashboardMode: isHome,
         titleColor: isCustomers ? CustomerListColors.accent : null,
       ),
@@ -127,7 +108,6 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Amber banner during grace period — no-op for active subscriptions.
           Consumer(
             builder: (context, ref, _) {
               final subState = ref.watch(subscriptionStatusProvider);
@@ -145,103 +125,40 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
       bottomNavigationBar: DecoratedBox(
-
         decoration: BoxDecoration(
-
           color: DashboardColors.surface,
-
-          border: Border(top: BorderSide(color: DashboardColors.outlineVariant.withValues(alpha: 0.3))),
-
+          border: Border(top: BorderSide(
+            color: DashboardColors.outlineVariant.withValues(alpha: 0.3),
+          )),
         ),
-
         child: SafeArea(
-
           top: false,
-
           child: Padding(
-
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-
             child: Row(
-
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-
               children: [
-
-                _NavItem(
-
-                  icon: Icons.home_rounded,
-
-                  label: AppStrings.navHome,
-
-                  selected: index == 0,
-
-                  onTap: () => _onTap(0),
-
-                ),
-
-                _NavItem(
-
-                  icon: Icons.group_outlined,
-
-                  label: AppStrings.navCustomers,
-
-                  selected: index == 1,
-
-                  onTap: () => _onTap(1),
-
-                ),
-
-                _NavItem(
-
-                  icon: Icons.local_shipping_outlined,
-
-                  label: AppStrings.dashboardNavOrders,
-
-                  selected: index == 2,
-
-                  onTap: () => _onTap(2),
-
-                ),
-
-                _NavItem(
-
-                  icon: Icons.receipt_long_outlined,
-
-                  label: AppStrings.navBilling,
-
-                  selected: index == 3,
-
-                  onTap: () => _onTap(3),
-
-                ),
-
-                _NavItem(
-
-                  icon: Icons.payments_outlined,
-
-                  label: AppStrings.navPayment,
-
-                  selected: index == 4,
-
-                  onTap: () => _onTap(4),
-
-                ),
-
+                for (var i = 0; i < items.length; i++)
+                  _NavItem(
+                    icon: items[i].icon,
+                    label: items[i].label,
+                    selected: index == i,
+                    onTap: () => context.go(items[i].path),
+                  ),
               ],
-
             ),
-
           ),
-
         ),
-
       ),
-
     );
-
   }
+}
 
+class _NavDef {
+  const _NavDef({required this.icon, required this.label, required this.path});
+  final IconData icon;
+  final String label;
+  final String path;
 }
 
 

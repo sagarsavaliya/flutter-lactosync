@@ -12,11 +12,16 @@ use App\Http\Controllers\Api\Admin\V1\PaymentController as AdminPaymentControlle
 use App\Http\Controllers\Api\Admin\V1\PlanController as AdminPlanController;
 use App\Http\Controllers\Api\Admin\V1\CouponController as AdminCouponController;
 use App\Http\Controllers\Api\Admin\V1\TenantController as AdminTenantController;
+use App\Http\Controllers\Api\Admin\V1\TenantModuleController as AdminTenantModuleController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\DeliveryBoyAuthController;
+use App\Http\Controllers\Api\V1\DeliveryBoyController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\OnboardingController;
 use App\Http\Controllers\Api\V1\OwnerBillingController;
 use App\Http\Controllers\Api\V1\OwnerController;
+use App\Http\Controllers\Api\V1\OwnerDeliveryController;
+use App\Http\Controllers\Api\V1\OwnerModuleController;
 use App\Http\Controllers\Api\V1\OwnerProductTypesController;
 use App\Http\Controllers\Api\V1\OwnerSettingsController;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +69,10 @@ Route::prefix('admin/v1')->group(function (): void {
         Route::post('coupons', [AdminCouponController::class, 'store']);
         Route::patch('coupons/{id}/toggle-active', [AdminCouponController::class, 'toggleActive']);
         Route::post('tenants/{id}/apply-coupon', [AdminCouponController::class, 'applyToTenant']);
+
+        // Tenant module overrides (S8-04)
+        Route::get('tenants/{id}/modules', [AdminTenantModuleController::class, 'show']);
+        Route::put('tenants/{id}/modules', [AdminTenantModuleController::class, 'update']);
     });
 });
 
@@ -107,6 +116,7 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::prefix('owner')->middleware('check.subscription')->group(function () {
+            Route::get('/modules', [OwnerModuleController::class, 'index']);
             Route::get('/dashboard', [OwnerController::class, 'dashboard']);
             Route::get('/activities', [OwnerController::class, 'activities']);
             Route::post('/activities/{activityLog}/restore', [OwnerController::class, 'restoreActivity']);
@@ -157,6 +167,38 @@ Route::prefix('v1')->group(function () {
             Route::delete('/container-types/{containerType}', [OwnerProductTypesController::class, 'destroyContainerType']);
             Route::post('/container-types/{containerType}/hide', [OwnerProductTypesController::class, 'hideContainerType']);
             Route::delete('/container-types/{containerType}/hide', [OwnerProductTypesController::class, 'unhideContainerType']);
+
+            // Delivery module (S8-07 through S8-14) — gated by route_delivery module
+            Route::middleware('module:route_delivery')->group(function (): void {
+                // Delivery boys CRUD
+                Route::get('/delivery-boys', [OwnerDeliveryController::class, 'deliveryBoys']);
+                Route::post('/delivery-boys', [OwnerDeliveryController::class, 'storeDeliveryBoy']);
+                Route::patch('/delivery-boys/{boy}', [OwnerDeliveryController::class, 'updateDeliveryBoy']);
+                Route::delete('/delivery-boys/{boy}', [OwnerDeliveryController::class, 'destroyDeliveryBoy']);
+                Route::post('/delivery-boys/{boy}/reset-pin', [OwnerDeliveryController::class, 'resetDeliveryBoyPin']);
+
+                // Routes CRUD
+                Route::get('/routes', [OwnerDeliveryController::class, 'routes']);
+                Route::post('/routes', [OwnerDeliveryController::class, 'storeRoute']);
+                Route::patch('/routes/{route}', [OwnerDeliveryController::class, 'updateRoute']);
+                Route::delete('/routes/{route}', [OwnerDeliveryController::class, 'destroyRoute']);
+
+                // Route customer assignments
+                Route::get('/routes/{route}/customers', [OwnerDeliveryController::class, 'routeCustomers']);
+                Route::post('/routes/{route}/customers', [OwnerDeliveryController::class, 'addRouteCustomer']);
+                Route::delete('/routes/{route}/customers/{assignment}', [OwnerDeliveryController::class, 'removeRouteCustomer']);
+                Route::put('/routes/{route}/customers/reorder', [OwnerDeliveryController::class, 'reorderRouteCustomers']);
+
+                // Route-delivery-boy assignments
+                Route::get('/routes/{route}/assignments', [OwnerDeliveryController::class, 'routeBoyAssignment']);
+                Route::put('/routes/{route}/assignments', [OwnerDeliveryController::class, 'assignRouteDeliveryBoy']);
+
+                // Owner daily route sheet
+                Route::get('/route-sheet', [OwnerDeliveryController::class, 'ownerRouteSheet']);
+
+                // Skip delivery
+                Route::post('/skip-delivery', [OwnerDeliveryController::class, 'skipDelivery']);
+            });
         });
     });
 });
@@ -200,5 +242,27 @@ Route::prefix('customer/v1')->group(function (): void {
         Route::get('vacation', [CustomerVacationController::class, 'show']);
         Route::post('vacation', [CustomerVacationController::class, 'store']);
         Route::delete('vacation', [CustomerVacationController::class, 'destroy']);
+    });
+});
+
+// ── Delivery Boy App API ──────────────────────────────────────────────────────
+Route::prefix('delivery-boy/v1')->group(function (): void {
+
+    // Auth (unauthenticated)
+    Route::prefix('auth')->group(function (): void {
+        Route::post('login', [DeliveryBoyAuthController::class, 'login'])
+            ->middleware('throttle:10,1');
+    });
+
+    // Authenticated delivery boy routes
+    Route::middleware('auth:delivery_boy')->group(function (): void {
+        Route::post('auth/change-pin', [DeliveryBoyAuthController::class, 'changePin']);
+        Route::post('auth/logout',     [DeliveryBoyAuthController::class, 'logout']);
+
+        // S8-12 — Route sheet (packing view)
+        Route::get('route-sheet', [DeliveryBoyController::class, 'routeSheet']);
+
+        // S8-13 — Skip delivery
+        Route::post('skip-delivery', [DeliveryBoyController::class, 'skipDelivery']);
     });
 });

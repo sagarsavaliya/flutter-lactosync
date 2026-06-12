@@ -54,6 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Named alias so routes can reference 'check.subscription' cleanly.
         $middleware->alias([
             'check.subscription' => \App\Http\Middleware\CheckTenantSubscription::class,
+            'module'             => \App\Http\Middleware\CheckModuleEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

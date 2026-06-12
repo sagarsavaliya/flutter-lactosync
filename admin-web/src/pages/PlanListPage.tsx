@@ -57,6 +57,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../com
 import apiClient from '../api/client'
 import { toast } from '../components/ui/use-toast'
 
+const ALL_MODULES: { slug: string; label: string }[] = [
+  { slug: 'route_delivery',         label: 'Route-based Delivery' },
+  { slug: 'customer_app',           label: 'Customer App' },
+  { slug: 'whatsapp_notifications', label: 'WhatsApp Notifications' },
+  { slug: 'billing_invoices',       label: 'Billing & Invoices' },
+]
+
 interface Plan {
   id: string
   name: string
@@ -68,6 +75,7 @@ interface Plan {
   max_subscriptions: number
   is_archived: boolean
   active_tenant_count: number
+  modules: string[]
 }
 
 function LockedHint() {
@@ -85,6 +93,7 @@ interface PlanFormData {
   price: string
   billing_cycle: string
   max_customers: string
+  modules: string[]
 }
 
 const emptyForm: PlanFormData = {
@@ -93,6 +102,7 @@ const emptyForm: PlanFormData = {
   price: '',
   billing_cycle: 'monthly',
   max_customers: '',
+  modules: [],
 }
 
 export default function PlanListPage() {
@@ -135,10 +145,20 @@ export default function PlanListPage() {
       price: plan.price.toString(),
       billing_cycle: plan.billing_cycle,
       max_customers: plan.max_customers.toString(),
+      modules: plan.modules ?? [],
     })
     setFormErrors({})
     setFormError(null)
     setSheetOpen(true)
+  }
+
+  const toggleModule = (slug: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      modules: prev.modules.includes(slug)
+        ? prev.modules.filter((m) => m !== slug)
+        : [...prev.modules, slug],
+    }))
   }
 
   const isLocked = sheetMode === 'edit' && editingPlan && (editingPlan.active_tenant_count > 0 || editingPlan.is_archived)
@@ -167,6 +187,7 @@ export default function PlanListPage() {
         billing_cycle: formData.billing_cycle,
         max_customers: parseInt(formData.max_customers),
         max_subscriptions: 9999,
+        modules: formData.modules,
       }
 
       if (sheetMode === 'create') {
@@ -271,10 +292,10 @@ export default function PlanListPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Billing Cycle</TableHead>
                 <TableHead className="text-right">Max Customers</TableHead>
+                <TableHead>Modules</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Tenants</TableHead>
                 <TableHead className="w-20">Actions</TableHead>
@@ -287,15 +308,29 @@ export default function PlanListPage() {
                   className={plan.is_archived ? 'opacity-50' : ''}
                   title={plan.is_archived ? 'This plan is archived and cannot be assigned to new tenants.' : undefined}
                 >
-                  <TableCell className="font-medium text-gray-800">{plan.name}</TableCell>
                   <TableCell>
-                    <span className="text-sm text-gray-400 truncate max-w-xs block">
-                      {plan.description || '—'}
-                    </span>
+                    <div className="font-medium text-gray-800">{plan.name}</div>
+                    {plan.description && (
+                      <div className="text-xs text-gray-400 truncate max-w-[160px]">{plan.description}</div>
+                    )}
                   </TableCell>
                   <TableCell>₹{plan.price}</TableCell>
                   <TableCell>{billingCycleLabel(plan.billing_cycle)}</TableCell>
                   <TableCell className="text-right">{plan.max_customers}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(plan.modules ?? []).length === 0 ? (
+                        <span className="text-xs text-gray-400">None</span>
+                      ) : (plan.modules ?? []).map((slug) => {
+                        const mod = ALL_MODULES.find((m) => m.slug === slug)
+                        return (
+                          <Badge key={slug} className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
+                            {mod?.label ?? slug}
+                          </Badge>
+                        )
+                      })}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {!plan.is_archived ? (
                       <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
@@ -458,6 +493,33 @@ export default function PlanListPage() {
               />
               {isLocked && <LockedHint />}
               {formErrors.max_customers && <p className="text-xs text-red-500 mt-1">{formErrors.max_customers}</p>}
+            </div>
+
+            {/* Modules */}
+            <div>
+              <Label className="block mb-2">Included Modules</Label>
+              <div className="rounded-lg border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+                {ALL_MODULES.map(({ slug, label }) => {
+                  const checked = formData.modules.includes(slug)
+                  return (
+                    <label
+                      key={slug}
+                      className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-sm text-gray-700">{label}</span>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleModule(slug)}
+                        className="w-4 h-4 rounded accent-green-700"
+                      />
+                    </label>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">
+                Modules not checked here can still be enabled per-tenant via overrides.
+              </p>
             </div>
 
             {formError && (

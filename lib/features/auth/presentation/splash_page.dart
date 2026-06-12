@@ -10,6 +10,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../customer/presentation/providers/customer_auth_provider.dart';
+import '../../delivery_boy/presentation/providers/delivery_boy_auth_provider.dart';
 import 'providers/auth_provider.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
@@ -42,7 +43,17 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       return;
     }
 
-    // No owner session — check for a customer session.
+    // No owner session — check for a delivery boy session.
+    final isDeliveryBoyLoggedIn =
+        ref.read(deliveryBoyAuthRepositoryProvider).isLoggedIn;
+    if (!mounted) return;
+
+    if (isDeliveryBoyLoggedIn) {
+      context.go('/delivery-boy/home');
+      return;
+    }
+
+    // No delivery boy session — check for a customer session.
     final isCustomerLoggedIn =
         await ref.read(customerAuthRepositoryProvider).isLoggedIn;
     if (!mounted) return;

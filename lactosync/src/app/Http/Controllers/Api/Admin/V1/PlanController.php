@@ -42,12 +42,23 @@ class PlanController extends Controller
             ])
             ->orderBy('is_archived', 'asc')      // non-archived (0) first
             ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(fn (SubscriptionPlan $plan) => $this->formatPlan($plan));
+            ->get();
+
+        // Batch-load module slugs so we don't N+1.
+        $planIds = $plans->pluck('id')->all();
+        $modulesByPlan = \Illuminate\Support\Facades\DB::table('plan_modules')
+            ->whereIn('subscription_plan_id', $planIds)
+            ->get(['subscription_plan_id', 'module_slug'])
+            ->groupBy('subscription_plan_id')
+            ->map(fn ($rows) => $rows->pluck('module_slug')->all());
+
+        $formatted = $plans->map(fn (SubscriptionPlan $plan) =>
+            $this->formatPlan($plan, $modulesByPlan->get($plan->id, []))
+        );
 
         return response()->json([
             'success' => true,
-            'data'    => $plans,
+            'data'    => $formatted,
         ]);
     }
 
@@ -62,9 +73,13 @@ class PlanController extends Controller
      */
     public function store(StorePlanRequest $request): JsonResponse
     {
-        $plan = SubscriptionPlan::create($request->validated());
+        $validated = $request->validated();
+        $modules   = $validated['modules'] ?? [];
+        unset($validated['modules']);
 
-        // Eager-load the count so formatPlan() has it available.
+        $plan = SubscriptionPlan::create($validated);
+        $plan->syncModules($modules);
+
         $plan->loadCount([
             'assignments as active_tenant_count' => function ($query): void {
                 $query->whereIn('status', ['active', 'grace_period', 'suspended']);
@@ -73,7 +88,7 @@ class PlanController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $this->formatPlan($plan),
+            'data'    => $this->formatPlan($plan, $modules),
         ], 201);
     }
 
@@ -104,6 +119,8 @@ class PlanController extends Controller
         }
 
         $validated = $request->validated();
+        $modules   = array_key_exists('modules', $validated) ? $validated['modules'] : null;
+        unset($validated['modules']);
 
         // When the plan is not editable, silently strip frozen fields even if
         // the caller somehow passed validation (belt-and-suspenders guard).
@@ -113,6 +130,10 @@ class PlanController extends Controller
 
         $plan->update($validated);
 
+        if ($modules !== null) {
+            $plan->syncModules($modules);
+        }
+
         $plan->loadCount([
             'assignments as active_tenant_count' => function ($query): void {
                 $query->whereIn('status', ['active', 'grace_period', 'suspended']);
@@ -121,7 +142,7 @@ class PlanController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $this->formatPlan($plan),
+            'data'    => $this->formatPlan($plan, $plan->moduleSlugList()),
         ]);
     }
 
@@ -159,7 +180,7 @@ class PlanController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $this->formatPlan($plan),
+            'data'    => $this->formatPlan($plan, $plan->moduleSlugList()),
         ]);
     }
 
@@ -194,7 +215,7 @@ class PlanController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $this->formatPlan($plan),
+            'data'    => $this->formatPlan($plan, $plan->moduleSlugList()),
         ]);
     }
 
@@ -209,7 +230,7 @@ class PlanController extends Controller
      * Expects $plan->active_tenant_count to have been loaded via loadCount()
      * or withCount() before this method is called.
      */
-    private function formatPlan(SubscriptionPlan $plan): array
+    private function formatPlan(SubscriptionPlan $plan, array $modules = []): array
     {
         return [
             'id'                  => $plan->id,
@@ -220,6 +241,7 @@ class PlanController extends Controller
             'max_customers'       => $plan->max_customers,
             'max_subscriptions'   => $plan->max_subscriptions,
             'is_archived'         => $plan->is_archived,
+            'modules'             => $modules,
             'active_tenant_count' => (int) ($plan->active_tenant_count ?? 0),
             'created_at'          => $plan->created_at?->toIso8601String(),
         ];

@@ -13,6 +13,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/customer/presentation/providers/customer_auth_provider.dart';
+import 'features/delivery_boy/presentation/providers/delivery_boy_auth_provider.dart';
 import 'features/subscription/presentation/pages/subscription_suspended_page.dart';
 
 Future<void> main() async {
@@ -30,6 +31,8 @@ Future<void> main() async {
         // storage under a separate key (customer_auth_token) to avoid
         // colliding with the owner app's 'auth_token'.
         customerSharedPrefsProvider.overrideWithValue(prefs),
+        // Delivery boy uses 'delivery_boy_auth_token' key — same prefs instance.
+        deliveryBoySharedPrefsProvider.overrideWithValue(prefs),
       ],
       child: const LactoSyncApp(),
     ),

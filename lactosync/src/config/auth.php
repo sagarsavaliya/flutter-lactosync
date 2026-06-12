@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Admin\AdminUser;
+use App\Models\DeliveryBoy;
 use App\Models\FarmOwner;
 use App\Models\User;
 
@@ -60,6 +61,13 @@ return [
             'driver'   => 'sanctum',
             'provider' => 'customers',
         ],
+
+        // Delivery Boy App guard.
+        // Completely isolated from the owner, customer, and admin guards.
+        'delivery_boy' => [
+            'driver'   => 'sanctum',
+            'provider' => 'delivery_boys',
+        ],
     ],
 
     /*
@@ -95,6 +103,10 @@ return [
         'customers' => [
             'driver' => 'eloquent',
             'model'  => App\Models\Customer::class,
+        ],
+        'delivery_boys' => [
+            'driver' => 'eloquent',
+            'model'  => DeliveryBoy::class,
         ],
     ],
 

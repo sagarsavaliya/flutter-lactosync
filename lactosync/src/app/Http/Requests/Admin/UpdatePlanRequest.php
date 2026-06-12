@@ -35,6 +35,8 @@ class UpdatePlanRequest extends FormRequest
             'billing_cycle'      => ['sometimes', 'string', 'in:monthly,quarterly,half_yearly,yearly'],
             'max_customers'      => ['sometimes', 'integer', 'min:1'],
             'max_subscriptions'  => ['sometimes', 'integer', 'min:1'],
+            'modules'            => ['sometimes', 'array'],
+            'modules.*'          => ['string', 'in:route_delivery,customer_app,whatsapp_notifications,billing_invoices'],
         ];
     }
 
@@ -46,6 +48,7 @@ class UpdatePlanRequest extends FormRequest
             'billing_cycle.in'         => 'Billing cycle must be one of: monthly, quarterly, half_yearly, yearly.',
             'max_customers.min'        => 'Max customers must be at least 1.',
             'max_subscriptions.min'    => 'Max subscriptions must be at least 1.',
+            'modules.*.in'             => 'Each module must be one of: route_delivery, customer_app, whatsapp_notifications, billing_invoices.',
         ];
     }
 
