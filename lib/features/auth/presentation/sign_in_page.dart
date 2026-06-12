@@ -106,34 +106,16 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                           ),
                         ],
                         selected: {_role},
-                        onSelectionChanged: (s) => setState(() => _role = s.first),
+                        onSelectionChanged: (s) {
+                          if (s.first == _SignInRole.customer) {
+                            context.push('/customer/login');
+                            return;
+                          }
+                          setState(() => _role = s.first);
+                        },
                       ),
                       const SizedBox(height: AppSpace.lg),
-                      if (_role == _SignInRole.customer) ...[
-                        const Icon(
-                          Icons.local_drink_outlined,
-                          size: 48,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(height: AppSpace.md),
-                        Text(
-                          AppStrings.customerComingSoonTitle,
-                          textAlign: TextAlign.center,
-                          style: AppText.sectionTitle.copyWith(color: ink),
-                        ),
-                        const SizedBox(height: AppSpace.sm),
-                        Text(
-                          AppStrings.customerComingSoonBody,
-                          textAlign: TextAlign.center,
-                          style: AppText.body.copyWith(color: inkMuted),
-                        ),
-                        const SizedBox(height: AppSpace.xl),
-                        AppButton(
-                          label: AppStrings.createAccount,
-                          variant: AppButtonVariant.secondary,
-                          onPressed: () => context.push('/signup'),
-                        ),
-                      ] else ...[
+                      ...[
                         Text(
                           AppStrings.signInOwnerHint,
                           textAlign: TextAlign.center,

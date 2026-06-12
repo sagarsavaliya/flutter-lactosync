@@ -14,6 +14,7 @@ use App\Enums\PaymentType;
 use App\Services\Billing\InvoiceDeliveryService;
 use App\Services\Billing\MonthlyInvoiceGenerator;
 use App\Services\Billing\UpiQrImageService;
+use App\Services\WhatsApp\CustomerWhatsAppNotifier;
 use App\Services\WhatsApp\WhatsAppService;
 use App\Support\ApiResponse;
 use App\Support\SentLabel;
@@ -131,22 +132,20 @@ class OwnerBillingController extends Controller
             && $customer !== null
             && $customer->whatsapp_enabled) {
             try {
-                app(WhatsAppService::class)->sendText(
-                    $customer->contact,
-                    sprintf(
-                        'Thank you! We received your payment of Rs %s for bill %s. Balance due: Rs %s.',
-                        number_format($amount, 0),
-                        $invoice->invoice_number,
-                        number_format((float) $invoice->balance_due, 0),
-                    ),
+                $owner->loadMissing('farm');
+                app(CustomerWhatsAppNotifier::class)->paymentConfirmed(
+                    $customer,
+                    $invoice,
+                    $amount,
+                    $validated['payment_method'],
                 );
                 $receiptSent = true;
             } catch (RuntimeException $e) {
                 $receiptError = $e->getMessage();
                 \Illuminate\Support\Facades\Log::warning('WhatsApp payment receipt failed', [
                     'customer_id' => $customer->id,
-                    'invoice_id' => $invoice->id,
-                    'error' => $receiptError,
+                    'invoice_id'  => $invoice->id,
+                    'error'       => $receiptError,
                 ]);
             }
         }

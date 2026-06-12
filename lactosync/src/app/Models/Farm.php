@@ -26,6 +26,7 @@ class Farm extends Model
         'evening_order_time',
         'upi_vpa',
         'upi_payee_name',
+        'prefill_customer_address',
     ];
 
     protected function casts(): array
@@ -33,6 +34,7 @@ class Farm extends Model
         return [
             'onboarding_completed_at' => 'datetime',
             'document_settings' => 'array',
+            'prefill_customer_address' => 'boolean',
         ];
     }
 

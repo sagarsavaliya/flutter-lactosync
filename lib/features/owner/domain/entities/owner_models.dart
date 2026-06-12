@@ -39,89 +39,76 @@ class MilkPreparationSummary {
   });
 
   final String date;
-  final MilkPreparationShift morning;
-  final MilkPreparationShift evening;
+  /// Cards for the morning shift — one per active container type.
+  final List<MilkPreparationContainerCard> morning;
+  /// Cards for the evening shift — one per active container type.
+  final List<MilkPreparationContainerCard> evening;
+
+  double get morningTotalLiters =>
+      morning.fold(0, (sum, c) => sum + c.totalLiters);
+
+  double get eveningTotalLiters =>
+      evening.fold(0, (sum, c) => sum + c.totalLiters);
 
   factory MilkPreparationSummary.fromJson(Map<String, dynamic> json) {
+    List<MilkPreparationContainerCard> _parseCards(Object? raw) {
+      if (raw is List) {
+        return raw
+            .map((e) => MilkPreparationContainerCard.fromJson(
+                Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+      return [];
+    }
+
     return MilkPreparationSummary(
       date: json['date'] as String? ?? '',
-      morning: MilkPreparationShift.fromJson(
-        Map<String, dynamic>.from(json['morning'] as Map),
-      ),
-      evening: MilkPreparationShift.fromJson(
-        Map<String, dynamic>.from(json['evening'] as Map),
-      ),
+      morning: _parseCards(json['morning']),
+      evening: _parseCards(json['evening']),
     );
   }
 }
 
-class MilkPreparationShift {
-  const MilkPreparationShift({
-    required this.shift,
-    required this.shiftLabel,
-    required this.totalLitres,
-    required this.glassBottle,
-    required this.plasticBag,
-  });
-
-  final String shift;
-  final String shiftLabel;
-  final double totalLitres;
-  final MilkPreparationContainerGroup glassBottle;
-  final MilkPreparationContainerGroup plasticBag;
-
-  factory MilkPreparationShift.fromJson(Map<String, dynamic> json) {
-    return MilkPreparationShift(
-      shift: json['shift'] as String? ?? 'morning',
-      shiftLabel: json['shift_label'] as String? ?? 'Morning',
-      totalLitres: (json['total_litres'] as num?)?.toDouble() ?? 0,
-      glassBottle: MilkPreparationContainerGroup.fromJson(
-        Map<String, dynamic>.from(json['glass_bottle'] as Map),
-      ),
-      plasticBag: MilkPreparationContainerGroup.fromJson(
-        Map<String, dynamic>.from(json['plastic_bag'] as Map),
-      ),
-    );
-  }
-}
-
-class MilkPreparationContainerGroup {
-  const MilkPreparationContainerGroup({
-    required this.containerType,
-    required this.containerLabel,
-    required this.totalLitres,
+/// One card per container type per shift.
+class MilkPreparationContainerCard {
+  const MilkPreparationContainerCard({
+    required this.containerTypeId,
+    required this.containerTypeName,
+    required this.totalLiters,
     required this.sizes,
     required this.products,
     required this.totals,
   });
 
-  final String containerType;
-  final String containerLabel;
-  final double totalLitres;
+  final int containerTypeId;
+  final String containerTypeName;
+  final double totalLiters;
   final List<MilkPreparationSizeColumn> sizes;
   final List<MilkPreparationProductRow> products;
   final Map<String, int> totals;
 
-  factory MilkPreparationContainerGroup.fromJson(Map<String, dynamic> json) {
+  bool get hasAnyContainers => totals.values.any((count) => count > 0);
+
+  factory MilkPreparationContainerCard.fromJson(Map<String, dynamic> json) {
     final sizeList = json['sizes'] as List<dynamic>? ?? [];
     final productList = json['products'] as List<dynamic>? ?? [];
     final totalsMap = Map<String, dynamic>.from(json['totals'] as Map? ?? {});
 
-    return MilkPreparationContainerGroup(
-      containerType: json['container_type'] as String? ?? '',
-      containerLabel: json['container_label'] as String? ?? '',
-      totalLitres: (json['total_litres'] as num?)?.toDouble() ?? 0,
+    return MilkPreparationContainerCard(
+      containerTypeId: (json['container_type_id'] as num?)?.toInt() ?? 0,
+      containerTypeName: json['container_type_name'] as String? ?? '',
+      totalLiters: (json['total_liters'] as num?)?.toDouble() ?? 0,
       sizes: sizeList
-          .map((e) => MilkPreparationSizeColumn.fromJson(Map<String, dynamic>.from(e as Map)))
+          .map((e) =>
+              MilkPreparationSizeColumn.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList(),
       products: productList
-          .map((e) => MilkPreparationProductRow.fromJson(Map<String, dynamic>.from(e as Map)))
+          .map((e) =>
+              MilkPreparationProductRow.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList(),
       totals: totalsMap.map((key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0)),
     );
   }
-
-  bool get hasAnyContainers => totals.values.any((count) => count > 0);
 }
 
 class MilkPreparationSizeColumn {
@@ -142,36 +129,23 @@ class MilkPreparationProductRow {
   const MilkPreparationProductRow({
     required this.productId,
     required this.productName,
-    required this.displayLabel,
-    required this.milkType,
-    required this.milkTypeLabel,
-    required this.rate,
-    required this.totalLitres,
+    required this.totalLiters,
     required this.counts,
   });
 
   final int productId;
   final String productName;
-  final String displayLabel;
-  final String milkType;
-  final String milkTypeLabel;
-  final double rate;
-  final double totalLitres;
+  final double totalLiters;
   final Map<String, int> counts;
 
   factory MilkPreparationProductRow.fromJson(Map<String, dynamic> json) {
     final countsMap = Map<String, dynamic>.from(json['counts'] as Map? ?? {});
-    final rate = (json['rate'] as num?)?.toDouble() ?? 0;
 
     return MilkPreparationProductRow(
       productId: (json['product_id'] as num?)?.toInt() ?? 0,
       productName: json['product_name'] as String? ?? '',
-      displayLabel: json['display_label'] as String? ??
-          '${json['milk_type_label'] ?? 'Milk'} - ${rate.toInt()}/-',
-      milkType: json['milk_type'] as String? ?? '',
-      milkTypeLabel: json['milk_type_label'] as String? ?? '',
-      rate: rate,
-      totalLitres: (json['total_litres'] as num?)?.toDouble() ?? 0,
+      totalLiters: (json['total_liters'] as num?)?.toDouble() ??
+          (json['total_litres'] as num?)?.toDouble() ?? 0,
       counts: countsMap.map((key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0)),
     );
   }
@@ -805,6 +779,7 @@ class CustomerUpdateRequest {
     this.contact,
     this.whatsappEnabled,
     this.secondaryContact,
+    this.deliveryType,
   });
 
   final bool? isActive;
@@ -822,6 +797,8 @@ class CustomerUpdateRequest {
   final String? contact;
   final bool? whatsappEnabled;
   final String? secondaryContact;
+  /// 'home_delivery' or 'walk_in'
+  final String? deliveryType;
 
   Map<String, dynamic> toJson() {
     if (clearVacation) {
@@ -851,6 +828,7 @@ class CustomerUpdateRequest {
       if (contact != null) 'contact': contact,
       if (whatsappEnabled != null) 'whatsapp_enabled': whatsappEnabled,
       if (secondaryContact != null) 'secondary_contact': secondaryContact,
+      if (deliveryType != null) 'delivery_type': deliveryType,
     };
   }
 }
@@ -949,6 +927,7 @@ class CustomerDetailInfo {
     required this.whatsappEnabled,
     required this.isActive,
     required this.displayStatus,
+    this.deliveryType = 'home_delivery',
     this.secondaryContact,
     this.vacationStart,
     this.vacationEnd,
@@ -970,9 +949,12 @@ class CustomerDetailInfo {
   final bool whatsappEnabled;
   final bool isActive;
   final CustomerDisplayStatus displayStatus;
+  final String deliveryType;
   final String? secondaryContact;
   final String? vacationStart;
   final String? vacationEnd;
+
+  bool get isWalkIn => deliveryType == 'walk_in';
 
   factory CustomerDetailInfo.fromJson(Map<String, dynamic> json) {
     final parts = [
@@ -1000,6 +982,7 @@ class CustomerDetailInfo {
       zip: json['zip'] as String? ?? '',
       whatsappEnabled: json['whatsapp_enabled'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,
+      deliveryType: json['delivery_type'] as String? ?? 'home_delivery',
       secondaryContact: json['secondary_contact'] as String?,
       displayStatus: OwnerCustomer._statusFrom(json['display_status'] as String? ?? 'active'),
       vacationStart: json['vacation_start'] as String?,

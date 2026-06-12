@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../core/constants/app_strings.dart';
 import '../../features/auth/presentation/forgot_pin_page.dart';
 import '../../features/auth/presentation/reset_pin_page.dart';
 import '../../features/auth/presentation/sign_in_page.dart';
 import '../../features/auth/presentation/splash_page.dart';
 import '../../features/auth/presentation/verify_otp_page.dart';
 import '../../features/customer/presentation/pages/customer_coming_soon_page.dart';
+import '../../features/customer/presentation/pages/customer_dashboard_page.dart';
+import '../../features/customer/presentation/pages/customer_payments_page.dart';
+import '../../features/customer/presentation/pages/customer_login_page.dart';
+import '../../features/customer/presentation/pages/customer_orders_page.dart';
+import '../../features/customer/presentation/pages/customer_otp_page.dart';
+import '../../features/customer/presentation/pages/customer_profile_page.dart';
+import '../../features/customer/presentation/pages/customer_set_pin_page.dart';
+import '../../features/customer/presentation/pages/customer_vacation_page.dart';
+import '../../features/customer/presentation/shell/customer_shell.dart';
 import '../../features/onboarding/presentation/pages/add_customer_page.dart';
 import '../../features/onboarding/presentation/pages/customer_saved_page.dart';
 import '../../features/onboarding/presentation/pages/farm_details_page.dart';
@@ -16,8 +27,8 @@ import '../../features/onboarding/presentation/pages/set_pin_page.dart';
 import '../../features/onboarding/presentation/pages/signup_otp_page.dart';
 import '../../features/onboarding/presentation/pages/signup_page.dart';
 import '../../features/onboarding/presentation/pages/subscription_page.dart';
-import '../../features/owner/presentation/pages/billing_page.dart';
 import '../../features/owner/presentation/pages/activity_page.dart';
+import '../../features/owner/presentation/pages/billing_page.dart';
 import '../../features/owner/presentation/pages/customer_detail_page.dart';
 import '../../features/owner/presentation/pages/customers_list_page.dart';
 import '../../features/owner/presentation/pages/daily_orders_page.dart';
@@ -26,10 +37,10 @@ import '../../features/owner/presentation/pages/owner_home_page.dart';
 import '../../features/owner/presentation/pages/owner_settings_page.dart';
 import '../../features/owner/presentation/pages/payments_page.dart';
 import '../../features/owner/presentation/shell/owner_shell.dart';
-import '../../core/constants/app_strings.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 final shellNavigatorKey = GlobalKey<NavigatorState>();
+final customerShellNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
@@ -112,7 +123,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/onboarding/subscription',
       name: 'onboardingSubscription',
-      builder: (context, state) => const SubscriptionPage(),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        final lockedId = extra['lockedCustomerId'] as int?;
+        return SubscriptionPage(lockedCustomerId: lockedId);
+      },
     ),
     GoRoute(
       path: '/customer/coming-soon',
@@ -200,6 +215,69 @@ final appRouter = GoRouter(
           resetToken: extra['reset_token'] ?? '',
         );
       },
+    ),
+
+    // ── Customer auth screens (CA-11) ────────────────────────────────────────
+    GoRoute(
+      path: '/customer/login',
+      name: 'customerLogin',
+      builder: (context, state) => const CustomerLoginPage(),
+    ),
+    GoRoute(
+      path: '/customer/otp',
+      name: 'customerOtp',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return CustomerOtpPage(
+          initialContact: (extra['contact'] as String?) ?? '',
+          reason: (extra['reason'] as String?) ?? 'first_time',
+        );
+      },
+    ),
+    GoRoute(
+      path: '/customer/set-pin',
+      name: 'customerSetPin',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return CustomerSetPinPage(
+          contact: (extra['contact'] as String?) ?? '',
+        );
+      },
+    ),
+
+    // ── Customer pushed screens (outside the shell) ──────────────────────────
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/customer/vacation',
+      builder: (context, state) => const CustomerVacationPage(),
+    ),
+
+    // ── Customer shell + tabs ────────────────────────────────────────────────
+    ShellRoute(
+      navigatorKey: customerShellNavigatorKey,
+      builder: (context, state, child) => CustomerShell(child: child),
+      routes: [
+        GoRoute(
+          path: '/customer/home',
+          name: 'customerHome',
+          builder: (context, state) => const CustomerDashboardPage(),
+        ),
+        GoRoute(
+          path: '/customer/orders',
+          name: 'customerOrders',
+          builder: (context, state) => const CustomerOrdersPage(),
+        ),
+        GoRoute(
+          path: '/customer/payments',
+          name: 'customerPayments',
+          builder: (context, state) => const CustomerPaymentsPage(),
+        ),
+        GoRoute(
+          path: '/customer/profile',
+          name: 'customerProfile',
+          builder: (context, state) => const CustomerProfilePage(),
+        ),
+      ],
     ),
   ],
 );

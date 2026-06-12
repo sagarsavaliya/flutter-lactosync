@@ -36,12 +36,21 @@ return [
     ],
 
     'whatsapp' => [
-        'token' => env('WHATSAPP_ACCESS_TOKEN'),
-        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
-        'template_otp' => env('WHATSAPP_OTP_TEMPLATE', 'lacto_sync_otp'),
-        'template_language' => env('WHATSAPP_TEMPLATE_LANGUAGE', 'en'),
-        'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),
-        'otp_button_type' => env('WHATSAPP_OTP_BUTTON_TYPE', 'url'),
+        'token'          => env('WHATSAPP_ACCESS_TOKEN'),
+        'phone_number_id'=> env('WHATSAPP_PHONE_NUMBER_ID'),
+
+        // Template names — override in .env if your Meta account uses different names
+        'template_otp'               => env('WHATSAPP_TEMPLATE_OTP',               'lacto_sync_otp'),
+        'template_bill'              => env('WHATSAPP_TEMPLATE_BILL',              'lacto_sync_monthly_bill'),
+        'template_order_log'         => env('WHATSAPP_TEMPLATE_ORDER_LOG',         'lacto_sync_order_log'),
+        'template_payment_confirmed' => env('WHATSAPP_TEMPLATE_PAYMENT_CONFIRMED', 'lacto_sync_payment_receipt'),
+        'template_delivery_paused'   => env('WHATSAPP_TEMPLATE_DELIVERY_PAUSED',   'lacto_sync_vacation_set'),
+        'template_qty_change'        => env('WHATSAPP_TEMPLATE_QTY_CHANGE',        'lacto_sync_subscription_updated'),
+        'template_sub_resumed'       => env('WHATSAPP_TEMPLATE_SUB_RESUMED',       'lacto_sync_vacation_ended'),
+
+        'template_language'  => env('WHATSAPP_TEMPLATE_LANGUAGE', 'en'),
+        'graph_version'      => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),
+        'otp_button_type'    => env('WHATSAPP_OTP_BUTTON_TYPE', 'url'),
         'simulate_documents' => env('WHATSAPP_SIMULATE_DOCUMENTS', env('APP_ENV') === 'local'),
     ],
 

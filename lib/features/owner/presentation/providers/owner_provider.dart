@@ -98,3 +98,13 @@ final containerTypesProvider = FutureProvider<List<ContainerTypeItem>>((ref) asy
   return ref.watch(ownerRepositoryProvider).fetchContainerTypes();
 });
 
+/// OR-07: Container types with grouped sizes (new API shape).
+final ownerContainerTypesProvider = FutureProvider<List<OwnerContainerType>>((ref) async {
+  return ref.watch(ownerRepositoryProvider).fetchOwnerContainerTypes();
+});
+
+/// OR-08: Products with new API shape.
+final ownerProductsProvider = FutureProvider<List<OwnerProduct>>((ref) async {
+  return ref.watch(ownerRepositoryProvider).fetchOwnerProducts();
+});
+

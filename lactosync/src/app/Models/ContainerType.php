@@ -29,9 +29,14 @@ class ContainerType extends Model
         return $this->belongsTo(Farm::class);
     }
 
-    public function products(): HasMany
+    public function sizes(): HasMany
     {
-        return $this->hasMany(Product::class, 'container_type_id');
+        return $this->hasMany(ContainerTypeSize::class)->orderBy('size_liters');
+    }
+
+    public function getIsSystemAttribute(): bool
+    {
+        return is_null($this->farm_id);
     }
 
     /**
@@ -41,7 +46,6 @@ class ContainerType extends Model
     public function scopeVisibleToFarm(Builder $query, int $farmId): Builder
     {
         return $query->where(function (Builder $q) use ($farmId) {
-            // System defaults that this farm has NOT hidden
             $q->whereNull('farm_id')
               ->whereNotIn('id', function ($sub) use ($farmId) {
                   $sub->select('container_type_id')

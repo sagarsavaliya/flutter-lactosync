@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Admin\AdminUser;
 use App\Models\FarmOwner;
 use App\Models\User;
 
@@ -43,6 +44,22 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Separate guard for the Tenant Admin Web App.
+        // Uses its own provider so a farm-owner Sanctum token cannot satisfy
+        // auth:admin and an admin token cannot satisfy auth:sanctum.
+        'admin' => [
+            'driver'   => 'sanctum',
+            'provider' => 'admin_users',
+        ],
+
+        // Customer App guard (CA-02).
+        // A Sanctum token issued via this guard cannot satisfy auth:sanctum
+        // (farm-owner) or auth:admin, and vice versa.
+        'customer' => [
+            'driver'   => 'sanctum',
+            'provider' => 'customers',
+        ],
     ],
 
     /*
@@ -65,11 +82,19 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'model'  => env('AUTH_MODEL', User::class),
         ],
         'farm_owners' => [
             'driver' => 'eloquent',
-            'model' => FarmOwner::class,
+            'model'  => FarmOwner::class,
+        ],
+        'admin_users' => [
+            'driver' => 'eloquent',
+            'model'  => AdminUser::class,
+        ],
+        'customers' => [
+            'driver' => 'eloquent',
+            'model'  => App\Models\Customer::class,
         ],
     ],
 

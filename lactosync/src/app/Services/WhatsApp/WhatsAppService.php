@@ -277,6 +277,178 @@ class WhatsAppService
     }
 
     /**
+     * Upload an image file to the WhatsApp media API and return the media ID.
+     */
+    private function uploadImageMedia(string $absolutePath): string
+    {
+        $token = config('services.whatsapp.token');
+        $phoneNumberId = config('services.whatsapp.phone_number_id');
+        $version = config('services.whatsapp.graph_version', 'v21.0');
+        $mediaUrl = "https://graph.facebook.com/{$version}/{$phoneNumberId}/media";
+
+        $filename = basename($absolutePath);
+        $upload = Http::withToken($token)
+            ->attach('file', file_get_contents($absolutePath) ?: '', $filename, ['Content-Type' => 'image/png'])
+            ->post($mediaUrl, ['messaging_product' => 'whatsapp']);
+
+        if (! $upload->successful()) {
+            Log::error('WhatsApp image media upload failed', ['body' => $upload->json()]);
+            throw new RuntimeException($this->humanError($upload->json(), 'Could not upload image to WhatsApp.'));
+        }
+
+        return (string) $upload->json('id');
+    }
+
+    /**
+     * Send a template that has an IMAGE header component.
+     * Uploads the image first to get a media ID, then sends the template in one call.
+     *
+     * @param  list<string>  $bodyParams  Ordered body variable values ({{1}}, {{2}}, …)
+     */
+    public function sendTemplateWithImageHeader(
+        string $mobileTenDigits,
+        string $templateName,
+        string $imageAbsolutePath,
+        array $bodyParams,
+        string $language = 'en',
+    ): void {
+        $to = WhatsAppRecipient::toApiFormat($mobileTenDigits);
+
+        if (config('services.whatsapp.simulate_documents', false)) {
+            Log::info('WhatsApp template+image simulated', [
+                'mobile'   => $to,
+                'template' => $templateName,
+                'image'    => basename($imageAbsolutePath),
+                'params'   => $bodyParams,
+            ]);
+            return;
+        }
+
+        $token = config('services.whatsapp.token');
+        $phoneNumberId = config('services.whatsapp.phone_number_id');
+
+        if (empty($token) || empty($phoneNumberId)) {
+            throw new RuntimeException('WhatsApp is not configured on the server.');
+        }
+
+        if (! is_readable($imageAbsolutePath)) {
+            throw new RuntimeException('Image file is missing.');
+        }
+
+        $mediaId = $this->uploadImageMedia($imageAbsolutePath);
+
+        $bodyParameters = array_map(
+            fn (string $value) => ['type' => 'text', 'text' => $value],
+            $bodyParams,
+        );
+
+        $version = config('services.whatsapp.graph_version', 'v21.0');
+        $url = "https://graph.facebook.com/{$version}/{$phoneNumberId}/messages";
+
+        $response = Http::withToken($token)
+            ->timeout(12)
+            ->connectTimeout(3)
+            ->post($url, [
+                'messaging_product' => 'whatsapp',
+                'to' => $to,
+                'type' => 'template',
+                'template' => [
+                    'name' => $templateName,
+                    'language' => ['code' => $language],
+                    'components' => [
+                        [
+                            'type' => 'header',
+                            'parameters' => [
+                                ['type' => 'image', 'image' => ['id' => $mediaId]],
+                            ],
+                        ],
+                        [
+                            'type' => 'body',
+                            'parameters' => $bodyParameters,
+                        ],
+                    ],
+                ],
+            ]);
+
+        if (! $response->successful()) {
+            Log::error('WhatsApp template+image send failed', [
+                'mobile'   => $mobileTenDigits,
+                'template' => $templateName,
+                'status'   => $response->status(),
+                'body'     => $response->json(),
+            ]);
+            throw new RuntimeException($this->humanError($response->json(), 'Could not send WhatsApp notification.'));
+        }
+    }
+
+    /**
+     * Send a pre-approved WhatsApp Business template message.
+     *
+     * @param  list<string>  $params  Ordered body variable values ({{1}}, {{2}}, …)
+     */
+    public function sendTemplate(
+        string $mobileTenDigits,
+        string $templateName,
+        array $params,
+        string $language = 'en',
+    ): void {
+        $to = WhatsAppRecipient::toApiFormat($mobileTenDigits);
+
+        if (config('services.whatsapp.simulate_documents', false)) {
+            Log::info('WhatsApp template simulated', [
+                'mobile'   => $to,
+                'template' => $templateName,
+                'params'   => $params,
+            ]);
+            return;
+        }
+
+        $token = config('services.whatsapp.token');
+        $phoneNumberId = config('services.whatsapp.phone_number_id');
+
+        if (empty($token) || empty($phoneNumberId)) {
+            throw new RuntimeException('WhatsApp is not configured on the server.');
+        }
+
+        $bodyParameters = array_map(
+            fn (string $value) => ['type' => 'text', 'text' => $value],
+            $params,
+        );
+
+        $version = config('services.whatsapp.graph_version', 'v21.0');
+        $url = "https://graph.facebook.com/{$version}/{$phoneNumberId}/messages";
+
+        $response = Http::withToken($token)
+            ->timeout(8)
+            ->connectTimeout(3)
+            ->post($url, [
+                'messaging_product' => 'whatsapp',
+                'to' => $to,
+                'type' => 'template',
+                'template' => [
+                    'name' => $templateName,
+                    'language' => ['code' => $language],
+                    'components' => [
+                        [
+                            'type' => 'body',
+                            'parameters' => $bodyParameters,
+                        ],
+                    ],
+                ],
+            ]);
+
+        if (! $response->successful()) {
+            Log::error('WhatsApp template send failed', [
+                'mobile'   => $mobileTenDigits,
+                'template' => $templateName,
+                'status'   => $response->status(),
+                'body'     => $response->json(),
+            ]);
+            throw new RuntimeException($this->humanError($response->json(), 'Could not send WhatsApp notification.'));
+        }
+    }
+
+    /**
      * @param  array<string, mixed>|null  $body
      */
     private function humanError(?array $body, string $fallback): string

@@ -3,15 +3,16 @@
 namespace App\Models;
 
 use App\Models\SubscriptionLine;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
-class Customer extends Model
+class Customer extends Authenticatable
 {
-    use SoftDeletes;
+    use HasApiTokens, SoftDeletes;
 
     protected $fillable = [
         'farm_id',
@@ -27,8 +28,20 @@ class Customer extends Model
         'whatsapp_enabled',
         'secondary_contact',
         'is_active',
+        'delivery_type',
         'vacation_start',
         'vacation_end',
+        'pin',
+        'otp',
+        'otp_expires_at',
+        'mobile_verified_at',
+        'last_login_at',
+        'last_address_change_at',
+    ];
+
+    protected $hidden = [
+        'pin',
+        'otp',
     ];
 
     protected function casts(): array
@@ -38,6 +51,11 @@ class Customer extends Model
             'is_active' => 'boolean',
             'vacation_start' => 'date',
             'vacation_end' => 'date',
+            'pin' => 'hashed',
+            'otp_expires_at' => 'datetime',
+            'mobile_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'last_address_change_at' => 'datetime',
         ];
     }
 

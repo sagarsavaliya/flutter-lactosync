@@ -476,6 +476,126 @@ class OwnerActionSheets {
     amountController.dispose();
   }
 
+  static Future<void> showCollectPaymentForCustomer(
+    BuildContext context,
+    WidgetRef ref, {
+    required int customerId,
+    required String customerName,
+    required List<OwnerInvoice> pendingBills,
+    VoidCallback? onSuccess,
+  }) async {
+    if (pendingBills.isEmpty) return;
+
+    OwnerInvoice? selectedBill = pendingBills.first;
+    final amountController = TextEditingController(
+      text: selectedBill.balanceDue.toStringAsFixed(0),
+    );
+    var method = 'cash';
+    var loading = false;
+
+    await showOwnerBottomSheet<void>(
+      context: context,
+      child: StatefulBuilder(
+        builder: (context, setModalState) {
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                OwnerSheetTitle(AppStrings.collectPaymentTitle, subtitle: customerName),
+                const SizedBox(height: AppSpace.sm),
+                if (pendingBills.length > 1) ...[
+                  DropdownButtonFormField<OwnerInvoice>(
+                    value: selectedBill,
+                    isExpanded: true,
+                    decoration: InputDecoration(labelText: AppStrings.selectPendingBill),
+                    items: pendingBills
+                        .map(
+                          (b) => DropdownMenuItem(
+                            value: b,
+                            child: Text('${b.billingMonth} · ₹${b.balanceDue.toStringAsFixed(0)} due'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) {
+                      setModalState(() {
+                        selectedBill = v;
+                        if (v != null) amountController.text = v.balanceDue.toStringAsFixed(0);
+                      });
+                    },
+                  ),
+                  const SizedBox(height: AppSpace.sm),
+                ],
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: AppStrings.paymentAmountLabel),
+                ),
+                const SizedBox(height: AppSpace.sm),
+                DropdownButtonFormField<String>(
+                  value: method,
+                  decoration: InputDecoration(labelText: AppStrings.paymentMethodLabel),
+                  items: const [
+                    DropdownMenuItem(value: 'cash', child: Text(AppStrings.paymentsFilterCash)),
+                    DropdownMenuItem(value: 'upi', child: Text(AppStrings.paymentsFilterUpi)),
+                    DropdownMenuItem(value: 'bank_transfer', child: Text(AppStrings.paymentsFilterBank)),
+                  ],
+                  onChanged: (v) => setModalState(() => method = v ?? method),
+                ),
+                const SizedBox(height: AppSpace.lg),
+                AppButton(
+                  label: AppStrings.recordPaymentButton,
+                  loading: loading,
+                  onPressed: (selectedBill == null || loading)
+                      ? null
+                      : () async {
+                          setModalState(() => loading = true);
+                          try {
+                            String? receiptWarning;
+                            await ActionToast.run(
+                              context,
+                              preparing: AppStrings.paymentReceiptSending,
+                              success: AppStrings.recordPaymentSuccess,
+                              task: () async {
+                                receiptWarning = await ref
+                                    .read(ownerRepositoryProvider)
+                                    .recordPayment(
+                                      invoiceId: selectedBill!.id,
+                                      amount: double.parse(amountController.text.trim()),
+                                      paymentMethod: method,
+                                    );
+                              },
+                            );
+                            ref.invalidate(paymentsListProvider);
+                            ref.invalidate(customerDetailProvider(
+                              CustomerDetailQuery(
+                                customerId: customerId,
+                                billingMonth: DateTime.now(),
+                              ),
+                            ));
+                            if (context.mounted) {
+                              if (receiptWarning != null && receiptWarning!.isNotEmpty) {
+                                ActionToast.show(context, receiptWarning!);
+                              }
+                              Navigator.pop(context);
+                              onSuccess?.call();
+                            }
+                          } on ApiException catch (e) {
+                            if (context.mounted) ActionToast.show(context, e.message);
+                          } finally {
+                            if (context.mounted) setModalState(() => loading = false);
+                          }
+                        },
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+    amountController.dispose();
+  }
+
   static void openAddCustomer(BuildContext context) {
     context.push('/onboarding/customer');
   }

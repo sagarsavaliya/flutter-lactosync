@@ -41,3 +41,34 @@ abstract final class AppColors {
   static const Color darkDanger         = Color(0xFFE05C4E);
   static const Color darkDangerFaint    = Color(0xFF2E1512);
 }
+
+// Customer-app design tokens (Premium Dairy Narrative)
+abstract final class CusColors {
+  static const Color primary            = Color(0xFF0F5238);
+  static const Color primaryContainer   = Color(0xFF2D6A4F);
+  static const Color onPrimary          = Color(0xFFFFFFFF);
+  static const Color onPrimaryContainer = Color(0xFFA8E7C5);
+
+  static const Color secondaryContainer    = Color(0xFFD8E2DC);
+  static const Color onSecondaryContainer  = Color(0xFF5B6560);
+
+  static const Color surface                 = Color(0xFFFAF9F8);
+  static const Color surfaceContainerLowest  = Color(0xFFFFFFFF);
+  static const Color surfaceContainerLow     = Color(0xFFF5F3F3);
+  static const Color surfaceContainer        = Color(0xFFEFEDED);
+  static const Color surfaceContainerHigh    = Color(0xFFE9E8E7);
+  static const Color surfaceContainerHighest = Color(0xFFE3E2E2);
+
+  static const Color onSurface        = Color(0xFF1B1C1C);
+  static const Color onSurfaceVariant = Color(0xFF404943);
+  static const Color outline          = Color(0xFF707973);
+  static const Color outlineVariant   = Color(0xFFBFC9C1);
+
+  static const Color error            = Color(0xFFBA1A1A);
+  static const Color errorContainer   = Color(0xFFFFDAD6);
+  static const Color onError          = Color(0xFFFFFFFF);
+
+  static const Color successGreen     = Color(0xFF1E8E5A);
+  static const Color warningAmber     = Color(0xFFB9770A);
+  static const Color vacationBlue     = Color(0xFF1565C0);
+}

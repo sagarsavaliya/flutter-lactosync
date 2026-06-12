@@ -28,4 +28,14 @@ abstract final class AppConfig {
     if (Platform.isAndroid) return 'http://127.0.0.1:8080$apiPrefix';
     return 'http://localhost:8080$apiPrefix';
   }
+
+  /// Base URL for customer API routes (prefix: /api/customer/v1/...).
+  /// The customer routes sit at /api/customer/v1, NOT /api/v1/customer/v1,
+  /// so the Dio base must be /api — one level above the owner /api/v1 base.
+  static String get apiBaseUrlCustomer {
+    if (kReleaseMode) return '$productionHost/api';
+    if (kIsWeb) return 'http://localhost:8080/api';
+    if (Platform.isAndroid) return 'http://127.0.0.1:8080/api';
+    return 'http://localhost:8080/api';
+  }
 }

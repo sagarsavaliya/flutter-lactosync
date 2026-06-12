@@ -29,6 +29,16 @@ return Application::configure(basePath: dirname(__DIR__))
             ->timezone($timezone)
             ->name('billing-payment-due-reminders');
 
+        $schedule->command('subscriptions:update-statuses')
+            ->dailyAt('00:05')
+            ->timezone($timezone)
+            ->name('update-subscription-statuses');
+
+        $schedule->command('customer:clear-ended-vacations')
+            ->dailyAt('07:00')
+            ->timezone($timezone)
+            ->name('customer-clear-ended-vacations');
+
         $schedule->call(function (): void {
             dispatch(new GenerateMonthlyBillsJob(
                 Carbon::now()->subMonth()->format('Y-m'),
@@ -40,6 +50,11 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+
+        // Named alias so routes can reference 'check.subscription' cleanly.
+        $middleware->alias([
+            'check.subscription' => \App\Http\Middleware\CheckTenantSubscription::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

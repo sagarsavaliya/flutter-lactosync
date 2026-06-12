@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\OnboardingStep;
+use App\Models\Admin\TenantPlanAssignment;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
@@ -44,6 +46,15 @@ class FarmOwner extends Authenticatable
     public function farm(): BelongsTo
     {
         return $this->belongsTo(Farm::class);
+    }
+
+    /**
+     * The tenant's active SaaS plan assignment.
+     * Read by the Admin Dashboard and subscription-enforcement middleware.
+     */
+    public function tenantPlanAssignment(): HasOne
+    {
+        return $this->hasOne(TenantPlanAssignment::class, 'owner_id');
     }
 
     public function fullName(): string

@@ -14,11 +14,9 @@ class Product extends Model
     protected $fillable = [
         'farm_id',
         'name',
-        'milk_type',          // retained (nullable) for rollback safety; use milk_type_id going forward
         'milk_type_id',
         'rate',
         'unit',
-        'container_type',     // retained (nullable) for rollback safety; use container_type_id going forward
         'container_type_id',
         'is_active',
     ];
@@ -28,7 +26,6 @@ class Product extends Model
         return [
             'rate'      => 'decimal:2',
             'is_active' => 'boolean',
-            // milk_type and container_type are now plain nullable strings (enum casts removed)
         ];
     }
 
@@ -45,6 +42,11 @@ class Product extends Model
     public function containerType(): BelongsTo
     {
         return $this->belongsTo(ContainerType::class, 'container_type_id');
+    }
+
+    public function offeredSizes(): HasMany
+    {
+        return $this->hasMany(ProductOfferedSize::class)->orderBy('size_liters');
     }
 
     public function subscriptionLines(): HasMany

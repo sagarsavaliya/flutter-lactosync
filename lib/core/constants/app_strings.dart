@@ -18,6 +18,7 @@ abstract final class AppStrings {
   static const forgotPin = 'Forgot PIN?';
   static const signIn = 'Sign in';
   static const signOut = 'Sign out';
+  static const customerSignInHere = 'Customer? Sign in here';
   static const mobileRequired = 'Enter mobile number';
   static const mobileInvalid = 'Enter valid 10-digit number';
   static const pinRequired = 'Enter PIN';
@@ -127,6 +128,10 @@ abstract final class AppStrings {
   static const rateRequired = 'Enter rate';
   static const unitLabel = 'Unit';
   static const containerLabel = 'Container';
+  static const containerKindLabel = 'Container type';
+  static const containerSizesLabel = 'Container sizes';
+  static const containerSizesRequired = 'Select at least one container size';
+  static const productNameAutoHint = 'Auto-generated from milk type and rate';
   static const productsEmptyHint = 'No products yet. Add your milk products.';
   static const addProduct = 'Add product';
   static const saveProducts = 'Save & continue';
@@ -158,7 +163,9 @@ abstract final class AppStrings {
   static const selectCustomer = 'Select customer';
   static const selectProduct = 'Select product';
   static const quantityLabel = 'Qty';
+  static const quantityLtrLabel = 'Qty (ltr)';
   static const couponLabel = 'Discount';
+  static const couponLtrLabel = 'Discount (₹)';
   static const totalLabel = 'Total';
   static const editProduct = 'Edit product';
   static const shiftLabel = 'Delivery shift';
@@ -364,6 +371,9 @@ abstract final class AppStrings {
   static const deleteSubscriptionDone = 'Subscription removed';
   static const deleteSubscriptionBlocked =
       'Cannot remove — this subscription has delivery history';
+  static const deliveryTypeLabel = 'Delivery type';
+  static const deliveryTypeHomeDelivery = 'Home delivery';
+  static const deliveryTypeWalkIn = 'Walk-in';
   static const suspendDeliveryLabel = 'Suspend delivery';
   static const suspendDeliveryHint = 'Stops all deliveries. Not the same as vacation mode.';
   static const addSubscriptionTitle = 'Add subscription';
@@ -454,12 +464,73 @@ abstract final class AppStrings {
   static const settingsSizeHint = 'e.g. 1L, 500ml';
   static const settingsSizeRequired = 'Enter size (e.g. 1L)';
 
+  // OR-07: Container types redesign
+  static const settingsContainerTypeNameLabel = 'Name';
+  static const settingsContainerTypeNameHint = 'e.g. Stainless Steel Pot';
+  static const settingsContainerTypeNameRequired = 'Enter a name';
+  static const settingsContainerTypeSizesLabel = 'Sizes';
+  static const settingsContainerTypeSizesRequired = 'Add at least one size';
+  static const settingsContainerTypeAddSizeLabel = 'Size (litres)';
+  static const settingsContainerTypeAddSizeHint = '0.5';
+  static const settingsContainerTypeAddSizeTitle = 'Add size';
+  static const settingsContainerTypeAddSizeInvalid =
+      'Enter a positive decimal number (e.g. 0.5, 1.5)';
+  static const settingsContainerTypeRemoveTitle = 'Remove container type?';
+  static const settingsContainerTypeRemoveBody =
+      'will be removed. Products using this container type will be affected.';
+  static const settingsContainerTypeRemoved = 'Container type removed';
+  static const settingsContainerTypeRemoveConfirm = 'Remove';
+
+  // OR-08: Product list redesign
+  static const settingsProductRemoveTitle = 'Remove product?';
+  static const settingsProductRemoveConfirm = 'Remove';
+  static const settingsProductRemoved = 'Product removed.';
+  static const settingsProductAdded = 'Product added.';
+  static const settingsProductUpdated = 'Product updated.';
+  static const settingsProductAddTitle = 'Add product';
+  static const settingsProductEditTitle = 'Edit product';
+  static const settingsProductEditTooltip = 'Edit';
+  static const settingsProductMilkTypeLabel = 'Milk type';
+  static const settingsProductMilkTypeHint = 'Select milk type';
+  static const settingsProductMilkTypeRequired = 'Select a milk type';
+  static const settingsProductContainerTypeLabel = 'Container type';
+  static const settingsProductContainerTypeHint = 'Select container type';
+  static const settingsProductContainerTypeRequired = 'Select a container type';
+  static const settingsProductRateLabel = 'Rate (₹/ltr)';
+  static const settingsProductRateRequired = 'Enter a rate';
+  static const settingsProductSaveButton = 'Save product';
+  static const settingsProductPreviewLabel = 'Product name';
+  static const settingsProductEmpty = 'No products yet.';
+  static const settingsProductAddButton = 'Add product';
+
+  // OR-10: Farm address prefill toggle
+  static const settingsPrefillToggleTitle = 'Pre-fill customer address from farm';
+  static const settingsPrefillToggleHint =
+      'When on, city, state and PIN code will be pre-filled from your farm address when adding a new customer.';
+  static const settingsPrefillSaveFailed = 'Failed to save setting.';
+
   // Contact picker
   static const contactsPermissionDenied =
       'Contacts permission denied. Grant it in Settings to use this feature.';
   static const contactNoPhone = 'No phone number found for this contact.';
   static const contactImportError = 'Could not import contact. Please try again.';
   static const importFromContacts = 'Import from contacts';
+
+  // Subscription overdue / suspended (T1-22)
+  static const subscriptionSuspendedTitle = 'Subscription Suspended';
+  static const subscriptionSuspendedSubtitle =
+      'Your subscription has been suspended due to an overdue payment.';
+  static const subscriptionPayNow = 'Pay Now';
+  static const subscriptionRefreshCheck =
+      'Refresh — check if payment was processed';
+  static const subscriptionStillSuspended =
+      'Subscription is still suspended. Please contact support.';
+  static const subscriptionUpiOpenFailed =
+      'Could not open UPI app. Please pay manually.';
+  static const subscriptionContactSupport =
+      'Please contact LactoSync support to clear your dues.';
+  static const subscriptionWarningBannerDays =
+      'Payment overdue — {n} day(s) left to clear dues';
 
   // Legacy
   static const registerTitle = 'Create account';

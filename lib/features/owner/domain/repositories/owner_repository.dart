@@ -123,5 +123,22 @@ abstract class OwnerRepository {
   Future<void> deleteContainerType(int id);
   Future<void> hideContainerType(int id);
   Future<void> unhideContainerType(int id);
+
+  // ── OR-07: Container types (grouped, with sizes list) ─────────────────────
+  Future<List<OwnerContainerType>> fetchOwnerContainerTypes();
+  Future<OwnerContainerType> createOwnerContainerType({
+    required String name,
+    required List<double> sizes,
+  });
+  Future<void> deleteOwnerContainerType(int id);
+
+  // ── OR-08: Products (new shape) ───────────────────────────────────────────
+  Future<List<OwnerProduct>> fetchOwnerProducts();
+  Future<OwnerProduct> createOwnerProduct({
+    required int milkTypeId,
+    required int containerTypeId,
+    required double rate,
+  });
+  Future<void> deleteOwnerProduct(int id);
 }
 

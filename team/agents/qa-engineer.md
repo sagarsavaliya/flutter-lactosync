@@ -40,6 +40,40 @@ expectations in `team/foundation/engineering-standards.md` and each
 - Per stack: feature/unit tests (Laravel), component/hook tests (React), use-case/widget
   tests (Flutter), behaviour tests (SPFx), happy + failure + retry (Power Automate).
 
+### React / Vite build verification — run before writing your test report
+
+For any React story, execute these binary checks first. A failure on any one is a
+**must-fix defect** that blocks handoff to the Code Reviewer — report it back to the
+React Engineer immediately, before writing the rest of the test report.
+
+1. **Build exits cleanly:** `npm run build` must complete with exit code 0 and no
+   TypeScript errors.
+
+2. **CSS bundle ≥ 30 KB:** inspect `dist/assets/*.css` after the build. A file smaller
+   than 30 KB means Tailwind v4 is not generating utility classes — the app will render
+   as unstyled HTML. Root cause is almost always a missing `@tailwindcss/vite` plugin in
+   `vite.config.ts`.
+
+3. **Module count ≥ 500:** the Vite build output includes a line like `✓ N modules
+   transformed`. If N < 500 the entry point is not rendering the real application — it
+   is likely still pointing at a scaffold template component (e.g. the Vite default
+   `App.tsx` with a counter).
+
+4. **Entry point is the router:** read `src/main.tsx`. It must import and render the
+   app's router or provider tree, **not** a placeholder `App.tsx`. If it renders the
+   default scaffold, flag it — the user will see the Vite starter page in production.
+
+5. **No scaffold artefacts remain:** confirm none of these exist in `src/`:
+   - `App.tsx` containing "Count is" or `useState(0)` counter demo
+   - `assets/react.svg` or `assets/vite.svg` (Vite template logos)
+
+6. **Vite plugin completeness:** `vite.config.ts` must register a plugin for every CSS
+   framework in `devDependencies`. If `tailwindcss ^4.x` is listed, `@tailwindcss/vite`
+   must be installed **and** appear in the `plugins` array.
+
+These checks take under two minutes and prevent "the app deploys but renders as blank
+HTML" failures that no amount of functional testing catches.
+
 ## What you produce
 
 - A pass/fail result against each acceptance criterion, and any defects found — described

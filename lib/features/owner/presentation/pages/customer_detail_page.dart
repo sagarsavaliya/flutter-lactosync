@@ -517,7 +517,31 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                     ),
                 ],
                 const SizedBox(height: AppSpace.lg),
-                OwnerSectionHeader(title: AppStrings.paymentsLogTitle),
+                OwnerSectionHeader(
+                  title: AppStrings.paymentsLogTitle,
+                  trailing: () {
+                    final pendingBills = data.billingHistory
+                        .where((b) => b.balanceDue > 0)
+                        .toList();
+                    if (pendingBills.isEmpty) return null;
+                    return OwnerAddButton(
+                      tooltip: AppStrings.recordPaymentButton,
+                      icon: Icons.add_card_outlined,
+                      onPressed: () async {
+                        await OwnerActionSheets.showCollectPaymentForCustomer(
+                          context,
+                          ref,
+                          customerId: customer.id,
+                          customerName: customer.fullName,
+                          pendingBills: pendingBills,
+                          onSuccess: () {
+                            if (mounted) ref.invalidate(customerDetailProvider(_query));
+                          },
+                        );
+                      },
+                    );
+                  }(),
+                ),
                 const SizedBox(height: AppSpace.sm),
                 if (data.payments.isEmpty)
                   OwnerEmptyRowCard(

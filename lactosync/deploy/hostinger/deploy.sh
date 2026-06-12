@@ -15,6 +15,7 @@ rsync -az --delete \
   --exclude 'src/node_modules' \
   --exclude 'src/.env' \
   --exclude 'src/storage/logs' \
+  --exclude 'src/bootstrap/cache' \
   --exclude '.git' \
   "$LOCAL_ROOT/" "$HOST:${REMOTE_ROOT}/repo/"
 

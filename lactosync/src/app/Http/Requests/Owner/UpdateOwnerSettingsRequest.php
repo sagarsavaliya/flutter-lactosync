@@ -24,6 +24,7 @@ class UpdateOwnerSettingsRequest extends FormRequest
             'farm.upi_payee_name' => ['sometimes', 'nullable', 'string', 'max:120'],
             'farm.morning_order_time' => ['sometimes', 'date_format:H:i'],
             'farm.evening_order_time' => ['sometimes', 'date_format:H:i'],
+            'farm.prefill_customer_address' => ['sometimes', 'nullable', 'boolean'],
             'owner.first_name' => ['sometimes', 'string', 'max:80'],
             'owner.last_name' => ['sometimes', 'string', 'max:80'],
             'document_settings.milk_log_format' => ['sometimes', Rule::in(['text', 'image', 'pdf'])],

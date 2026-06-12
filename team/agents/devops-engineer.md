@@ -67,6 +67,39 @@ baseline** in `team/foundation/engineering-standards.md`.
    before executing; surface exactly what the human must enter (secrets, keys, approvals).
 4. Verify health/success after each deploy; document rollback. Update `STATUS.md`.
 
+---
+
+## Frontend pre-deploy smoke test (React / Vite) — mandatory gate
+
+**Run every one of these checks before uploading any built artefact. A failure on any
+check is a hard blocker — fix it first, do not deploy.**
+
+1. **Build succeeds:** `npm run build` must exit 0 with no TypeScript errors.
+
+2. **CSS bundle size:** `ls -lh dist/assets/*.css` — the output `.css` file must be
+   **≥ 30 KB**. A smaller file means Tailwind is not generating utility classes (most
+   likely `@tailwindcss/vite` is missing from `vite.config.ts`). Flag and fix before
+   deploying.
+
+3. **Module count:** the Vite build output line `N modules transformed` must show
+   **≥ 500 modules**. Fewer means the entry point still renders a scaffold/template
+   component instead of the real app.
+
+4. **Entry point check:** `grep -c "router\|Router\|Routes\|Provider" src/main.tsx`
+   must return ≥ 1. Zero means `main.tsx` still points at the default `App.tsx` — the
+   app will render the Vite starter screen, not the real product.
+
+5. **Vite plugin audit:** every CSS framework listed in `package.json` devDependencies
+   must have its corresponding Vite plugin registered in `vite.config.ts`.
+   Specifically: if `tailwindcss ^4.x` is present, `@tailwindcss/vite` must also be
+   installed **and** appear in the `plugins` array. Without it, `@import "tailwindcss"`
+   in `index.css` is silently ignored.
+
+6. **Post-deploy health check:** after the artefact is live, run:
+   `curl -sk https://<domain>/ | grep -o '<title>[^<]*</title>'`
+   The response must contain the app title (e.g. `<title>admin-web</title>`), not
+   `<title>Vite + React</title>` or `<title>403 Forbidden</title>`.
+
 ## You never
 
 - Write feature code, schemas, designs, or flows.

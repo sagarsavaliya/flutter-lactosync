@@ -12,8 +12,11 @@ use App\Models\FarmOwner;
 use App\Models\Product;
 use App\Models\Subscription;
 use App\Models\SubscriptionLine;
+use App\Models\MilkType;
+use App\Services\Catalog\ProductConfigurator;
 use App\Services\Onboarding\OnboardingService;
 use App\Support\ApiResponse;
+use App\Support\ProductPayload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +25,7 @@ class OnboardingController extends Controller
 {
     public function __construct(
         private readonly OnboardingService $onboarding,
+        private readonly ProductConfigurator $productConfigurator,
     ) {}
 
     public function status(Request $request): JsonResponse
@@ -70,17 +74,43 @@ class OnboardingController extends Controller
 
         $validated = $request->validate([
             'products' => ['required', 'array', 'min:1'],
-            'products.*.name' => ['required', 'string', 'max:120'],
-            'products.*.milk_type' => ['required', 'string', 'in:gir_cow,cow,buffalo'],
+            'products.*.name' => ['sometimes', 'string', 'max:120'],
+            'products.*.milk_type_id' => ['sometimes', 'nullable', 'integer', 'exists:milk_types,id'],
             'products.*.rate' => ['required', 'numeric', 'min:1', 'max:99999'],
             'products.*.unit' => ['required', 'string', 'in:ltr'],
-            'products.*.container_type' => ['required', 'string', 'in:glass_bottle,plastic_bag'],
+            'products.*.container_type_id' => ['sometimes', 'nullable', 'integer', 'exists:container_types,id'],
+            'products.*.container_type_ids' => ['sometimes', 'array'],
+            'products.*.container_type_ids.*' => ['integer', 'exists:container_types,id'],
         ]);
 
         $created = DB::transaction(function () use ($owner, $validated) {
             $items = [];
             foreach ($validated['products'] as $row) {
-                $items[] = $owner->farm->products()->create($row);
+                $milkType = isset($row['milk_type_id'])
+                    ? MilkType::query()->find($row['milk_type_id'])
+                    : null;
+
+                $name = $row['name'] ?? $this->productConfigurator->generateName(
+                    $milkType,
+                    null,
+                    (float) $row['rate'],
+                );
+
+                // Resolve container_type_id: prefer explicit value, fall back to first of
+                // the old-schema container_type_ids array sent by legacy APK builds.
+                $containerTypeId = $row['container_type_id']
+                    ?? (! empty($row['container_type_ids']) ? (int) $row['container_type_ids'][0] : null);
+
+                $product = $owner->farm->products()->create([
+                    'name'              => $name,
+                    'milk_type_id'      => $row['milk_type_id'] ?? null,
+                    'rate'              => $row['rate'],
+                    'unit'              => $row['unit'],
+                    'container_type_id' => $containerTypeId,
+                    'is_active'         => true,
+                ]);
+
+                $items[] = $product->fresh(['milkType', 'containerType.sizes']);
             }
 
             return $items;
@@ -101,10 +131,11 @@ class OnboardingController extends Controller
         $owner->loadMissing('farm');
 
         $products = $owner->farm->products()
+            ->with(['milkType', 'containerType.sizes'])
             ->where('is_active', true)
             ->orderBy('name')
             ->get()
-            ->map(fn (Product $p) => $this->productPayload($p));
+            ->map(fn (Product $p) => ProductPayload::make($p));
 
         return ApiResponse::success(['products' => $products]);
     }
@@ -213,16 +244,7 @@ class OnboardingController extends Controller
 
     private function productPayload(Product $product): array
     {
-        return [
-            'id' => $product->id,
-            'name' => $product->name,
-            'milk_type' => $product->milk_type->value,
-            'milk_type_label' => $product->milk_type->label(),
-            'rate' => (float) $product->rate,
-            'unit' => $product->unit,
-            'container_type' => $product->container_type->value,
-            'container_type_label' => $product->container_type->label(),
-        ];
+        return ProductPayload::make($product->loadMissing(['milkType', 'containerType.sizes']));
     }
 
     private function customerPayload(Customer $customer): array
@@ -242,6 +264,7 @@ class OnboardingController extends Controller
             'whatsapp_enabled' => $customer->whatsapp_enabled,
             'secondary_contact' => $customer->secondary_contact,
             'is_active' => $customer->is_active,
+            'delivery_type' => $customer->delivery_type ?? 'home_delivery',
         ];
     }
 

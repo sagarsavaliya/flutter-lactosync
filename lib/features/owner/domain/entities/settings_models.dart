@@ -50,6 +50,7 @@ class SettingsFarm {
     this.upiPayeeName,
     this.morningOrderTime,
     this.eveningOrderTime,
+    this.prefillCustomerAddress = false,
   });
 
   final int id;
@@ -62,6 +63,8 @@ class SettingsFarm {
   final String? upiPayeeName;
   final String? morningOrderTime;
   final String? eveningOrderTime;
+  /// OR-10: when true, city/state/PIN are pre-filled when adding a new customer.
+  final bool prefillCustomerAddress;
 
   factory SettingsFarm.fromJson(Map<String, dynamic> json) {
     return SettingsFarm(
@@ -75,6 +78,7 @@ class SettingsFarm {
       upiPayeeName: json['upi_payee_name'] as String?,
       morningOrderTime: json['morning_order_time'] as String? ?? '05:00',
       eveningOrderTime: json['evening_order_time'] as String? ?? '15:00',
+      prefillCustomerAddress: json['prefill_customer_address'] as bool? ?? false,
     );
   }
 
@@ -88,6 +92,7 @@ class SettingsFarm {
         'upi_payee_name': upiPayeeName,
         if (morningOrderTime != null) 'morning_order_time': morningOrderTime,
         if (eveningOrderTime != null) 'evening_order_time': eveningOrderTime,
+        'prefill_customer_address': prefillCustomerAddress,
       };
 }
 
@@ -119,6 +124,26 @@ class SettingsOwner {
       };
 }
 
+class ProductContainerSize {
+  const ProductContainerSize({
+    required this.id,
+    required this.sizeKey,
+    required this.sizeLabel,
+  });
+
+  final int id;
+  final String sizeKey;
+  final String sizeLabel;
+
+  factory ProductContainerSize.fromJson(Map<String, dynamic> json) {
+    return ProductContainerSize(
+      id: json['id'] as int,
+      sizeKey: json['size_key'] as String? ?? '',
+      sizeLabel: json['size_label'] as String? ?? json['name'] as String? ?? '',
+    );
+  }
+}
+
 class SettingsProduct {
   const SettingsProduct({
     required this.id,
@@ -131,6 +156,9 @@ class SettingsProduct {
     required this.containerTypeLabel,
     this.milkTypeId,
     this.containerTypeId,
+    this.containerKind,
+    this.containerTypeIds = const [],
+    this.containerSizes = const [],
   });
 
   final int id;
@@ -143,8 +171,19 @@ class SettingsProduct {
   final String containerTypeLabel;
   final int? milkTypeId;
   final int? containerTypeId;
+  final String? containerKind;
+  final List<int> containerTypeIds;
+  final List<ProductContainerSize> containerSizes;
+
+  String get containerSizesLabel => containerSizes.isEmpty
+      ? containerTypeLabel
+      : containerSizes.map((s) => s.sizeLabel).join(', ');
 
   factory SettingsProduct.fromJson(Map<String, dynamic> json) {
+    final sizes = (json['container_sizes'] as List<dynamic>? ?? [])
+        .map((e) => ProductContainerSize.fromJson(e as Map<String, dynamic>))
+        .toList();
+
     return SettingsProduct(
       id: json['id'] as int,
       name: json['name'] as String? ?? '',
@@ -156,6 +195,11 @@ class SettingsProduct {
       containerTypeLabel: json['container_type_label'] as String? ?? '',
       milkTypeId: json['milk_type_id'] as int?,
       containerTypeId: json['container_type_id'] as int?,
+      containerKind: json['container_kind'] as String?,
+      containerTypeIds: (json['container_type_ids'] as List<dynamic>? ?? [])
+          .map((e) => e as int)
+          .toList(),
+      containerSizes: sizes,
     );
   }
 }
@@ -185,19 +229,34 @@ class MilkTypeItem {
 class ContainerTypeItem {
   final int id;
   final String name;
+  final String? kind;
+  final String? sizeKey;
+  final String? sizeLabel;
+  final int? sizeMl;
   final bool isSystem;
   final bool isHidden;
   final bool isActive;
   const ContainerTypeItem({
     required this.id,
     required this.name,
+    this.kind,
+    this.sizeKey,
+    this.sizeLabel,
+    this.sizeMl,
     required this.isSystem,
     required this.isHidden,
     required this.isActive,
   });
+
+  String get displaySizeLabel => sizeLabel ?? name;
+
   factory ContainerTypeItem.fromJson(Map<String, dynamic> json) => ContainerTypeItem(
         id: json['id'] as int,
         name: json['name'] as String,
+        kind: json['kind'] as String?,
+        sizeKey: json['size_key'] as String?,
+        sizeLabel: json['size_label'] as String?,
+        sizeMl: json['size_ml'] as int?,
         isSystem: json['is_system'] as bool? ?? false,
         isHidden: json['is_hidden'] as bool? ?? false,
         isActive: json['is_active'] as bool? ?? true,
@@ -256,6 +315,128 @@ enum CustomerShareDocument {
   milkLog,
   billing,
   paymentReceipt,
+}
+
+// ── OR-07: Container type with grouped sizes ───────────────────────────────
+
+/// Formats a litre value as a display label.
+/// 0.5 → "500 ml", 1.0 → "1 L", 1.5 → "1.5 L"
+String formatSizeLabel(double litres) {
+  if (litres < 1.0) {
+    final ml = (litres * 1000).round();
+    return '$ml ml';
+  }
+  if (litres == litres.roundToDouble()) {
+    return '${litres.toInt()} L';
+  }
+  return '$litres L';
+}
+
+/// Container type returned by the new OR-07 API:
+/// GET /v1/owner/container-types → data.container_types[]
+class OwnerContainerType {
+  const OwnerContainerType({
+    required this.id,
+    required this.name,
+    required this.isSystem,
+    required this.isActive,
+    required this.sizes,
+  });
+
+  final int id;
+  final String name;
+  final bool isSystem;
+  final bool isActive;
+  /// Sizes in litres, e.g. [0.5, 1.0].
+  final List<double> sizes;
+
+  /// Formatted size labels, e.g. ["500 ml", "1 L"].
+  List<String> get sizeLabels => sizes.map(formatSizeLabel).toList();
+
+  factory OwnerContainerType.fromJson(Map<String, dynamic> json) {
+    final rawSizes = json['sizes'] as List<dynamic>? ?? [];
+    return OwnerContainerType(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      isSystem: json['is_system'] as bool? ?? false,
+      isActive: json['is_active'] as bool? ?? true,
+      sizes: rawSizes.map((e) => (e as num).toDouble()).toList(),
+    );
+  }
+}
+
+// ── OR-08: Product with new API shape ─────────────────────────────────────
+
+/// Product returned by the new OR-08 API:
+/// GET /v1/owner/products → data.products[]
+class OwnerProduct {
+  const OwnerProduct({
+    required this.id,
+    required this.name,
+    required this.milkType,
+    required this.containerType,
+    required this.rate,
+  });
+
+  final int id;
+  final String name;
+  final _ProductMilkType milkType;
+  final _ProductContainerType containerType;
+  final double rate;
+
+  /// Subtitle line: "{milkType} · {containerType} · {sizes} · ₹{rate}/ltr"
+  String get subtitleLine {
+    final sizes = containerType.sizes.map(formatSizeLabel).join(', ');
+    return '${milkType.name} · ${containerType.name} · $sizes · ₹${rate.toStringAsFixed(0)}/ltr';
+  }
+
+  /// Title line: auto-generated name from API, e.g. "Gir Cow - ₹80"
+  String get titleLine => name;
+
+  factory OwnerProduct.fromJson(Map<String, dynamic> json) {
+    final rawMilkType = json['milk_type'];
+    final rawContainerType = json['container_type'];
+    return OwnerProduct(
+      id: json['id'] as int,
+      name: json['name'] as String? ?? '',
+      milkType: rawMilkType != null
+          ? _ProductMilkType.fromJson(Map<String, dynamic>.from(rawMilkType as Map))
+          : const _ProductMilkType(id: 0, name: ''),
+      containerType: rawContainerType != null
+          ? _ProductContainerType.fromJson(Map<String, dynamic>.from(rawContainerType as Map))
+          : const _ProductContainerType(id: 0, name: '', sizes: []),
+      rate: (json['rate'] as Object?) is String
+          ? double.tryParse(json['rate'] as String) ?? 0
+          : (json['rate'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class _ProductMilkType {
+  const _ProductMilkType({required this.id, required this.name});
+  final int id;
+  final String name;
+  factory _ProductMilkType.fromJson(Map<String, dynamic> json) =>
+      _ProductMilkType(id: json['id'] as int, name: json['name'] as String);
+}
+
+class _ProductContainerType {
+  const _ProductContainerType({
+    required this.id,
+    required this.name,
+    required this.sizes,
+  });
+  final int id;
+  final String name;
+  final List<double> sizes;
+  factory _ProductContainerType.fromJson(Map<String, dynamic> json) {
+    final rawSizes = json['sizes'] as List<dynamic>? ?? [];
+    return _ProductContainerType(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      sizes: rawSizes.map((e) => (e as num).toDouble()).toList(),
+    );
+  }
 }
 
 class OwnerSettingsUpdate {

@@ -39,12 +39,25 @@ class InvoiceDeliveryService
 
         $monthLabel = Carbon::createFromFormat('Y-m', $invoice->billing_month)->format('F Y');
         $owner = $owner->fresh(['farm']);
+        $dueDate = $invoice->due_date
+            ? Carbon::parse($invoice->due_date)->format('d M Y')
+            : 'N/A';
 
         $billImage = $this->billImages->generate($invoice, $owner);
-        $this->whatsApp->sendImage(
+
+        // Send bill image as the template header — one message instead of two
+        $this->whatsApp->sendTemplateWithImageHeader(
             $customer->contact,
+            config('services.whatsapp.template_bill', 'lacto_sync_monthly_bill'),
             $billImage,
-            "Milk bill — {$monthLabel} · Rs ".number_format((float) $invoice->total_amount, 0),
+            [
+                $customer->fullName(),
+                $monthLabel,
+                '₹'.number_format((float) $invoice->total_amount, 0),
+                (string) $invoice->invoice_number,
+                $dueDate,
+                $owner->farm->name,
+            ],
         );
 
         $invoice->forceFill([

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,80 +10,36 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dialogs.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/widgets/selection_chip.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../owner/domain/entities/settings_models.dart';
+import '../../../owner/presentation/providers/owner_provider.dart';
+import '../../../owner/presentation/widgets/product_form_fields.dart';
 import '../providers/onboarding_provider.dart';
 
-class _DraftProduct {
-  _DraftProduct();
-
-  final nameController = TextEditingController();
-  String milkType = 'cow';
-  String containerType = 'glass_bottle';
-  final rateController = TextEditingController();
-
-  void loadFrom(_SavedProduct product) {
-    nameController.text = product.name;
-    milkType = product.milkType;
-    containerType = product.containerType;
-    rateController.text = product.rate.toStringAsFixed(
-      product.rate == product.rate.roundToDouble() ? 0 : 2,
-    );
-  }
-
-  void clear() {
-    nameController.clear();
-    rateController.clear();
-    milkType = 'cow';
-    containerType = 'glass_bottle';
-  }
-
-  Map<String, dynamic> toJson() => {
-        'name': nameController.text.trim(),
-        'milk_type': milkType,
-        'rate': double.parse(rateController.text.trim()),
-        'unit': 'ltr',
-        'container_type': containerType,
-      };
-
-  void dispose() {
-    nameController.dispose();
-    rateController.dispose();
-  }
-}
-
-class _SavedProduct {
-  const _SavedProduct({
-    required this.name,
-    required this.milkType,
-    required this.containerType,
-    required this.rate,
+class _SavedProductDraft {
+  _SavedProductDraft({
+    required this.values,
+    required this.milkTypes,
   });
 
-  final String name;
-  final String milkType;
-  final String containerType;
-  final double rate;
+  final ProductFormValues values;
+  final List<MilkTypeItem> milkTypes;
 
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'milk_type': milkType,
-        'rate': rate,
-        'unit': 'ltr',
-        'container_type': containerType,
-      };
+  String get displayName {
+    if (values.nameText.trim().isNotEmpty) return values.nameText.trim();
+    String? milk;
+    for (final t in milkTypes) {
+      if (t.id == values.milkTypeId) {
+        milk = t.name;
+        break;
+      }
+    }
+    final rate = double.tryParse(values.rateText.trim());
+    if (milk == null || rate == null) return AppStrings.addProduct;
+    return buildProductName(milk, rate);
+  }
 
-  String get milkTypeLabel => switch (milkType) {
-        'gir_cow' => 'Gir Cow',
-        'buffalo' => 'Buffalo',
-        _ => 'Cow',
-      };
-
-  String get containerLabel => switch (containerType) {
-        'plastic_bag' => 'Plastic Bag',
-        _ => 'Glass Bottle',
-      };
+  Map<String, dynamic> toJson() => values.toApiJson(milkTypes: milkTypes);
 }
 
 class ProductSetupPage extends ConsumerStatefulWidget {
@@ -95,42 +50,61 @@ class ProductSetupPage extends ConsumerStatefulWidget {
 }
 
 class _ProductSetupPageState extends ConsumerState<ProductSetupPage> {
-  final _draft = _DraftProduct();
-  final _saved = <_SavedProduct>[];
+  final _values = ProductFormValues();
+  final _nameController = TextEditingController();
+  final _rateController = TextEditingController();
+  final _saved = <_SavedProductDraft>[];
   int? _editingIndex;
   bool _loading = false;
 
   @override
   void dispose() {
-    _draft.dispose();
+    _nameController.dispose();
+    _rateController.dispose();
     super.dispose();
   }
 
-  bool _validateDraft() {
-    if (_draft.nameController.text.trim().isEmpty) {
+  bool _validateDraft(List<MilkTypeItem> milkTypes) {
+    if (_values.milkTypeId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.productNameRequired)),
+        const SnackBar(content: Text(AppStrings.milkTypeLabel)),
       );
       return false;
     }
-    final rate = double.tryParse(_draft.rateController.text.trim());
+    final rate = double.tryParse(_values.rateText.trim());
     if (rate == null || rate <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text(AppStrings.rateRequired)),
       );
       return false;
     }
+    if (_values.selectedContainerIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.containerSizesRequired)),
+      );
+      return false;
+    }
+    if (_values.nameText.trim().isEmpty) {
+      final milk = milkTypes.firstWhere((t) => t.id == _values.milkTypeId).name;
+      _values.nameText = buildProductName(milk, rate);
+      _nameController.text = _values.nameText;
+    }
     return true;
   }
 
-  void _addOrUpdateProduct() {
-    if (!_validateDraft()) return;
+  void _addOrUpdateProduct(List<MilkTypeItem> milkTypes) {
+    if (!_validateDraft(milkTypes)) return;
 
-    final entry = _SavedProduct(
-      name: _draft.nameController.text.trim(),
-      milkType: _draft.milkType,
-      containerType: _draft.containerType,
-      rate: double.parse(_draft.rateController.text.trim()),
+    final entry = _SavedProductDraft(
+      values: ProductFormValues(
+        milkTypeId: _values.milkTypeId,
+        containerKind: _values.containerKind,
+        selectedContainerIds: Set<int>.from(_values.selectedContainerIds),
+        rateText: _values.rateText,
+        nameText: _values.nameText,
+        nameManuallyEdited: _values.nameManuallyEdited,
+      ),
+      milkTypes: milkTypes,
     );
 
     setState(() {
@@ -140,15 +114,27 @@ class _ProductSetupPageState extends ConsumerState<ProductSetupPage> {
       } else {
         _saved.add(entry);
       }
-      _draft.clear();
+      _resetDraft();
     });
+  }
+
+  void _resetDraft() {
+    _values
+      ..milkTypeId = null
+      ..containerKind = 'glass_bottle'
+      ..selectedContainerIds = {}
+      ..rateText = ''
+      ..nameText = ''
+      ..nameManuallyEdited = false;
+    _nameController.clear();
+    _rateController.clear();
   }
 
   void _deleteProduct(int index) {
     setState(() {
       if (_editingIndex == index) {
         _editingIndex = null;
-        _draft.clear();
+        _resetDraft();
       } else if (_editingIndex != null && index < _editingIndex!) {
         _editingIndex = _editingIndex! - 1;
       }
@@ -168,17 +154,29 @@ class _ProductSetupPageState extends ConsumerState<ProductSetupPage> {
     if (confirmed == true && mounted) _deleteProduct(index);
   }
 
-  void _editProduct(int index) {
+  void _editProduct(int index, List<MilkTypeItem> milkTypes) {
+    final draft = _saved[index];
     setState(() {
       _editingIndex = index;
-      _draft.loadFrom(_saved[index]);
+      _values
+        ..milkTypeId = draft.values.milkTypeId
+        ..containerKind = draft.values.containerKind
+        ..selectedContainerIds = Set<int>.from(draft.values.selectedContainerIds)
+        ..rateText = draft.values.rateText
+        ..nameText = draft.values.nameText
+        ..nameManuallyEdited = draft.values.nameManuallyEdited;
+      _nameController.text = draft.values.nameText;
+      _rateController.text = draft.values.rateText;
     });
   }
 
   Future<void> _save() async {
+    final milkTypes = ref.read(milkTypesProvider).valueOrNull ?? [];
+    final containerTypes = ref.read(containerTypesProvider).valueOrNull ?? [];
+
     if (_saved.isEmpty) {
-      if (!_validateDraft()) return;
-      _addOrUpdateProduct();
+      if (!_validateDraft(milkTypes)) return;
+      _addOrUpdateProduct(milkTypes);
     }
     if (_saved.isEmpty) return;
 
@@ -198,6 +196,10 @@ class _ProductSetupPageState extends ConsumerState<ProductSetupPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+
+    if (milkTypes.isEmpty || containerTypes.isEmpty) {
+      // no-op; providers loaded above for validation only
+    }
   }
 
   @override
@@ -205,157 +207,156 @@ class _ProductSetupPageState extends ConsumerState<ProductSetupPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
     final primary = Theme.of(context).colorScheme.primary;
+    final milkTypesAsync = ref.watch(milkTypesProvider);
+    final containerTypesAsync = ref.watch(containerTypesProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.productsTitle)),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(AppSpace.lg),
+        child: milkTypesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => Center(
+            child: TextButton(
+              onPressed: () => ref.invalidate(milkTypesProvider),
+              child: const Text('Retry'),
+            ),
+          ),
+          data: (milkTypes) => containerTypesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, __) => Center(
+              child: TextButton(
+                onPressed: () => ref.invalidate(containerTypesProvider),
+                child: const Text('Retry'),
+              ),
+            ),
+            data: (containerTypes) {
+              if (_values.milkTypeId == null && milkTypes.isNotEmpty) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted || _values.milkTypeId != null) return;
+                  setState(() {
+                    _values.milkTypeId = milkTypes.first.id;
+                    if (_values.selectedContainerIds.isEmpty) {
+                      _values.selectedContainerIds = containerTypes
+                          .where((t) =>
+                              t.kind == 'glass_bottle' &&
+                              t.isActive &&
+                              !t.isHidden &&
+                              (t.sizeKey == '1L' || t.sizeKey == '500ml'))
+                          .map((t) => t.id)
+                          .toSet();
+                    }
+                  });
+                });
+              }
+
+              return Column(
                 children: [
-                  Text(
-                    AppStrings.productsSubtitle,
-                    style: AppText.body.copyWith(color: inkMuted),
-                  ),
-                  const SizedBox(height: AppSpace.lg),
-                  AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.all(AppSpace.lg),
                       children: [
                         Text(
-                          _editingIndex != null ? AppStrings.editProduct : AppStrings.addProduct,
-                          style: AppText.sectionTitle,
+                          AppStrings.productsSubtitle,
+                          style: AppText.body.copyWith(color: inkMuted),
                         ),
-                        const SizedBox(height: AppSpace.md),
-                        AppTextField(
-                          label: AppStrings.productNameLabel,
-                          hint: AppStrings.productNameHint,
-                          controller: _draft.nameController,
-                        ),
-                        const SizedBox(height: AppSpace.md),
-                        Text(AppStrings.milkTypeLabel, style: AppText.label),
-                        const SizedBox(height: AppSpace.xs),
-                        Wrap(
-                          spacing: AppSpace.xs,
-                          runSpacing: AppSpace.xs,
-                          children: [
-                            _SelectionChip(
-                              label: 'Gir Cow',
-                              selected: _draft.milkType == 'gir_cow',
-                              onTap: () => setState(() => _draft.milkType = 'gir_cow'),
-                            ),
-                            _SelectionChip(
-                              label: 'Cow',
-                              selected: _draft.milkType == 'cow',
-                              onTap: () => setState(() => _draft.milkType = 'cow'),
-                            ),
-                            _SelectionChip(
-                              label: 'Buffalo',
-                              selected: _draft.milkType == 'buffalo',
-                              onTap: () => setState(() => _draft.milkType = 'buffalo'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpace.md),
-                        AppTextField(
-                          label: AppStrings.rateLabel,
-                          controller: _draft.rateController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpace.md),
-                        Text(AppStrings.containerLabel, style: AppText.label),
-                        const SizedBox(height: AppSpace.xs),
-                        Wrap(
-                          spacing: AppSpace.xs,
-                          runSpacing: AppSpace.xs,
-                          children: [
-                            _SelectionChip(
-                              label: 'Glass Bottle',
-                              selected: _draft.containerType == 'glass_bottle',
-                              onTap: () => setState(() => _draft.containerType = 'glass_bottle'),
-                            ),
-                            _SelectionChip(
-                              label: 'Plastic Bag',
-                              selected: _draft.containerType == 'plastic_bag',
-                              onTap: () => setState(() => _draft.containerType = 'plastic_bag'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpace.md),
-                  OutlinedButton(
-                    onPressed: _addOrUpdateProduct,
-                    child: Text(
-                      _editingIndex != null ? AppStrings.confirmLabel : AppStrings.addProduct,
-                    ),
-                  ),
-                  if (_saved.isNotEmpty) ...[
-                    const SizedBox(height: AppSpace.lg),
-                    ...List.generate(_saved.length, (i) {
-                      final p = _saved[i];
-                      final isEditing = _editingIndex == i;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpace.sm),
-                        child: AppCard(
-                          child: Row(
+                        const SizedBox(height: AppSpace.lg),
+                        AppCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(p.name, style: AppText.cardTitle),
-                                    const SizedBox(height: AppSpace.xxs),
-                                    Text(
-                                      '${p.milkTypeLabel} · ${p.containerLabel} · ₹${p.rate.toStringAsFixed(0)}/ltr',
-                                      style: AppText.meta.copyWith(color: inkMuted),
-                                    ),
-                                  ],
-                                ),
+                              Text(
+                                _editingIndex != null
+                                    ? AppStrings.editProduct
+                                    : AppStrings.addProduct,
+                                style: AppText.sectionTitle,
                               ),
-                              IconButton(
-                                tooltip: AppStrings.editProduct,
-                                icon: Icon(
-                                  Icons.edit_outlined,
-                                  size: 20,
-                                  color: isEditing ? primary : inkMuted,
-                                ),
-                                onPressed: () => _editProduct(i),
-                              ),
-                              IconButton(
-                                tooltip: AppStrings.deleteProductTitle,
-                                icon: Icon(Icons.delete_outline, size: 20, color: inkMuted),
-                                onPressed: () => _confirmDeleteProduct(i),
+                              const SizedBox(height: AppSpace.md),
+                              ProductFormFields(
+                                values: _values,
+                                milkTypes: milkTypes,
+                                containerTypes: containerTypes,
+                                nameController: _nameController,
+                                rateController: _rateController,
+                                onChanged: () => setState(() {}),
                               ),
                             ],
                           ),
                         ),
-                      );
-                    }),
-                  ],
+                        const SizedBox(height: AppSpace.md),
+                        OutlinedButton(
+                          onPressed: () => _addOrUpdateProduct(milkTypes),
+                          child: Text(
+                            _editingIndex != null
+                                ? AppStrings.confirmLabel
+                                : AppStrings.addProduct,
+                          ),
+                        ),
+                        if (_saved.isNotEmpty) ...[
+                          const SizedBox(height: AppSpace.lg),
+                          ...List.generate(_saved.length, (i) {
+                            final p = _saved[i];
+                            final isEditing = _editingIndex == i;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: AppSpace.sm),
+                              child: AppCard(
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(p.displayName,
+                                              style: AppText.cardTitle),
+                                          const SizedBox(height: AppSpace.xxs),
+                                          Text(
+                                            '₹${p.values.rateText}/ltr',
+                                            style: AppText.meta
+                                                .copyWith(color: inkMuted),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      tooltip: AppStrings.editProduct,
+                                      icon: Icon(
+                                        Icons.edit_outlined,
+                                        size: 20,
+                                        color:
+                                            isEditing ? primary : inkMuted,
+                                      ),
+                                      onPressed: () =>
+                                          _editProduct(i, milkTypes),
+                                    ),
+                                    IconButton(
+                                      tooltip: AppStrings.deleteProductTitle,
+                                      icon: Icon(Icons.delete_outline,
+                                          size: 20, color: inkMuted),
+                                      onPressed: () => _confirmDeleteProduct(i),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpace.lg),
+                    child: AppButton(
+                      label: AppStrings.saveProducts,
+                      loading: _loading,
+                      onPressed: _save,
+                    ),
+                  ),
                 ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpace.lg),
-              child: AppButton(
-                label: AppStrings.saveProducts,
-                loading: _loading,
-                onPressed: _save,
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
       ),
     );
   }
 }
-
-typedef _SelectionChip = SelectionChip;
-

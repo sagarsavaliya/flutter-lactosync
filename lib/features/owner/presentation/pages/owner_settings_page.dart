@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_card.dart';
@@ -29,6 +28,8 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
   TimeOfDay _morningOrderTime = const TimeOfDay(hour: 5, minute: 0);
   TimeOfDay _eveningOrderTime = const TimeOfDay(hour: 15, minute: 0);
   bool _loaded = false;
+  // OR-10: prefill toggle
+  bool _prefillCustomerAddress = false;
 
   // Per-sheet loading flags
   bool _savingFarm = false;
@@ -48,7 +49,42 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
     _includeFarmHeader = settings.documentSettings.includeFarmHeader;
     _morningOrderTime = _parseTime(settings.farm.morningOrderTime);
     _eveningOrderTime = _parseTime(settings.farm.eveningOrderTime);
+    _prefillCustomerAddress = settings.farm.prefillCustomerAddress;
     _loaded = true;
+  }
+
+  // OR-10: optimistic prefill toggle
+  Future<void> _onPrefillToggle(bool newValue) async {
+    final settings = _settings;
+    if (settings == null) return;
+    setState(() => _prefillCustomerAddress = newValue);
+    try {
+      await ref.read(ownerRepositoryProvider).updateSettings(
+            OwnerSettingsUpdate(
+              farm: SettingsFarm(
+                id: settings.farm.id,
+                name: settings.farm.name,
+                addressLine: settings.farm.addressLine,
+                city: settings.farm.city,
+                state: settings.farm.state,
+                zip: settings.farm.zip,
+                upiVpa: settings.farm.upiVpa,
+                upiPayeeName: settings.farm.upiPayeeName,
+                morningOrderTime: settings.farm.morningOrderTime,
+                eveningOrderTime: settings.farm.eveningOrderTime,
+                prefillCustomerAddress: newValue,
+              ),
+            ),
+          );
+      ref.invalidate(ownerSettingsProvider);
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _prefillCustomerAddress = !newValue);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppStrings.settingsPrefillSaveFailed)),
+        );
+      }
+    }
   }
 
   TimeOfDay _parseTime(String? value) {
@@ -107,6 +143,7 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
                 upiPayeeName: settings.farm.upiPayeeName,
                 morningOrderTime: _formatTime(_morningOrderTime),
                 eveningOrderTime: _formatTime(_eveningOrderTime),
+                prefillCustomerAddress: _prefillCustomerAddress,
               ),
             ),
           );
@@ -234,193 +271,6 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Product actions (unchanged)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  Future<void> _editProduct(SettingsProduct product) async {
-    final name = TextEditingController(text: product.name);
-    final rate = TextEditingController(text: product.rate.toStringAsFixed(0));
-
-    // Prefer ID-based selection for dynamic dropdowns (S6-15)
-    int? milkTypeId = product.milkTypeId;
-    int? containerTypeId = product.containerTypeId;
-
-    // Legacy slug fallback (still sent for backward compat)
-    var milkType = product.milkType;
-    var containerType = product.containerType;
-
-    final milkTypesAsync = ref.read(milkTypesProvider);
-    final containerTypesAsync = ref.read(containerTypesProvider);
-
-    final milkTypes = milkTypesAsync.valueOrNull ?? <MilkTypeItem>[];
-    final containerTypes = containerTypesAsync.valueOrNull ?? <ContainerTypeItem>[];
-
-    final saved = await showOwnerBottomSheet<bool>(
-      context: context,
-      child: StatefulBuilder(
-        builder: (context, setModalState) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              OwnerSheetTitle(AppStrings.settingsEditProduct),
-              const SizedBox(height: AppSpace.sm),
-              AppTextField(controller: name, label: AppStrings.productNameLabel),
-              const SizedBox(height: AppSpace.sm),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: AppTextField(
-                      controller: rate,
-                      label: AppStrings.rateLabel,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    ),
-                  ),
-                  const SizedBox(width: AppSpace.sm),
-                  // Dynamic milk type dropdown
-                  Expanded(
-                    flex: 3,
-                    child: milkTypes.isEmpty
-                        ? DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: milkType,
-                            decoration:
-                                InputDecoration(labelText: AppStrings.milkTypeLabel),
-                            items: const [
-                              DropdownMenuItem(value: 'gir_cow', child: Text('Gir Cow')),
-                              DropdownMenuItem(value: 'cow', child: Text('Cow')),
-                              DropdownMenuItem(value: 'buffalo', child: Text('Buffalo')),
-                            ],
-                            onChanged: (v) =>
-                                setModalState(() => milkType = v ?? milkType),
-                          )
-                        : DropdownButtonFormField<int>(
-                            isExpanded: true,
-                            value: milkTypeId,
-                            decoration:
-                                InputDecoration(labelText: AppStrings.milkTypeLabel),
-                            items: milkTypes
-                                .where((t) => t.isActive && !t.isHidden)
-                                .map((t) => DropdownMenuItem(
-                                      value: t.id,
-                                      child: Text(t.name),
-                                    ))
-                                .toList(),
-                            onChanged: (v) => setModalState(() => milkTypeId = v),
-                          ),
-                  ),
-                  const SizedBox(width: AppSpace.sm),
-                  // Dynamic container type dropdown
-                  Expanded(
-                    flex: 3,
-                    child: containerTypes.isEmpty
-                        ? DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: containerType,
-                            decoration:
-                                InputDecoration(labelText: AppStrings.containerLabel),
-                            items: const [
-                              DropdownMenuItem(
-                                  value: 'glass_bottle', child: Text('Glass')),
-                              DropdownMenuItem(
-                                  value: 'plastic_bag', child: Text('Plastic')),
-                            ],
-                            onChanged: (v) =>
-                                setModalState(() => containerType = v ?? containerType),
-                          )
-                        : DropdownButtonFormField<int>(
-                            isExpanded: true,
-                            value: containerTypeId,
-                            decoration:
-                                InputDecoration(labelText: AppStrings.containerLabel),
-                            items: containerTypes
-                                .where((t) => t.isActive && !t.isHidden)
-                                .map((t) => DropdownMenuItem(
-                                      value: t.id,
-                                      child: Text(t.name),
-                                    ))
-                                .toList(),
-                            onChanged: (v) => setModalState(() => containerTypeId = v),
-                          ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpace.md),
-              OwnerSheetActions(
-                primaryLabel: AppStrings.settingsSave,
-                onPrimary: () => Navigator.pop(context, true),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    if (saved != true || !mounted) {
-      name.dispose();
-      rate.dispose();
-      return;
-    }
-
-    try {
-      await ref.read(ownerRepositoryProvider).updateProduct(product.id, {
-        'name': name.text.trim(),
-        'rate': double.parse(rate.text.trim()),
-        // Send both legacy slug and new ID fields for backward compat
-        'milk_type': milkType,
-        'container_type': containerType,
-        if (milkTypeId != null) 'milk_type_id': milkTypeId,
-        if (containerTypeId != null) 'container_type_id': containerTypeId,
-      });
-      ref.invalidate(ownerSettingsProvider);
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    } finally {
-      name.dispose();
-      rate.dispose();
-    }
-  }
-
-  Future<void> _confirmDeleteProduct(SettingsProduct product) async {
-    final confirmed = await showAppConfirmDialog(
-      context: context,
-      title: AppStrings.deleteProductTitle,
-      message: AppStrings.deleteProductConfirm,
-      confirmLabel: AppStrings.deleteLabel,
-      cancelLabel: AppStrings.cancelLabel,
-      destructive: true,
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    try {
-      await ref.read(ownerRepositoryProvider).deleteProduct(product.id);
-      ref.invalidate(ownerSettingsProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.deleteProductDone)),
-        );
-      }
-    } on ApiException catch (e) {
-      if (mounted) {
-        final message =
-            e.code == 'PRODUCT_IN_USE' ? AppStrings.deleteProductBlocked : e.message;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-      }
-    }
-  }
-
-  Future<void> _addProduct() async {
-    await context.push('/onboarding/products');
-    if (mounted) ref.invalidate(ownerSettingsProvider);
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
   // Build
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -448,9 +298,23 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
             OwnerSectionHeader(title: AppStrings.settingsFarmSection),
             const SizedBox(height: AppSpace.sm),
             _FarmProfileCard(
-              farm: settings.farm,
+              // Use local _prefillCustomerAddress for optimistic toggle display.
+              farm: SettingsFarm(
+                id: settings.farm.id,
+                name: settings.farm.name,
+                addressLine: settings.farm.addressLine,
+                city: settings.farm.city,
+                state: settings.farm.state,
+                zip: settings.farm.zip,
+                upiVpa: settings.farm.upiVpa,
+                upiPayeeName: settings.farm.upiPayeeName,
+                morningOrderTime: settings.farm.morningOrderTime,
+                eveningOrderTime: settings.farm.eveningOrderTime,
+                prefillCustomerAddress: _prefillCustomerAddress,
+              ),
               onEdit: _openFarmEditSheet,
               isDark: isDark,
+              onPrefillToggle: _onPrefillToggle,
             ),
 
             // ── Daily order schedule ─────────────────────────────────────
@@ -494,66 +358,17 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
               isDark: isDark,
             ),
 
-            // ── Milk products ────────────────────────────────────────────
+            // ── OR-08: Products ──────────────────────────────────────────
             const SizedBox(height: AppSpace.lg),
-            OwnerSectionHeader(
-              title: AppStrings.settingsProductsSection,
-              trailing: AppSoftIconButton(
-                icon: Icons.add,
-                tooltip: AppStrings.settingsAddProduct,
-                onPressed: _addProduct,
-              ),
-            ),
-            const SizedBox(height: AppSpace.sm),
-            AppCard(
-              child: settings.products.isEmpty
-                  ? Text(
-                      AppStrings.productsEmptyHint,
-                      style: AppText.body.copyWith(color: inkMuted),
-                    )
-                  : Column(
-                      children: settings.products
-                          .map(
-                            (p) => ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(p.name, style: AppText.label),
-                              subtitle: Text(
-                                '${p.milkTypeLabel} · ${p.containerTypeLabel} · '
-                                '₹${p.rate.toStringAsFixed(0)}${AppStrings.perLtr}',
-                                style: AppText.meta.copyWith(color: inkMuted),
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit_outlined, size: 20),
-                                    tooltip: AppStrings.settingsEditProduct,
-                                    onPressed: () => _editProduct(p),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(
-                                      Icons.delete_outline,
-                                      size: 20,
-                                      color: inkMuted,
-                                    ),
-                                    tooltip: AppStrings.deleteProductTitle,
-                                    onPressed: () => _confirmDeleteProduct(p),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-            ),
+            const _ProductsSection(),
 
             // ── Milk types ───────────────────────────────────────────────
             const SizedBox(height: AppSpace.lg),
             _MilkTypesSection(repository: ref.read(ownerRepositoryProvider)),
 
-            // ── Container types ──────────────────────────────────────────
+            // ── OR-07: Container types ───────────────────────────────────
             const SizedBox(height: AppSpace.lg),
-            _ContainerTypesSection(repository: ref.read(ownerRepositoryProvider)),
+            const _ContainerTypesSection(),
 
             // ── WhatsApp sharing ─────────────────────────────────────────
             const SizedBox(height: AppSpace.lg),
@@ -611,11 +426,13 @@ class _FarmProfileCard extends StatelessWidget {
     required this.farm,
     required this.onEdit,
     required this.isDark,
+    required this.onPrefillToggle,
   });
 
   final SettingsFarm farm;
   final VoidCallback onEdit;
   final bool isDark;
+  final ValueChanged<bool> onPrefillToggle;
 
   String get _cityStatePinValue {
     final city = farm.city ?? '';
@@ -682,6 +499,32 @@ class _FarmProfileCard extends StatelessWidget {
             value: farm.upiPayeeName?.isNotEmpty == true ? farm.upiPayeeName! : '—',
             isDark: isDark,
           ),
+          // OR-10: prefill toggle
+          const Divider(height: AppSpace.lg),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              AppStrings.settingsPrefillToggleTitle,
+              style: AppText.body,
+            ),
+            value: farm.prefillCustomerAddress,
+            onChanged: onPrefillToggle,
+          ),
+          const SizedBox(height: AppSpace.xs),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline, size: 14, color: AppColors.inkMuted),
+              const SizedBox(width: AppSpace.xs),
+              Expanded(
+                child: Text(
+                  AppStrings.settingsPrefillToggleHint,
+                  style: AppText.meta.copyWith(color: AppColors.inkMuted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpace.xs),
         ],
       ),
     );
@@ -886,6 +729,8 @@ class _FarmEditSheetState extends State<_FarmEditSheet> {
       upiPayeeName: widget.upiPayeeName.text.trim(),
       morningOrderTime: widget.currentFarm.morningOrderTime,
       eveningOrderTime: widget.currentFarm.eveningOrderTime,
+      // Preserve the prefill toggle value when saving other farm fields.
+      prefillCustomerAddress: widget.currentFarm.prefillCustomerAddress,
     );
     try {
       await widget.onSave(farm);
@@ -1429,12 +1274,11 @@ class _AddMilkTypeSheetState extends State<_AddMilkTypeSheet> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Container types section (S6-14)
+// OR-07: Container types section — grouped card UI with size chips
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ContainerTypesSection extends ConsumerStatefulWidget {
-  const _ContainerTypesSection({required this.repository});
-  final dynamic repository;
+  const _ContainerTypesSection({super.key});
 
   @override
   ConsumerState<_ContainerTypesSection> createState() =>
@@ -1442,21 +1286,21 @@ class _ContainerTypesSection extends ConsumerStatefulWidget {
 }
 
 class _ContainerTypesSectionState extends ConsumerState<_ContainerTypesSection> {
-  bool _adding = false;
-
   Future<void> _openAddSheet() async {
     await showOwnerBottomSheet<void>(
       context: context,
       child: _AddContainerTypeSheet(
-        onSave: (material, size) async {
-          setState(() => _adding = true);
+        onSave: (name, sizes) async {
           try {
-            await widget.repository.addContainerType(material: material, size: size);
-            ref.invalidate(containerTypesProvider);
+            await ref
+                .read(ownerRepositoryProvider)
+                .createOwnerContainerType(name: name, sizes: sizes);
+            ref.invalidate(ownerContainerTypesProvider);
             if (mounted) {
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text(AppStrings.settingsContainerTypeAdded)),
+                const SnackBar(
+                    content: Text(AppStrings.settingsContainerTypeAdded)),
               );
             }
           } on ApiException catch (e) {
@@ -1464,52 +1308,34 @@ class _ContainerTypesSectionState extends ConsumerState<_ContainerTypesSection> 
               ScaffoldMessenger.of(context)
                   .showSnackBar(SnackBar(content: Text(e.message)));
             }
-          } finally {
-            if (mounted) setState(() => _adding = false);
           }
         },
       ),
     );
   }
 
-  Future<void> _toggleVisibility(ContainerTypeItem item, bool newVisible) async {
-    try {
-      if (newVisible) {
-        await widget.repository.unhideContainerType(item.id);
-      } else {
-        await widget.repository.hideContainerType(item.id);
-      }
-      ref.invalidate(containerTypesProvider);
-    } on ApiException catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.settingsToggleError)),
-        );
-        ref.invalidate(containerTypesProvider);
-      }
-    }
-  }
-
-  Future<void> _confirmDelete(ContainerTypeItem item) async {
+  Future<void> _confirmDelete(OwnerContainerType item) async {
     final confirmed = await showAppConfirmDialog(
       context: context,
-      title: 'Delete ${item.name}?',
-      message: AppStrings.settingsDeleteTypeMessage,
-      confirmLabel: AppStrings.deleteLabel,
+      title: AppStrings.settingsContainerTypeRemoveTitle,
+      message: '"${item.name}" ${AppStrings.settingsContainerTypeRemoveBody}',
+      confirmLabel: AppStrings.settingsContainerTypeRemoveConfirm,
       cancelLabel: AppStrings.cancelLabel,
       destructive: true,
     );
     if (confirmed != true || !mounted) return;
     try {
-      await widget.repository.deleteContainerType(item.id);
-      ref.invalidate(containerTypesProvider);
+      await ref.read(ownerRepositoryProvider).deleteOwnerContainerType(item.id);
+      ref.invalidate(ownerContainerTypesProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.settingsContainerTypeRemoved)),
+        );
+      }
     } on ApiException catch (e) {
       if (mounted) {
-        final msg = e.code == 'TYPE_IN_USE'
-            ? AppStrings.settingsDeleteTypeBlocked
-            : e.message;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-        ref.invalidate(containerTypesProvider);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
       }
     }
   }
@@ -1517,28 +1343,22 @@ class _ContainerTypesSectionState extends ConsumerState<_ContainerTypesSection> 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final inkFaint = isDark ? AppColors.darkInkFaint : AppColors.inkFaint;
-    final containerTypesAsync = ref.watch(containerTypesProvider);
+    final typesAsync = ref.watch(ownerContainerTypesProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         OwnerSectionHeader(
           title: AppStrings.settingsContainerTypesSection,
-          trailing: AppSoftIconButton(
-            icon: Icons.add,
-            tooltip: AppStrings.settingsAddContainerType,
-            onPressed: _openAddSheet,
-          ),
         ),
         const SizedBox(height: AppSpace.sm),
-        containerTypesAsync.when(
-          loading: () => const AppCard(child: Center(child: CircularProgressIndicator())),
+        typesAsync.when(
+          loading: () =>
+              const AppCard(child: Center(child: CircularProgressIndicator())),
           error: (_, __) => AppCard(
             child: Center(
               child: TextButton(
-                onPressed: () => ref.invalidate(containerTypesProvider),
+                onPressed: () => ref.invalidate(ownerContainerTypesProvider),
                 child: const Text('Retry'),
               ),
             ),
@@ -1550,146 +1370,274 @@ class _ContainerTypesSectionState extends ConsumerState<_ContainerTypesSection> 
                 message: AppStrings.settingsContainerTypesEmpty,
               );
             }
-            return AppCard(
-              child: Column(
-                children: [
-                  for (int i = 0; i < types.length; i++) ...[
-                    _ContainerTypeRow(
-                      item: types[i],
-                      inkMuted: inkMuted,
-                      inkFaint: inkFaint,
-                      onToggle: (visible) => _toggleVisibility(types[i], visible),
-                      onDelete: () => _confirmDelete(types[i]),
-                    ),
-                    if (i < types.length - 1) const Divider(height: AppSpace.lg),
-                  ],
+            return Column(
+              children: [
+                for (final ct in types) ...[
+                  _ContainerTypeCard(
+                    item: ct,
+                    isDark: isDark,
+                    onDelete: () => _confirmDelete(ct),
+                  ),
+                  const SizedBox(height: AppSpace.sm),
                 ],
-              ),
+              ],
             );
           },
+        ),
+        const SizedBox(height: AppSpace.xs),
+        TextButton.icon(
+          icon: const Icon(Icons.add),
+          label: const Text(AppStrings.settingsAddContainerType),
+          onPressed: _openAddSheet,
         ),
       ],
     );
   }
 }
 
-class _ContainerTypeRow extends StatefulWidget {
-  const _ContainerTypeRow({
+// ─────────────────────────────────────────────────────────────────────────────
+// One card per container type
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ContainerTypeCard extends StatelessWidget {
+  const _ContainerTypeCard({
     required this.item,
-    required this.inkMuted,
-    required this.inkFaint,
-    required this.onToggle,
+    required this.isDark,
     required this.onDelete,
   });
 
-  final ContainerTypeItem item;
-  final Color inkMuted;
-  final Color inkFaint;
-  final ValueChanged<bool> onToggle;
+  final OwnerContainerType item;
+  final bool isDark;
   final VoidCallback onDelete;
 
   @override
-  State<_ContainerTypeRow> createState() => _ContainerTypeRowState();
+  Widget build(BuildContext context) {
+    final ink = isDark ? AppColors.darkInk : AppColors.ink;
+    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpace.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Name row + badge/delete
+          Row(
+            children: [
+              Expanded(
+                child: Text(item.name,
+                    style: AppText.cardTitle.copyWith(color: ink)),
+              ),
+              if (item.isSystem) _SystemBadge(isDark: isDark),
+              if (!item.isSystem)
+                IconButton(
+                  icon: Icon(Icons.delete_outline,
+                      size: 20, color: AppColors.danger),
+                  tooltip: AppStrings.settingsContainerTypeRemoveConfirm,
+                  onPressed: onDelete,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+            ],
+          ),
+          if (item.sizes.isNotEmpty) ...[
+            const SizedBox(height: AppSpace.sm),
+            Wrap(
+              spacing: AppSpace.xs,
+              runSpacing: AppSpace.xs,
+              children: item.sizeLabels
+                  .map((label) => _SizeChip(label: label))
+                  .toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
-class _ContainerTypeRowState extends State<_ContainerTypeRow> {
-  late bool _visible;
-
-  @override
-  void initState() {
-    super.initState();
-    _visible = !widget.item.isHidden;
-  }
-
-  @override
-  void didUpdateWidget(_ContainerTypeRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _visible = !widget.item.isHidden;
-  }
+/// Small pill "System" badge.
+class _SystemBadge extends StatelessWidget {
+  const _SystemBadge({required this.isDark});
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(widget.item.name, style: AppText.label),
-      subtitle: widget.item.isSystem
-          ? Text(
-              AppStrings.settingsSystemDefault,
-              style: AppText.meta.copyWith(color: widget.inkFaint),
-            )
-          : null,
-      trailing: widget.item.isSystem
-          ? Semantics(
-              label: '${widget.item.name} — ${_visible ? 'visible' : 'hidden'}',
-              child: Transform.scale(
-                scale: 0.72,
-                alignment: Alignment.centerRight,
-                child: Switch(
-                  value: _visible,
-                  onChanged: (v) {
-                    setState(() => _visible = v); // optimistic
-                    widget.onToggle(v);
-                  },
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-            )
-          : Tooltip(
-              message: AppStrings.settingsDeleteTypeTooltip,
-              child: IconButton(
-                icon: Icon(Icons.delete_outline, size: 20, color: widget.inkMuted),
-                onPressed: widget.onDelete,
-              ),
+    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
+    final fill = isDark ? AppColors.darkInkFaint : AppColors.inkFaint;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.sm, vertical: 2),
+      decoration: BoxDecoration(
+        color: fill.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.lock_outline, size: 11, color: inkMuted),
+          const SizedBox(width: 2),
+          Text(
+            'System',
+            style: AppText.meta.copyWith(
+              fontSize: 10,
+              color: inkMuted,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Read-only size chip.
+class _SizeChip extends StatelessWidget {
+  const _SizeChip({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text(label, style: AppText.meta.copyWith(color: Colors.white)),
+      backgroundColor: AppColors.primary,
+      side: BorderSide.none,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.xs, vertical: 2),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Add container type sheet
+// OR-07: Add container type bottom sheet
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _AddContainerTypeSheet extends StatefulWidget {
   const _AddContainerTypeSheet({required this.onSave});
-  final Future<void> Function(String material, String size) onSave;
+  final Future<void> Function(String name, List<double> sizes) onSave;
 
   @override
   State<_AddContainerTypeSheet> createState() => _AddContainerTypeSheetState();
 }
 
 class _AddContainerTypeSheetState extends State<_AddContainerTypeSheet> {
-  String? _material;
-  final _sizeCtrl = TextEditingController();
-  String? _materialError;
-  String? _sizeError;
+  final _nameCtrl = TextEditingController();
+  final List<double> _sizes = [];
+  String? _nameError;
+  String? _sizesError;
   bool _saving = false;
-  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
-    _sizeCtrl.dispose();
+    _nameCtrl.dispose();
     super.dispose();
   }
 
+  Future<void> _addSizeValue() async {
+    final ctrl = TextEditingController();
+    double? result;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          String? err;
+          return AlertDialog(
+            title: const Text(
+              AppStrings.settingsContainerTypeAddSizeTitle,
+              style: AppText.sectionTitle,
+            ),
+            content: StatefulBuilder(
+              builder: (ctx2, setFieldState) => TextField(
+                controller: ctrl,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: AppStrings.settingsContainerTypeAddSizeLabel,
+                  hintText: AppStrings.settingsContainerTypeAddSizeHint,
+                  errorText: err,
+                ),
+                onSubmitted: (_) {
+                  final v = double.tryParse(ctrl.text.trim());
+                  if (v == null || v <= 0) {
+                    setFieldState(() =>
+                        err = AppStrings.settingsContainerTypeAddSizeInvalid);
+                    return;
+                  }
+                  result = v;
+                  Navigator.of(ctx).pop();
+                },
+              ),
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(
+                AppSpace.lg, 0, AppSpace.lg, AppSpace.lg),
+            actions: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpace.sm),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () {
+                        final v = double.tryParse(ctrl.text.trim());
+                        if (v == null || v <= 0) {
+                          setDialogState(() => err =
+                              AppStrings.settingsContainerTypeAddSizeInvalid);
+                          return;
+                        }
+                        result = v;
+                        Navigator.of(ctx).pop();
+                      },
+                      child: const Text('Add'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    ctrl.dispose();
+    if (result != null && mounted) {
+      final v = result!;
+      if (!_sizes.contains(v)) {
+        setState(() {
+          _sizes.add(v);
+          _sizes.sort();
+          _sizesError = null;
+        });
+      }
+    }
+  }
+
+  void _removeSize(double size) {
+    setState(() => _sizes.remove(size));
+  }
+
   Future<void> _submit() async {
-    String? matErr;
+    final name = _nameCtrl.text.trim();
+    String? nameErr;
     String? sizeErr;
-    if (_material == null) matErr = AppStrings.settingsMaterialRequired;
-    if (_sizeCtrl.text.trim().isEmpty) sizeErr = AppStrings.settingsSizeRequired;
-    if (matErr != null || sizeErr != null) {
+    if (name.isEmpty) nameErr = AppStrings.settingsContainerTypeNameRequired;
+    if (_sizes.isEmpty) sizeErr = AppStrings.settingsContainerTypeSizesRequired;
+    if (nameErr != null || sizeErr != null) {
       setState(() {
-        _materialError = matErr;
-        _sizeError = sizeErr;
+        _nameError = nameErr;
+        _sizesError = sizeErr;
       });
       return;
     }
     setState(() {
-      _materialError = null;
-      _sizeError = null;
+      _nameError = null;
+      _sizesError = null;
       _saving = true;
     });
     try {
-      await widget.onSave(_material!, _sizeCtrl.text.trim());
+      await widget.onSave(name, List<double>.from(_sizes));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -1700,40 +1648,665 @@ class _AddContainerTypeSheetState extends State<_AddContainerTypeSheet> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        OwnerSheetTitle(AppStrings.settingsAddContainerTypeTitle),
-        const SizedBox(height: AppSpace.sm),
-        DropdownButtonFormField<String>(
-          value: _material,
-          decoration: InputDecoration(
-            labelText: AppStrings.settingsMaterialLabel,
-            hintText: AppStrings.settingsMaterialHint,
-            errorText: _materialError,
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OwnerSheetTitle(AppStrings.settingsAddContainerTypeTitle),
+          const SizedBox(height: AppSpace.md),
+          AppTextField(
+            controller: _nameCtrl,
+            label: AppStrings.settingsContainerTypeNameLabel,
+            hint: AppStrings.settingsContainerTypeNameHint,
+            enabled: !_saving,
+            errorText: _nameError,
           ),
-          items: const [
-            DropdownMenuItem(value: 'glass_bottle', child: Text('Glass Bottle')),
-            DropdownMenuItem(value: 'plastic_bag', child: Text('Plastic Bag')),
+          const SizedBox(height: AppSpace.md),
+          Text(
+            AppStrings.settingsContainerTypeSizesLabel,
+            style: AppText.label.copyWith(color: inkMuted),
+          ),
+          const SizedBox(height: AppSpace.xs),
+          Wrap(
+            spacing: AppSpace.xs,
+            runSpacing: AppSpace.xs,
+            children: [
+              ..._sizes.map(
+                (s) => Chip(
+                  label: Text(formatSizeLabel(s), style: AppText.meta.copyWith(color: Colors.white)),
+                  backgroundColor: AppColors.primary,
+                  side: BorderSide.none,
+                  deleteIcon: const Icon(Icons.close, size: 14, color: Colors.white),
+                  onDeleted: _saving ? null : () => _removeSize(s),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              ActionChip(
+                label: const Text('+ Add size'),
+                backgroundColor:
+                    isDark ? AppColors.darkSurface : AppColors.surface,
+                side: BorderSide(
+                    color: isDark ? AppColors.darkBorder : AppColors.border),
+                onPressed: _saving ? null : _addSizeValue,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ],
+          ),
+          if (_sizesError != null) ...[
+            const SizedBox(height: AppSpace.xs),
+            Text(
+              _sizesError!,
+              style: AppText.meta.copyWith(color: AppColors.danger),
+            ),
           ],
-          onChanged: _saving ? null : (v) => setState(() => _material = v),
-        ),
+          const SizedBox(height: AppSpace.md),
+          OwnerSheetActions(
+            primaryLabel: AppStrings.settingsSave,
+            loading: _saving,
+            onPrimary: _saving ? null : _submit,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OR-08: Products section — new list tile format + add form
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ProductsSection extends ConsumerStatefulWidget {
+  const _ProductsSection({super.key});
+
+  @override
+  ConsumerState<_ProductsSection> createState() => _ProductsSectionState();
+}
+
+class _ProductsSectionState extends ConsumerState<_ProductsSection> {
+  Future<void> _openAddSheet() async {
+    await showOwnerBottomSheet<void>(
+      context: context,
+      child: _AddProductSheet(
+        onSave: (milkTypeId, containerTypeId, rate) async {
+          try {
+            await ref.read(ownerRepositoryProvider).createOwnerProduct(
+                  milkTypeId: milkTypeId,
+                  containerTypeId: containerTypeId,
+                  rate: rate,
+                );
+            ref.invalidate(ownerProductsProvider);
+            if (mounted) {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text(AppStrings.settingsProductAdded)),
+              );
+            }
+          } on ApiException catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(e.message)));
+            }
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _openEditSheet(OwnerProduct product) async {
+    await showOwnerBottomSheet<void>(
+      context: context,
+      child: _EditProductSheet(
+        product: product,
+        onSave: (milkTypeId, containerTypeId, rate) async {
+          try {
+            await ref.read(ownerRepositoryProvider).updateProduct(
+                  product.id,
+                  {
+                    'milk_type_id': milkTypeId,
+                    'container_type_id': containerTypeId,
+                    'rate': rate,
+                  },
+                );
+            ref.invalidate(ownerProductsProvider);
+            if (mounted) {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text(AppStrings.settingsProductUpdated)),
+              );
+            }
+          } on ApiException catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(e.message)));
+            }
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(OwnerProduct product) async {
+    final confirmed = await showAppConfirmDialog(
+      context: context,
+      title: AppStrings.settingsProductRemoveTitle,
+      message: '"${product.name}" will be removed from your catalog.',
+      confirmLabel: AppStrings.settingsProductRemoveConfirm,
+      cancelLabel: AppStrings.cancelLabel,
+      destructive: true,
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(ownerRepositoryProvider).deleteOwnerProduct(product.id);
+      ref.invalidate(ownerProductsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.settingsProductRemoved)),
+        );
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
+    final productsAsync = ref.watch(ownerProductsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        OwnerSectionHeader(title: AppStrings.settingsProductsSection),
         const SizedBox(height: AppSpace.sm),
-        AppTextField(
-          controller: _sizeCtrl,
-          label: AppStrings.settingsSizeLabel,
-          hint: AppStrings.settingsSizeHint,
-          enabled: !_saving,
-          errorText: _sizeError,
+        productsAsync.when(
+          loading: () =>
+              const AppCard(child: Center(child: CircularProgressIndicator())),
+          error: (_, __) => AppCard(
+            child: Center(
+              child: TextButton(
+                onPressed: () => ref.invalidate(ownerProductsProvider),
+                child: const Text('Retry'),
+              ),
+            ),
+          ),
+          data: (products) => AppCard(
+            child: products.isEmpty
+                ? ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      AppStrings.settingsProductEmpty,
+                      style: AppText.body.copyWith(color: inkMuted),
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (int i = 0; i < products.length; i++) ...[
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(products[i].titleLine,
+                              style: AppText.label),
+                          subtitle: Text(
+                            products[i].subtitleLine,
+                            style: AppText.meta.copyWith(color: inkMuted),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit_outlined,
+                                    size: 20, color: inkMuted),
+                                tooltip: AppStrings.settingsProductEditTooltip,
+                                onPressed: () => _openEditSheet(products[i]),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete_outline,
+                                    size: 20, color: AppColors.danger),
+                                tooltip: AppStrings.settingsProductRemoveConfirm,
+                                onPressed: () => _confirmDelete(products[i]),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (i < products.length - 1)
+                          const Divider(height: 1),
+                      ],
+                    ],
+                  ),
+          ),
         ),
-        const SizedBox(height: AppSpace.md),
-        OwnerSheetActions(
-          primaryLabel: AppStrings.settingsSave,
-          loading: _saving,
-          onPrimary: _saving ? null : _submit,
+        const SizedBox(height: AppSpace.xs),
+        TextButton.icon(
+          icon: const Icon(Icons.add),
+          label: const Text(AppStrings.settingsProductAddButton),
+          onPressed: _openAddSheet,
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OR-08: Add product bottom sheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AddProductSheet extends ConsumerStatefulWidget {
+  const _AddProductSheet({required this.onSave});
+  final Future<void> Function(int milkTypeId, int containerTypeId, double rate)
+      onSave;
+
+  @override
+  ConsumerState<_AddProductSheet> createState() => _AddProductSheetState();
+}
+
+class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
+  int? _milkTypeId;
+  int? _containerTypeId;
+  String? _selectedContainerName;
+  String? _containerSizesHint;
+  final _rateCtrl = TextEditingController();
+  String? _milkTypeError;
+  String? _containerTypeError;
+  String? _rateError;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _rateCtrl.dispose();
+    super.dispose();
+  }
+
+  String? get _selectedMilkTypeName {
+    if (_milkTypeId == null) return null;
+    final types = ref.read(milkTypesProvider).valueOrNull ?? [];
+    for (final t in types) {
+      if (t.id == _milkTypeId) return t.name;
+    }
+    return null;
+  }
+
+  bool get _showPreview {
+    final rate = double.tryParse(_rateCtrl.text.trim());
+    return _milkTypeId != null && rate != null && rate > 0;
+  }
+
+  String get _previewName {
+    final name = _selectedMilkTypeName ?? '';
+    final rate = _rateCtrl.text.trim();
+    return '$name - ₹$rate';
+  }
+
+  Future<void> _submit() async {
+    final rateText = _rateCtrl.text.trim();
+    final rate = double.tryParse(rateText);
+
+    String? milkErr;
+    String? containerErr;
+    String? rateErr;
+    if (_milkTypeId == null) milkErr = AppStrings.settingsProductMilkTypeRequired;
+    if (_containerTypeId == null)
+      containerErr = AppStrings.settingsProductContainerTypeRequired;
+    if (rateText.isEmpty || rate == null || rate <= 0)
+      rateErr = AppStrings.settingsProductRateRequired;
+
+    if (milkErr != null || containerErr != null || rateErr != null) {
+      setState(() {
+        _milkTypeError = milkErr;
+        _containerTypeError = containerErr;
+        _rateError = rateErr;
+      });
+      return;
+    }
+
+    setState(() {
+      _milkTypeError = null;
+      _containerTypeError = null;
+      _rateError = null;
+      _saving = true;
+    });
+    try {
+      await widget.onSave(_milkTypeId!, _containerTypeId!, rate!);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  InputDecoration _fieldDecoration(String label, {String? hint}) =>
+      InputDecoration(
+        labelText: label,
+        hintText: hint,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
+    final milkTypesAsync = ref.watch(milkTypesProvider);
+    final containerTypesAsync = ref.watch(ownerContainerTypesProvider);
+
+    if (milkTypesAsync.isLoading || containerTypesAsync.isLoading) {
+      return const SizedBox(
+        height: 120,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final milkTypes = milkTypesAsync.valueOrNull
+            ?.where((t) => t.isActive && !t.isHidden)
+            .toList() ??
+        [];
+    final containerTypes = containerTypesAsync.valueOrNull ?? [];
+
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OwnerSheetTitle(AppStrings.settingsProductAddTitle),
+          const SizedBox(height: AppSpace.md),
+          // Milk type dropdown
+          DropdownButtonFormField<int>(
+            isExpanded: true,
+            value: _milkTypeId,
+            decoration: _fieldDecoration(
+              AppStrings.settingsProductMilkTypeLabel,
+              hint: AppStrings.settingsProductMilkTypeHint,
+            ).copyWith(errorText: _milkTypeError),
+            items: milkTypes
+                .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                .toList(),
+            onChanged: _saving
+                ? null
+                : (v) => setState(() {
+                      _milkTypeId = v;
+                      _milkTypeError = null;
+                    }),
+          ),
+          const SizedBox(height: AppSpace.sm),
+          // Container type dropdown
+          DropdownButtonFormField<int>(
+            isExpanded: true,
+            value: _containerTypeId,
+            decoration: _fieldDecoration(
+              AppStrings.settingsProductContainerTypeLabel,
+              hint: AppStrings.settingsProductContainerTypeHint,
+            ).copyWith(errorText: _containerTypeError),
+            items: containerTypes
+                .map(
+                  (ct) => DropdownMenuItem(
+                    value: ct.id,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(ct.name, style: AppText.body),
+                        if (ct.sizeLabels.isNotEmpty)
+                          Text(
+                            'Available in ${ct.sizeLabels.join(', ')}',
+                            style: AppText.meta.copyWith(color: inkMuted),
+                          ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: _saving
+                ? null
+                : (v) {
+                    final matches =
+                        containerTypes.where((c) => c.id == v).toList();
+                    final ct = matches.isNotEmpty ? matches.first : null;
+                    setState(() {
+                      _containerTypeId = v;
+                      _selectedContainerName = ct?.name;
+                      _containerSizesHint = (ct != null && ct.sizeLabels.isNotEmpty)
+                          ? 'Available in ${ct.sizeLabels.join(', ')}'
+                          : null;
+                      _containerTypeError = null;
+                    });
+                  },
+          ),
+          if (_containerSizesHint != null) ...[
+            const SizedBox(height: AppSpace.xs),
+            Text(
+              _containerSizesHint!,
+              style: AppText.meta.copyWith(color: inkMuted),
+            ),
+          ],
+          const SizedBox(height: AppSpace.sm),
+          // Rate field
+          TextFormField(
+            controller: _rateCtrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+            ],
+            enabled: !_saving,
+            style: AppText.body,
+            decoration: _fieldDecoration(AppStrings.settingsProductRateLabel)
+                .copyWith(errorText: _rateError),
+            onChanged: (_) => setState(() => _rateError = null),
+          ),
+          // Product name preview
+          if (_showPreview) ...[
+            const SizedBox(height: AppSpace.md),
+            Container(
+              padding: const EdgeInsets.all(AppSpace.md),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkBg : AppColors.bg,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.settingsProductPreviewLabel,
+                    style: AppText.meta.copyWith(color: inkMuted),
+                  ),
+                  const SizedBox(height: AppSpace.xs),
+                  Text(
+                    _previewName,
+                    style: AppText.body.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSpace.md),
+          OwnerSheetActions(
+            primaryLabel: AppStrings.settingsProductSaveButton,
+            loading: _saving,
+            onPrimary: _saving ? null : _submit,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Edit product bottom sheet (pre-populated from existing product)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _EditProductSheet extends ConsumerStatefulWidget {
+  const _EditProductSheet({required this.product, required this.onSave});
+  final OwnerProduct product;
+  final Future<void> Function(int milkTypeId, int containerTypeId, double rate) onSave;
+
+  @override
+  ConsumerState<_EditProductSheet> createState() => _EditProductSheetState();
+}
+
+class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
+  late int? _milkTypeId;
+  late int? _containerTypeId;
+  final _rateCtrl = TextEditingController();
+  String? _milkTypeError;
+  String? _containerTypeError;
+  String? _rateError;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _milkTypeId = widget.product.milkType.id;
+    _containerTypeId = widget.product.containerType.id;
+    _rateCtrl.text = widget.product.rate.toStringAsFixed(0);
+  }
+
+  @override
+  void dispose() {
+    _rateCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final rateText = _rateCtrl.text.trim();
+    final rate = double.tryParse(rateText);
+
+    String? milkErr;
+    String? containerErr;
+    String? rateErr;
+    if (_milkTypeId == null) milkErr = AppStrings.settingsProductMilkTypeRequired;
+    if (_containerTypeId == null)
+      containerErr = AppStrings.settingsProductContainerTypeRequired;
+    if (rateText.isEmpty || rate == null || rate <= 0)
+      rateErr = AppStrings.settingsProductRateRequired;
+
+    if (milkErr != null || containerErr != null || rateErr != null) {
+      setState(() {
+        _milkTypeError = milkErr;
+        _containerTypeError = containerErr;
+        _rateError = rateErr;
+      });
+      return;
+    }
+
+    setState(() {
+      _milkTypeError = null;
+      _containerTypeError = null;
+      _rateError = null;
+      _saving = true;
+    });
+    try {
+      await widget.onSave(_milkTypeId!, _containerTypeId!, rate!);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  InputDecoration _fieldDecoration(String label, {String? hint}) =>
+      InputDecoration(
+        labelText: label,
+        hintText: hint,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
+    final milkTypesAsync = ref.watch(milkTypesProvider);
+    final containerTypesAsync = ref.watch(ownerContainerTypesProvider);
+
+    if (milkTypesAsync.isLoading || containerTypesAsync.isLoading) {
+      return const SizedBox(
+        height: 120,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final milkTypes = milkTypesAsync.valueOrNull
+            ?.where((t) => t.isActive && !t.isHidden)
+            .toList() ??
+        [];
+    final containerTypes = containerTypesAsync.valueOrNull ?? [];
+
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OwnerSheetTitle(AppStrings.settingsProductEditTitle),
+          const SizedBox(height: AppSpace.md),
+          DropdownButtonFormField<int>(
+            isExpanded: true,
+            value: milkTypes.any((t) => t.id == _milkTypeId) ? _milkTypeId : null,
+            decoration: _fieldDecoration(AppStrings.settingsProductMilkTypeLabel)
+                .copyWith(errorText: _milkTypeError),
+            items: milkTypes
+                .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                .toList(),
+            onChanged: _saving
+                ? null
+                : (v) => setState(() {
+                      _milkTypeId = v;
+                      _milkTypeError = null;
+                    }),
+          ),
+          const SizedBox(height: AppSpace.sm),
+          DropdownButtonFormField<int>(
+            isExpanded: true,
+            value: containerTypes.any((c) => c.id == _containerTypeId) ? _containerTypeId : null,
+            decoration: _fieldDecoration(AppStrings.settingsProductContainerTypeLabel)
+                .copyWith(errorText: _containerTypeError),
+            items: containerTypes
+                .map(
+                  (ct) => DropdownMenuItem(
+                    value: ct.id,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(ct.name, style: AppText.body),
+                        if (ct.sizeLabels.isNotEmpty)
+                          Text(
+                            'Available in ${ct.sizeLabels.join(', ')}',
+                            style: AppText.meta.copyWith(color: inkMuted),
+                          ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: _saving
+                ? null
+                : (v) => setState(() {
+                      _containerTypeId = v;
+                      _containerTypeError = null;
+                    }),
+          ),
+          const SizedBox(height: AppSpace.sm),
+          TextFormField(
+            controller: _rateCtrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+            ],
+            enabled: !_saving,
+            style: AppText.body,
+            decoration: _fieldDecoration(AppStrings.settingsProductRateLabel)
+                .copyWith(errorText: _rateError),
+            onChanged: (_) => setState(() => _rateError = null),
+          ),
+          const SizedBox(height: AppSpace.md),
+          OwnerSheetActions(
+            primaryLabel: AppStrings.settingsProductSaveButton,
+            loading: _saving,
+            onPrimary: _saving ? null : _submit,
+          ),
+        ],
+      ),
     );
   }
 }

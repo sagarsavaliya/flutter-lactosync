@@ -223,9 +223,7 @@ class OrderListTile extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
     final borderColor = OwnerFormTheme.borderColor;
-    final dropdownValue = isSkipped
-        ? 0.0
-        : (kMilkQtyOptions.contains(nearestMilkQty(quantity)) ? nearestMilkQty(quantity) : 1.0);
+    final dropdownValue = isSkipped ? kMilkQtyOptions.first : nearestMilkQty(quantity);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpace.sm),

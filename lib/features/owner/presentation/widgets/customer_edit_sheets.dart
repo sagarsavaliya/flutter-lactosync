@@ -47,8 +47,11 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
   late final TextEditingController _zipController;
   late bool _whatsappEnabled;
   late bool _suspendDelivery;
+  late String _deliveryType;
   bool _loading = false;
   bool _importingContact = false;
+
+  bool get _isWalkIn => _deliveryType == 'walk_in';
 
   @override
   void initState() {
@@ -65,6 +68,7 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
     _zipController = TextEditingController(text: c.zip);
     _whatsappEnabled = c.whatsappEnabled;
     _suspendDelivery = !c.isActive;
+    _deliveryType = c.deliveryType;
   }
 
   @override
@@ -131,14 +135,15 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
               firstName: _firstController.text.trim(),
               lastName: _lastController.text.trim(),
               contact: _contactController.text.trim(),
-              addressLine: _addressController.text.trim(),
+              addressLine: _isWalkIn ? null : _addressController.text.trim(),
               area: _areaController.text.trim(),
               landmark: _landmarkController.text.trim(),
-              city: _cityController.text.trim(),
-              state: _stateController.text.trim(),
-              zip: _zipController.text.trim(),
+              city: _isWalkIn ? null : _cityController.text.trim(),
+              state: _isWalkIn ? null : _stateController.text.trim(),
+              zip: _isWalkIn ? null : _zipController.text.trim(),
               whatsappEnabled: _whatsappEnabled,
               isActive: !_suspendDelivery,
+              deliveryType: _deliveryType,
             ),
           );
       if (!mounted) return;
@@ -246,34 +251,55 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
                 },
               ),
               const SizedBox(height: AppSpace.md),
-              AppTextField(
-                label: AppStrings.addressLabel,
-                controller: _addressController,
-                validator: (v) => (v == null || v.trim().isEmpty) ? AppStrings.addressRequired : null,
-              ),
-              const SizedBox(height: AppSpace.md),
-              AppTextField(label: AppStrings.areaLabel, controller: _areaController),
-              const SizedBox(height: AppSpace.md),
-              AppTextField(label: AppStrings.landmarkLabel, controller: _landmarkController),
-              const SizedBox(height: AppSpace.md),
-              Row(
-                children: [
-                  Expanded(child: AppTextField(label: AppStrings.cityLabel, controller: _cityController)),
-                  const SizedBox(width: AppSpace.sm),
-                  Expanded(child: AppTextField(label: AppStrings.stateLabel, controller: _stateController)),
+              AppLabelRow(label: AppStrings.deliveryTypeLabel),
+              const SizedBox(height: AppSpace.xs),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(
+                    value: 'home_delivery',
+                    label: Text(AppStrings.deliveryTypeHomeDelivery),
+                    icon: Icon(Icons.home_outlined),
+                  ),
+                  ButtonSegment(
+                    value: 'walk_in',
+                    label: Text(AppStrings.deliveryTypeWalkIn),
+                    icon: Icon(Icons.store_outlined),
+                  ),
                 ],
+                selected: {_deliveryType},
+                onSelectionChanged: (s) => setState(() => _deliveryType = s.first),
               ),
-              const SizedBox(height: AppSpace.md),
-              AppTextField(
-                label: AppStrings.zipLabel,
-                controller: _zipController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(6),
-                ],
-                validator: (v) => (v == null || v.length != 6) ? AppStrings.zipRequired : null,
-              ),
+              if (!_isWalkIn) ...[
+                const SizedBox(height: AppSpace.md),
+                AppTextField(
+                  label: AppStrings.addressLabel,
+                  controller: _addressController,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? AppStrings.addressRequired : null,
+                ),
+                const SizedBox(height: AppSpace.md),
+                AppTextField(label: AppStrings.areaLabel, controller: _areaController),
+                const SizedBox(height: AppSpace.md),
+                AppTextField(label: AppStrings.landmarkLabel, controller: _landmarkController),
+                const SizedBox(height: AppSpace.md),
+                Row(
+                  children: [
+                    Expanded(child: AppTextField(label: AppStrings.cityLabel, controller: _cityController)),
+                    const SizedBox(width: AppSpace.sm),
+                    Expanded(child: AppTextField(label: AppStrings.stateLabel, controller: _stateController)),
+                  ],
+                ),
+                const SizedBox(height: AppSpace.md),
+                AppTextField(
+                  label: AppStrings.zipLabel,
+                  controller: _zipController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
+                  ],
+                  validator: (v) => (v == null || v.length != 6) ? AppStrings.zipRequired : null,
+                ),
+              ],
               const SizedBox(height: AppSpace.md),
               AppLabelRow(
                 label: AppStrings.suspendDeliveryLabel,

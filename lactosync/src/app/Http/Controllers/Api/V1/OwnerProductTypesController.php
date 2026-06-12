@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Owner\StoreContainerTypeRequest;
+use App\Http\Requests\Owner\StoreOwnerProductRequest;
 use App\Models\ContainerType;
+use App\Models\ContainerTypeSize;
 use App\Models\FarmContainerTypeVisibility;
 use App\Models\FarmMilkTypeVisibility;
 use App\Models\FarmOwner;
 use App\Models\MilkType;
+use App\Models\Product;
 use App\Support\ApiResponse;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +19,68 @@ use Illuminate\Http\Request;
 
 class OwnerProductTypesController extends Controller
 {
+    // ─────────────────────────────────────────────────────────────────────
+    // Products
+    // ─────────────────────────────────────────────────────────────────────
+
+    public function indexProducts(Request $request): JsonResponse
+    {
+        /** @var FarmOwner $owner */
+        $owner = $request->user();
+
+        $products = Product::with(['milkType', 'containerType.sizes'])
+            ->where('farm_id', $owner->farm_id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Product $p) => $this->productPayload($p));
+
+        return ApiResponse::success(['products' => $products]);
+    }
+
+    public function storeProduct(StoreOwnerProductRequest $request): JsonResponse
+    {
+        /** @var FarmOwner $owner */
+        $owner = $request->user();
+        $farmId = $owner->farm_id;
+
+        $validated = $request->validated();
+
+        // Validate milk_type_id is visible to this farm
+        $milkType = MilkType::visibleToFarm($farmId)->find($validated['milk_type_id']);
+        if (! $milkType) {
+            return ApiResponse::error('INVALID_MILK_TYPE', 'The selected milk type is not available for your farm.', 422);
+        }
+
+        // Validate container_type_id is a system default OR this farm's custom type
+        $containerType = ContainerType::with('sizes')
+            ->visibleToFarm($farmId)
+            ->find($validated['container_type_id']);
+        if (! $containerType) {
+            return ApiResponse::error('INVALID_CONTAINER_TYPE', 'The selected container type is not available for your farm.', 422);
+        }
+
+        $rate = (float) $validated['rate'];
+        $rateLabel = fmod($rate, 1.0) === 0.0
+            ? (string) (int) $rate
+            : rtrim(number_format($rate, 1), '0');
+
+        $name = "{$milkType->name} - ₹{$rateLabel}";
+
+        $product = Product::create([
+            'farm_id'           => $farmId,
+            'milk_type_id'      => $milkType->id,
+            'container_type_id' => $containerType->id,
+            'rate'              => $rate,
+            'name'              => $name,
+            'is_active'         => true,
+        ]);
+
+        $product->load(['milkType', 'containerType.sizes']);
+
+        return ApiResponse::success(['product' => $this->productPayload($product)], null, 201);
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // Milk Types
     // ─────────────────────────────────────────────────────────────────────
@@ -182,29 +248,37 @@ class OwnerProductTypesController extends Controller
             ->pluck('container_type_id')
             ->all();
 
-        $containerTypes = ContainerType::visibleToFarm($farmId)->get()->map(function (ContainerType $ct) use ($hiddenIds) {
-            return [
-                'id'        => $ct->id,
-                'name'      => $ct->name,
-                'farm_id'   => $ct->farm_id,
-                'is_system' => $ct->farm_id === null,
-                'is_hidden' => in_array($ct->id, $hiddenIds, true),
-                'is_active' => $ct->is_active,
-            ];
-        });
+        $containerTypes = ContainerType::with('sizes')
+            ->visibleToFarm($farmId)
+            ->orderBy('name')
+            ->get()
+            ->map(function (ContainerType $ct) use ($hiddenIds) {
+                return $this->containerTypePayload($ct, $hiddenIds);
+            });
 
         return ApiResponse::success(['container_types' => $containerTypes]);
     }
 
-    public function storeContainerType(Request $request): JsonResponse
+    public function storeContainerType(StoreContainerTypeRequest $request): JsonResponse
     {
         /** @var FarmOwner $owner */
         $owner = $request->user();
         $farmId = $owner->farm_id;
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-        ]);
+        $validated = $request->validated();
+
+        // Validate each size is a positive multiple of 0.5
+        $invalidSizes = collect($validated['sizes'])->filter(function ($size) {
+            return fmod((float) $size / 0.5, 1.0) !== 0.0;
+        });
+
+        if ($invalidSizes->isNotEmpty()) {
+            return ApiResponse::error(
+                'VALIDATION_ERROR',
+                'Each size must be a multiple of 0.5 litres (e.g. 0.5, 1.0, 1.5).',
+                422,
+            );
+        }
 
         $exists = ContainerType::where('farm_id', $farmId)
             ->where('name', $validated['name'])
@@ -215,9 +289,21 @@ class OwnerProductTypesController extends Controller
         }
 
         $containerType = ContainerType::create([
-            'farm_id' => $farmId,
-            'name'    => $validated['name'],
+            'farm_id'   => $farmId,
+            'name'      => $validated['name'],
+            'is_active' => true,
         ]);
+
+        $uniqueSizes = collect($validated['sizes'])->map(fn ($s) => (float) $s)->unique()->sort()->values();
+
+        foreach ($uniqueSizes as $size) {
+            ContainerTypeSize::create([
+                'container_type_id' => $containerType->id,
+                'size_liters'       => $size,
+            ]);
+        }
+
+        $containerType->load('sizes');
 
         return ApiResponse::success(['container_type' => $this->containerTypePayload($containerType, [])], null, 201);
     }
@@ -251,9 +337,11 @@ class OwnerProductTypesController extends Controller
             }
         }
 
-        $containerType->update($validated);
+        $containerType->update(array_filter($validated, fn ($v) => $v !== null));
 
-        return ApiResponse::success(['container_type' => $this->containerTypePayload($containerType->fresh(), [])]);
+        return ApiResponse::success([
+            'container_type' => $this->containerTypePayload($containerType->fresh(['sizes']), []),
+        ]);
     }
 
     public function destroyContainerType(Request $request, ContainerType $containerType): JsonResponse
@@ -267,6 +355,16 @@ class OwnerProductTypesController extends Controller
 
         if ($containerType->farm_id !== $owner->farm_id) {
             return ApiResponse::error('NOT_FOUND', 'Container type not found.', 404);
+        }
+
+        $inUse = Product::where('container_type_id', $containerType->id)->where('is_active', true)->exists();
+
+        if ($inUse) {
+            return ApiResponse::error(
+                'TYPE_IN_USE',
+                'This container type is used by an active product. Update those products first.',
+                422,
+            );
         }
 
         try {
@@ -322,6 +420,29 @@ class OwnerProductTypesController extends Controller
     // Private payload helpers
     // ─────────────────────────────────────────────────────────────────────
 
+    private function productPayload(Product $product): array
+    {
+        $ct = $product->containerType;
+        $sizes = $ct && $ct->relationLoaded('sizes')
+            ? $ct->sizes->map(fn ($s) => (float) $s->size_liters)->sort()->values()->all()
+            : [];
+
+        return [
+            'id'   => $product->id,
+            'name' => $product->name,
+            'milk_type' => $product->milkType ? [
+                'id'   => $product->milkType->id,
+                'name' => $product->milkType->name,
+            ] : null,
+            'container_type' => $ct ? [
+                'id'    => $ct->id,
+                'name'  => $ct->name,
+                'sizes' => $sizes,
+            ] : null,
+            'rate' => $product->rate,
+        ];
+    }
+
     private function milkTypePayload(MilkType $milkType, array $hiddenIds): array
     {
         return [
@@ -336,13 +457,17 @@ class OwnerProductTypesController extends Controller
 
     private function containerTypePayload(ContainerType $containerType, array $hiddenIds): array
     {
+        $sizes = $containerType->relationLoaded('sizes')
+            ? $containerType->sizes->map(fn ($s) => (float) $s->size_liters)->values()->all()
+            : [];
+
         return [
             'id'        => $containerType->id,
             'name'      => $containerType->name,
-            'farm_id'   => $containerType->farm_id,
             'is_system' => $containerType->farm_id === null,
             'is_hidden' => in_array($containerType->id, $hiddenIds, true),
             'is_active' => $containerType->is_active,
+            'sizes'     => $sizes,
         ];
     }
 }

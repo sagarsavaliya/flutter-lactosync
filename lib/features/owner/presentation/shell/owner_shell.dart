@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/models/subscription_status.dart';
+import '../../../../core/providers/subscription_status_provider.dart';
 import '../../../../core/theme/app_colors.dart';
-
+import '../../../../features/subscription/presentation/widgets/subscription_warning_banner.dart';
 import '../widgets/customer_list_styles.dart';
 import '../widgets/dashboard/dashboard_styles.dart';
 import '../widgets/owner_top_bar.dart';
@@ -122,7 +124,23 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
         titleColor: isCustomers ? CustomerListColors.accent : null,
       ),
 
-      body: widget.child,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Amber banner during grace period — no-op for active subscriptions.
+          Consumer(
+            builder: (context, ref, _) {
+              final subState = ref.watch(subscriptionStatusProvider);
+              if (subState.status == SubscriptionStatus.gracePeriod &&
+                  subState.warning != null) {
+                return SubscriptionWarningBanner(warning: subState.warning!);
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+          Expanded(child: widget.child),
+        ],
+      ),
 
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 

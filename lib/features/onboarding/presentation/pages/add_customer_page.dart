@@ -74,6 +74,8 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
 
   final _secondaryController = TextEditingController();
 
+  String _deliveryType = 'home_delivery';
+
   bool _whatsappEnabled = true;
 
   bool _isActive = true;
@@ -81,6 +83,8 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
   bool _loading = false;
 
   bool _importingContact = false;
+
+  bool get _isWalkIn => _deliveryType == 'walk_in';
 
 
 
@@ -169,7 +173,9 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
 
         'last_name': _lastController.text.trim(),
 
-        'address_line': _addressController.text.trim(),
+        'delivery_type': _deliveryType,
+
+        if (!_isWalkIn) 'address_line': _addressController.text.trim(),
 
         'area': _areaController.text.trim().isEmpty ? null : _areaController.text.trim(),
 
@@ -177,11 +183,11 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
 
             _landmarkController.text.trim().isEmpty ? null : _landmarkController.text.trim(),
 
-        'city': _cityController.text.trim(),
+        if (!_isWalkIn) 'city': _cityController.text.trim(),
 
-        'state': _stateController.text.trim(),
+        if (!_isWalkIn) 'state': _stateController.text.trim(),
 
-        'zip': _zipController.text.trim(),
+        if (!_isWalkIn) 'zip': _zipController.text.trim(),
 
         'contact': _contactController.text.trim(),
 
@@ -328,6 +334,46 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
 
                 const SizedBox(height: AppSpace.md),
 
+                AppLabelRow(label: AppStrings.deliveryTypeLabel),
+
+                const SizedBox(height: AppSpace.xs),
+
+                SegmentedButton<String>(
+
+                  segments: const [
+
+                    ButtonSegment(
+
+                      value: 'home_delivery',
+
+                      label: Text(AppStrings.deliveryTypeHomeDelivery),
+
+                      icon: Icon(Icons.home_outlined),
+
+                    ),
+
+                    ButtonSegment(
+
+                      value: 'walk_in',
+
+                      label: Text(AppStrings.deliveryTypeWalkIn),
+
+                      icon: Icon(Icons.store_outlined),
+
+                    ),
+
+                  ],
+
+                  selected: {_deliveryType},
+
+                  onSelectionChanged: (s) => setState(() => _deliveryType = s.first),
+
+                ),
+
+                if (!_isWalkIn) ...[
+
+                const SizedBox(height: AppSpace.md),
+
                 AppTextField(
 
                   label: AppStrings.addressLabel,
@@ -407,6 +453,8 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
                       (v == null || v.trim().isEmpty) ? AppStrings.stateRequired : null,
 
                 ),
+
+                ], // end address block
 
                 const SizedBox(height: AppSpace.md),
 

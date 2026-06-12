@@ -6,15 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Owner\UpdateOwnerSettingsRequest;
 use App\Http\Requests\Owner\UpdateOwnerProductRequest;
 use App\Models\FarmOwner;
+use App\Models\MilkType;
 use App\Models\Pincode;
 use App\Models\Product;
+use App\Services\Catalog\ProductConfigurator;
 use App\Support\ApiResponse;
 use App\Support\DocumentSettings;
+use App\Support\ProductPayload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OwnerSettingsController extends Controller
 {
+    public function __construct(
+        private readonly ProductConfigurator $productConfigurator,
+    ) {}
+
     public function show(Request $request): JsonResponse
     {
         /** @var FarmOwner $owner */
@@ -22,10 +30,11 @@ class OwnerSettingsController extends Controller
         $owner->loadMissing('farm');
 
         $products = $owner->farm->products()
+            ->with(['milkType', 'containerType.sizes'])
             ->where('is_active', true)
             ->orderBy('name')
             ->get()
-            ->map(fn (Product $p) => $this->productPayload($p));
+            ->map(fn (Product $p) => ProductPayload::make($p));
 
         return ApiResponse::success([
             'farm' => $this->farmPayload($owner->farm),
@@ -77,10 +86,31 @@ class OwnerSettingsController extends Controller
             return ApiResponse::error('NOT_FOUND', 'Product not found.', 404);
         }
 
-        $product->update($request->validated());
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($product, $validated, $owner) {
+            $milkType = isset($validated['milk_type_id'])
+                ? MilkType::query()->find($validated['milk_type_id'])
+                : null;
+
+            $rate = isset($validated['rate']) ? (float) $validated['rate'] : (float) $product->rate;
+            $name = $validated['name'] ?? $this->productConfigurator->generateName(
+                $milkType,
+                null,
+                $rate,
+            );
+
+            $product->update(array_filter([
+                'name'              => $name,
+                'milk_type_id'      => $validated['milk_type_id'] ?? null,
+                'container_type_id' => $validated['container_type_id'] ?? null,
+                'rate'              => $validated['rate'] ?? null,
+                'unit'              => $validated['unit'] ?? null,
+            ], fn ($value) => $value !== null));
+        });
 
         return ApiResponse::success([
-            'product' => $this->productPayload($product->fresh()),
+            'product' => ProductPayload::make($product->fresh(['milkType', 'containerType.sizes'])),
         ]);
     }
 
@@ -100,8 +130,8 @@ class OwnerSettingsController extends Controller
         if ($inUse) {
             return ApiResponse::error(
                 'PRODUCT_IN_USE',
-                'This product is linked to a customer subscription. Update those subscriptions first.',
-                409,
+                'This product has active subscriptions and cannot be deleted.',
+                422,
             );
         }
 
@@ -142,6 +172,7 @@ class OwnerSettingsController extends Controller
             'upi_payee_name' => $farm->upi_payee_name,
             'morning_order_time' => $farm->morning_order_time ?? '05:00',
             'evening_order_time' => $farm->evening_order_time ?? '15:00',
+            'prefill_customer_address' => (bool) $farm->prefill_customer_address,
         ];
     }
 
@@ -152,24 +183,6 @@ class OwnerSettingsController extends Controller
             'last_name' => $owner->last_name,
             'full_name' => $owner->fullName(),
             'mobile' => $owner->mobile,
-        ];
-    }
-
-    private function productPayload(Product $product): array
-    {
-        $product->loadMissing(['milkType', 'containerType']);
-
-        return [
-            'id'                   => $product->id,
-            'name'                 => $product->name,
-            'milk_type_id'         => $product->milk_type_id,
-            'milk_type'            => $product->milk_type,
-            'milk_type_label'      => $product->milkType?->name ?? $product->milk_type,
-            'rate'                 => (float) $product->rate,
-            'unit'                 => $product->unit,
-            'container_type_id'    => $product->container_type_id,
-            'container_type'       => $product->container_type,
-            'container_type_label' => $product->containerType?->name ?? $product->container_type,
         ];
     }
 }

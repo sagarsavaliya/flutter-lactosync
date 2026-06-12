@@ -25,6 +25,7 @@ use App\Services\Operations\DailyOrderLogGenerator;
 use App\Services\Operations\DeliveryLogUpdateService;
 use App\Services\Operations\MilkLogImageService;
 use App\Services\Operations\MilkPreparationSummaryBuilder;
+use App\Services\WhatsApp\CustomerWhatsAppNotifier;
 use App\Services\WhatsApp\WhatsAppService;
 use App\Support\ApiResponse;
 use App\Support\DeliveryLogPresenter;
@@ -66,16 +67,25 @@ class OwnerController extends Controller
             ->whereDate('delivery_date', $today)
             ->get();
 
-        $products = $owner->farm->products()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
+        // Wrapped so the dashboard still loads if Sprint OR migrations haven't
+        // been run yet (milk_type_id column / container_type_sizes table absent).
+        $milkPreparation = null;
+        try {
+            $products = $owner->farm->products()
+                ->with(['milkType', 'containerType.sizes'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
 
-        $milkPreparation = $this->milkPreparationSummary->build(
-            $todayOrders,
-            $products,
-            $today,
-        );
+            $milkPreparation = $this->milkPreparationSummary->build(
+                $todayOrders,
+                $products,
+                $today,
+                $owner->farm_id,
+            );
+        } catch (\Throwable) {
+            // Migration not yet applied — dashboard loads without milk preparation panel.
+        }
 
         return ApiResponse::success([
             'customers' => [
@@ -188,16 +198,17 @@ class OwnerController extends Controller
 
         $validated = $request->validate([
             'is_active' => ['sometimes', 'boolean'],
+            'delivery_type' => ['sometimes', 'string', Rule::in(['home_delivery', 'walk_in'])],
             'vacation_start' => ['sometimes', 'nullable', 'date'],
             'vacation_end' => ['sometimes', 'nullable', 'date'],
             'first_name' => ['sometimes', 'string', 'max:80'],
             'last_name' => ['sometimes', 'string', 'max:80'],
-            'address_line' => ['sometimes', 'string', 'max:255'],
+            'address_line' => ['sometimes', 'nullable', 'string', 'max:255'],
             'area' => ['sometimes', 'nullable', 'string', 'max:120'],
             'landmark' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'city' => ['sometimes', 'string', 'max:80'],
-            'state' => ['sometimes', 'string', 'max:80'],
-            'zip' => ['sometimes', 'digits:6'],
+            'city' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'state' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'zip' => ['sometimes', 'nullable', 'digits:6'],
             'contact' => ['sometimes', 'digits:10'],
             'whatsapp_enabled' => ['sometimes', 'boolean'],
             'secondary_contact' => ['sometimes', 'nullable', 'digits:10'],
@@ -217,6 +228,9 @@ class OwnerController extends Controller
                 'Clear vacation dates before marking customer inactive.',
             );
         }
+
+        // Capture vacation state before mutations so we can detect transitions below
+        $wasOnVacation = $customer->vacation_start !== null && $customer->vacation_end !== null;
 
         if (array_key_exists('vacation_start', $validated)) {
             $customer->vacation_start = $validated['vacation_start'];
@@ -247,6 +261,7 @@ class OwnerController extends Controller
             'contact',
             'whatsapp_enabled',
             'secondary_contact',
+            'delivery_type',
         ] as $field) {
             if (array_key_exists($field, $validated)) {
                 $customer->{$field} = $validated[$field];
@@ -260,6 +275,23 @@ class OwnerController extends Controller
         }
 
         $customer->save();
+
+        // ── WhatsApp notifications ──────────────────────────────────────────
+        $owner->loadMissing('farm');
+        $notifier = app(CustomerWhatsAppNotifier::class);
+        $isNowOnVacation = $customer->vacation_start !== null && $customer->vacation_end !== null;
+
+        if ($isNowOnVacation && ! $wasOnVacation) {
+            $notifier->deliveryPaused(
+                $customer,
+                $customer->vacation_start->toDateString(),
+                $customer->vacation_end->toDateString(),
+                $owner->farm,
+            );
+        } elseif (! $isNowOnVacation && $wasOnVacation) {
+            $notifier->subscriptionResumed($customer, now()->toDateString(), $owner->farm);
+        }
+        // ────────────────────────────────────────────────────────────────────
 
         return ApiResponse::success($this->customerPayload($customer->fresh()));
     }
@@ -316,6 +348,18 @@ class OwnerController extends Controller
         ]);
 
         $line->load('product');
+
+        // WhatsApp notification for quantity / product change
+        $customer = $subscription->customer;
+        if ($customer !== null) {
+            $owner->loadMissing('farm');
+            app(CustomerWhatsAppNotifier::class)->qtyChanged(
+                $customer,
+                $line,
+                now()->toDateString(),
+                $owner->farm,
+            );
+        }
 
         return ApiResponse::success([
             'id' => $line->id,
@@ -602,11 +646,28 @@ class OwnerController extends Controller
                 $line,
             );
 
-            $monthLabel = Carbon::createFromFormat('Y-m', $billingMonth)->format('F Y');
-            $whatsApp->sendImage(
+            $monthLabel  = Carbon::createFromFormat('Y-m', $billingMonth)->format('F Y');
+            $productName = $line?->product?->name ?? 'All products';
+            $shiftLabel  = $line
+                ? ($line->shift instanceof \BackedEnum ? $line->shift->label() : (string) $line->shift)
+                : 'Morning & Evening';
+            $monthStart  = Carbon::createFromFormat('Y-m', $billingMonth)->startOfMonth()->format('d M');
+            $monthEnd    = Carbon::createFromFormat('Y-m', $billingMonth)->endOfMonth()->format('d M Y');
+            $period      = "{$monthStart} – {$monthEnd}";
+
+            // Send log image as the template header — one message instead of two
+            $whatsApp->sendTemplateWithImageHeader(
                 $customer->contact,
+                config('services.whatsapp.template_order_log', 'lacto_sync_order_log'),
                 $imagePath,
-                "Milk delivery log — {$monthLabel}",
+                [
+                    $customer->fullName(),
+                    $monthLabel,
+                    $productName,
+                    $shiftLabel,
+                    $period,
+                    $owner->farm->name,
+                ],
             );
         } catch (RuntimeException $e) {
             return ApiResponse::error('SEND_FAILED', $e->getMessage(), 422);
@@ -1025,6 +1086,7 @@ class OwnerController extends Controller
             'whatsapp_enabled' => $customer->whatsapp_enabled,
             'secondary_contact' => $customer->secondary_contact,
             'is_active' => $customer->is_active,
+            'delivery_type' => $customer->delivery_type ?? 'home_delivery',
             'vacation_start' => $customer->vacation_start?->toDateString(),
             'vacation_end' => $customer->vacation_end?->toDateString(),
             'display_status' => $status,

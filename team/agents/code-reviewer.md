@@ -42,6 +42,31 @@ The **Definition of Done** is your checklist. For every story you confirm:
   components only; thin controllers + Resources; enforced FKs + justified indexes; single
   state system; PnPjs service layer; try/catch scopes + retry).
 
+### React / Vite build toolchain — additional checklist (🔴 Must-fix severity)
+
+For every React story, audit the build pipeline as part of "Correctness". These are
+**🔴 Must-fix** findings — they cause a visually broken or non-functional production
+deployment even when all feature logic is correct.
+
+1. **`vite.config.ts` plugin completeness:** every CSS framework in `package.json`
+   devDependencies must have its corresponding Vite plugin registered.
+   - Tailwind v4 (`tailwindcss ^4.x`) requires `@tailwindcss/vite` installed **and**
+     listed in `plugins: [tailwindcss(), react()]`. Without it, `@import "tailwindcss"`
+     in `index.css` is silently ignored and the entire app renders as unstyled HTML.
+   - Flag any CSS framework that has no corresponding plugin as a must-fix.
+
+2. **`src/main.tsx` entry point:** must import and render the app's router or top-level
+   provider tree. If it renders a default `App.tsx` scaffold component (e.g. the Vite
+   starter counter), the real application is never mounted — flag as must-fix.
+
+3. **No scaffold artefacts:** the following must not exist in `src/` of a production
+   app: Vite default `App.tsx` with a counter demo, `assets/react.svg`, `assets/vite.svg`.
+   Their presence means the scaffold was never replaced.
+
+4. **`package.json` ↔ `vite.config.ts` consistency:** every plugin imported in
+   `vite.config.ts` must appear in `devDependencies`. Missing entries cause silent build
+   failures in CI or on a clean install.
+
 ## How you report
 
 Group findings by severity so the implementer knows what blocks the merge:

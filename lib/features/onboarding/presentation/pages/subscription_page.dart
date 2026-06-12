@@ -16,20 +16,32 @@ import '../../domain/entities/onboarding_models.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/rate_calculation_card.dart';
 
+const List<double> kSubscriptionQtyOptions = [
+  0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0,
+  5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0,
+];
+
+String _qtyLabel(double litres) {
+  if (litres < 1.0) return '${(litres * 1000).toInt()} ml';
+  if (litres == litres.roundToDouble()) return '${litres.toInt()} L';
+  return '$litres L';
+}
+
 class _LineDraft {
   int? productId;
-  final qtyController = TextEditingController(text: '1');
+  double qty = 0.5;
   final couponController = TextEditingController();
   String shift = 'morning';
 
   void dispose() {
-    qtyController.dispose();
     couponController.dispose();
   }
 }
 
 class SubscriptionPage extends ConsumerStatefulWidget {
-  const SubscriptionPage({super.key});
+  const SubscriptionPage({super.key, this.lockedCustomerId});
+
+  final int? lockedCustomerId;
 
   @override
   ConsumerState<SubscriptionPage> createState() => _SubscriptionPageState();
@@ -52,7 +64,13 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
   void _initFromBootstrap(SubscriptionBootstrap data) {
     if (_initialized) return;
     _initialized = true;
-    _selectedCustomer = data.customers.isNotEmpty ? data.customers.first : null;
+    final lockedId = widget.lockedCustomerId;
+    if (lockedId != null) {
+      _selectedCustomer = data.customers.where((c) => c.id == lockedId).firstOrNull ??
+          (data.customers.isNotEmpty ? data.customers.first : null);
+    } else {
+      _selectedCustomer = data.customers.isNotEmpty ? data.customers.first : null;
+    }
     if (data.products.isNotEmpty) {
       _lines.first.productId = data.products.first.id;
     }
@@ -68,10 +86,9 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
 
   double _lineTotal(ProductItem? product, _LineDraft line) {
     if (product == null) return 0;
-    final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
     final coupon = double.tryParse(line.couponController.text.trim()) ?? 0;
     final effective = (product.rate - coupon).clamp(0, double.infinity);
-    return effective * qty;
+    return effective * line.qty;
   }
 
   Future<void> _submit() async {
@@ -89,11 +106,10 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
     for (final line in _lines) {
       final product = _productFor(line.productId, products);
       if (product == null) continue;
-      final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-      if (qty <= 0) continue;
+      if (line.qty <= 0) continue;
       payload.add({
         'product_id': product.id,
-        'quantity': qty,
+        'quantity': line.qty,
         'coupon_amount': double.tryParse(line.couponController.text.trim()) ?? 0,
         'shift': line.shift,
       });
@@ -156,6 +172,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
             _initFromBootstrap(data);
             final customers = data.customers;
             final products = data.products;
+            final isCustomerLocked = widget.lockedCustomerId != null;
 
             return Column(
               children: [
@@ -180,14 +197,15 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
                               ),
                             )
                             .toList(),
-                        onChanged: (v) => setState(() => _selectedCustomer = v),
+                        onChanged: isCustomerLocked
+                            ? null
+                            : (v) => setState(() => _selectedCustomer = v),
                       ),
                       const SizedBox(height: AppSpace.lg),
                       ...List.generate(_lines.length, (i) {
                         final line = _lines[i];
                         final product = _productFor(line.productId, products);
                         final coupon = double.tryParse(line.couponController.text.trim()) ?? 0;
-                        final qty = double.tryParse(line.qtyController.text.trim()) ?? 1;
                         final total = _lineTotal(product, line);
 
                         return Padding(
@@ -214,22 +232,29 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
-                                    child: AppTextField(
-                                      label: AppStrings.quantityLabel,
-                                      controller: line.qtyController,
-                                      suffixText: 'ltr',
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(decimal: true),
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                                      ],
-                                      onChanged: (_) => setState(() {}),
+                                    child: DropdownButtonFormField<double>(
+                                      value: line.qty,
+                                      isExpanded: true,
+                                      decoration: const InputDecoration(
+                                        labelText: AppStrings.quantityLtrLabel,
+                                      ),
+                                      items: kSubscriptionQtyOptions
+                                          .map(
+                                            (q) => DropdownMenuItem(
+                                              value: q,
+                                              child: Text(_qtyLabel(q)),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (v) {
+                                        if (v != null) setState(() => line.qty = v);
+                                      },
                                     ),
                                   ),
                                   const SizedBox(width: AppSpace.sm),
                                   Expanded(
                                     child: AppTextField(
-                                      label: AppStrings.couponLabel,
+                                      label: AppStrings.couponLtrLabel,
                                       controller: line.couponController,
                                       keyboardType: TextInputType.number,
                                       inputFormatters: [
@@ -270,7 +295,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
                                   productName: product.name,
                                   unitRate: product.rate,
                                   couponAmount: coupon,
-                                  quantity: qty,
+                                  quantity: line.qty,
                                   unit: product.unit,
                                 ),
                               ],

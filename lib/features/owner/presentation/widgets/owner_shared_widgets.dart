@@ -10,16 +10,19 @@ import '../../../../core/widgets/app_card.dart';
 import 'customer_list_styles.dart';
 import 'owner_form_theme.dart';
 
-const List<double> kMilkQtyOptions = [0.5, 1, 1.5, 2, 2.5, 3];
+const List<double> kMilkQtyOptions = [
+  0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0,
+  5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0,
+];
 
 String milkQtyLabel(double litres) {
-  if (litres == 0.5) return '500 ml';
+  if (litres < 1.0) return '${(litres * 1000).toInt()} ml';
   if (litres == litres.roundToDouble()) return '${litres.toInt()} L';
   return '$litres L';
 }
 
 double nearestMilkQty(double value) {
-  if (value <= 0) return 1;
+  if (value <= 0) return kMilkQtyOptions.first;
   var best = kMilkQtyOptions.first;
   var diff = (value - best).abs();
   for (final option in kMilkQtyOptions) {

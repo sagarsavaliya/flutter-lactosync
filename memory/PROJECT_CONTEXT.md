@@ -8,7 +8,7 @@
 - **Client / Product:** Akshara Internal SaaS
 - **Type:** [x] SaaS Product
 - **Start Date:** 2026-05-30
-- **Target MVP:** Phase 1–3 (Auth + Customers + Orders)
+- **Target MVP:** Phase 1–3 (Auth + Customers + Orders) · **Rollout target:** mid-June 2026
 - **Priority:** [x] High
 
 ---
@@ -95,4 +95,4 @@ Mobile-first SaaS for **dairy farm owners** in India. Owners manage customer sub
 - **Status:** No formal brief in repo — rules captured here + DECISIONS.md
 
 ---
-*Last updated: CEO Agent | 2026-05-30*
+*Last updated: CEO Agent | 2026-06-05 — v4.8.6+12, mid-June rollout prep*

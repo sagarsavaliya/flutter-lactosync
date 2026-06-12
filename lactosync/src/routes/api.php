@@ -1,5 +1,17 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\V1\AuthController as AdminAuthController;
+use App\Http\Controllers\Api\Customer\V1\AuthController as CustomerAuthController;
+use App\Http\Controllers\Api\Customer\V1\DashboardController as CustomerDashboardController;
+use App\Http\Controllers\Api\Customer\V1\OrderController as CustomerOrderController;
+use App\Http\Controllers\Api\Customer\V1\BillingController as CustomerBillingController;
+use App\Http\Controllers\Api\Customer\V1\ProfileController as CustomerProfileController;
+use App\Http\Controllers\Api\Customer\V1\VacationController as CustomerVacationController;
+use App\Http\Controllers\Api\Admin\V1\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Api\Admin\V1\PaymentController as AdminPaymentController;
+use App\Http\Controllers\Api\Admin\V1\PlanController as AdminPlanController;
+use App\Http\Controllers\Api\Admin\V1\CouponController as AdminCouponController;
+use App\Http\Controllers\Api\Admin\V1\TenantController as AdminTenantController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\OnboardingController;
@@ -9,6 +21,55 @@ use App\Http\Controllers\Api\V1\OwnerProductTypesController;
 use App\Http\Controllers\Api\V1\OwnerSettingsController;
 use Illuminate\Support\Facades\Route;
 
+// ---------------------------------------------------------------------------
+// Admin API — Tenant Admin Web App
+// Completely separate from the owner API. The 'auth:admin' guard ensures
+// a farm-owner Sanctum token cannot access any of these routes.
+// ---------------------------------------------------------------------------
+Route::prefix('admin/v1')->group(function (): void {
+    Route::post('auth/login', [AdminAuthController::class, 'login'])
+        ->middleware('throttle:10,1');  // 10 attempts per IP per minute
+
+    Route::middleware('auth:admin')->group(function (): void {
+        Route::post('auth/logout', [AdminAuthController::class, 'logout']);
+
+        // Dashboard
+        Route::get('dashboard', [AdminDashboardController::class, 'index']);
+
+        // Tenant management (T1-10)
+        Route::get('tenants', [AdminTenantController::class, 'index']);
+        Route::get('tenants/{id}', [AdminTenantController::class, 'show']);
+        Route::post('tenants/{id}/plan-assign', [AdminTenantController::class, 'planAssign']);
+        Route::post('tenants/{id}/plan-change', [AdminTenantController::class, 'planChange']);
+        Route::post('tenants/{id}/plan-pause', [AdminTenantController::class, 'planPause']);
+        Route::post('tenants/{id}/plan-resume', [AdminTenantController::class, 'planResume']);
+        Route::put('tenants/{id}/profile', [AdminTenantController::class, 'updateProfile']);
+
+        // Plan management (T1-11)
+        Route::get('plans', [AdminPlanController::class, 'index']);
+        Route::post('plans', [AdminPlanController::class, 'store']);
+        Route::put('plans/{plan}', [AdminPlanController::class, 'update']);
+        Route::post('plans/{plan}/archive', [AdminPlanController::class, 'archive']);
+        Route::post('plans/{plan}/unarchive', [AdminPlanController::class, 'unarchive']);
+
+        // Payment tracking (T1-12)
+        Route::post('tenants/{id}/payments', [AdminPaymentController::class, 'store']);
+        Route::get('tenants/{id}/payments', [AdminPaymentController::class, 'indexForTenant']);
+        Route::get('payments', [AdminPaymentController::class, 'index']);
+        Route::put('payments/{id}', [AdminPaymentController::class, 'update']);
+        Route::delete('payments/{id}', [AdminPaymentController::class, 'destroy']);
+
+        // Coupon / promotional offers
+        Route::get('coupons', [AdminCouponController::class, 'index']);
+        Route::post('coupons', [AdminCouponController::class, 'store']);
+        Route::patch('coupons/{id}/toggle-active', [AdminCouponController::class, 'toggleActive']);
+        Route::post('tenants/{id}/apply-coupon', [AdminCouponController::class, 'applyToTenant']);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Owner / farm API (unchanged)
+// ---------------------------------------------------------------------------
 Route::prefix('v1')->group(function () {
     $otpSendThrottle = app()->environment('local') ? 'throttle:30,1' : 'throttle:3,60';
 
@@ -45,7 +106,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/subscriptions/skip', [OnboardingController::class, 'skipSubscription']);
         });
 
-        Route::prefix('owner')->group(function () {
+        Route::prefix('owner')->middleware('check.subscription')->group(function () {
             Route::get('/dashboard', [OwnerController::class, 'dashboard']);
             Route::get('/activities', [OwnerController::class, 'activities']);
             Route::post('/activities/{activityLog}/restore', [OwnerController::class, 'restoreActivity']);
@@ -76,6 +137,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/payments/share-upi-qr', [OwnerBillingController::class, 'shareUpiQr']);
             Route::get('/settings', [OwnerSettingsController::class, 'show']);
             Route::patch('/settings', [OwnerSettingsController::class, 'update']);
+            Route::get('/products', [OwnerProductTypesController::class, 'indexProducts']);
+            Route::post('/products', [OwnerProductTypesController::class, 'storeProduct']);
             Route::patch('/products/{product}', [OwnerSettingsController::class, 'updateProduct']);
             Route::delete('/products/{product}', [OwnerSettingsController::class, 'destroyProduct']);
             Route::get('/pincode/{pincode}', [OwnerSettingsController::class, 'pincodeLookup']);
@@ -95,5 +158,47 @@ Route::prefix('v1')->group(function () {
             Route::post('/container-types/{containerType}/hide', [OwnerProductTypesController::class, 'hideContainerType']);
             Route::delete('/container-types/{containerType}/hide', [OwnerProductTypesController::class, 'unhideContainerType']);
         });
+    });
+});
+
+// ── Customer App API ──────────────────────────────────────────────────────────
+Route::prefix('customer/v1')->group(function (): void {
+
+    // Auth (unauthenticated)
+    Route::prefix('auth')->group(function (): void {
+        Route::post('send-otp',   [CustomerAuthController::class, 'sendOtp']);
+        Route::post('verify-otp', [CustomerAuthController::class, 'verifyOtp']);
+        Route::post('set-pin',    [CustomerAuthController::class, 'setPin']);
+        Route::post('login',      [CustomerAuthController::class, 'login']);
+    });
+
+    // Authenticated customer routes
+    Route::middleware('auth:customer')->group(function (): void {
+        // CA-03 — Dashboard
+        Route::get('dashboard', [CustomerDashboardController::class, 'index']);
+
+        // CA-04 — Order log
+        Route::get('orders', [CustomerOrderController::class, 'index']);
+
+        // CA-07 — Qty change (shift-aware lock)
+        Route::put('orders/{date}/qty', [CustomerOrderController::class, 'updateQty']);
+
+        // CA-08 — Single-day skip
+        Route::post('orders/{date}/skip', [CustomerOrderController::class, 'skip']);
+
+        // CA-05 — Bills + bill image + payments
+        Route::get('bills', [CustomerBillingController::class, 'bills']);
+        Route::get('bills/{id}/image', [CustomerBillingController::class, 'billImage']);
+        Route::get('payments', [CustomerBillingController::class, 'payments']);
+
+        // CA-06 — Profile + farm contact
+        Route::get('profile', [CustomerProfileController::class, 'show']);
+        Route::put('profile', [CustomerProfileController::class, 'update']);
+        Route::get('farm-contact', [CustomerProfileController::class, 'farmContact']);
+
+        // CA-09 — Vacation CRUD
+        Route::get('vacation', [CustomerVacationController::class, 'show']);
+        Route::post('vacation', [CustomerVacationController::class, 'store']);
+        Route::delete('vacation', [CustomerVacationController::class, 'destroy']);
     });
 });

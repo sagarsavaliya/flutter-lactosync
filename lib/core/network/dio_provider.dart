@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/app_config.dart';
 import '../storage/token_storage.dart';
 import 'api_exception.dart';
+import 'subscription_interceptor.dart';
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) {
   throw UnimplementedError('Override in main()');
@@ -12,6 +13,9 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
 
 final dioProvider = Provider<Dio>((ref) {
   final tokenStorage = ref.watch(tokenStorageProvider);
+
+  // Subscription interceptor must be added before the error handler so that
+  // 403 SUBSCRIPTION_SUSPENDED errors are classified before generic handling.
   final dio = Dio(
     BaseOptions(
       baseUrl: AppConfig.apiBaseUrl,
@@ -23,6 +27,9 @@ final dioProvider = Provider<Dio>((ref) {
       },
     ),
   );
+
+  // Subscription gate: classifies 402/403 middleware signals.
+  dio.interceptors.add(SubscriptionInterceptor(ref));
 
   dio.interceptors.add(
     InterceptorsWrapper(

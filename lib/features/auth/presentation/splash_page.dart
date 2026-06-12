@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_logo.dart';
+import '../../customer/presentation/providers/customer_auth_provider.dart';
 import 'providers/auth_provider.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
@@ -27,20 +28,31 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
   Future<void> _bootstrap() async {
     await Future<void>.delayed(const Duration(milliseconds: 900));
+
+    // Check owner session first (owners take priority on this device).
     final session = await ref.read(authRepositoryProvider).readStoredSession();
     if (!mounted) return;
 
-    if (session == null) {
-      context.go('/sign-in');
+    if (session != null) {
+      if (session.onboarding.isCompleted) {
+        context.go('/dashboard');
+      } else {
+        context.go(session.onboardingRoute);
+      }
       return;
     }
 
-    if (session.onboarding.isCompleted) {
-      context.go('/dashboard');
+    // No owner session — check for a customer session.
+    final isCustomerLoggedIn =
+        await ref.read(customerAuthRepositoryProvider).isLoggedIn;
+    if (!mounted) return;
+
+    if (isCustomerLoggedIn) {
+      context.go('/customer/home');
       return;
     }
 
-    context.go(session.onboardingRoute);
+    context.go('/sign-in');
   }
 
   @override

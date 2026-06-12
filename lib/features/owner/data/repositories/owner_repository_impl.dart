@@ -493,9 +493,16 @@ class OwnerRepositoryImpl implements OwnerRepository {
     final name = '$materialLabel $size';
     final response = await _dio.post<Map<String, dynamic>>(
       '/owner/container-types',
-      data: {'name': name},
+      data: {
+        'name': name,
+        'kind': material,
+        'size': size,
+      },
     );
-    return ContainerTypeItem.fromJson(_readData(response.data));
+    final body = _readData(response.data);
+    return ContainerTypeItem.fromJson(
+      Map<String, dynamic>.from(body['container_type'] as Map),
+    );
   }
 
   @override
@@ -511,6 +518,75 @@ class OwnerRepositoryImpl implements OwnerRepository {
   @override
   Future<void> unhideContainerType(int id) async {
     await _dio.delete<void>('/owner/container-types/$id/hide');
+  }
+
+  // ── OR-07: Container types (grouped, with sizes list) ─────────────────────
+
+  @override
+  Future<List<OwnerContainerType>> fetchOwnerContainerTypes() async {
+    final response = await _dio.get<Map<String, dynamic>>('/owner/container-types');
+    final body = _readData(response.data);
+    final list = body['container_types'] as List<dynamic>? ?? [];
+    return list
+        .map((e) => OwnerContainerType.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  @override
+  Future<OwnerContainerType> createOwnerContainerType({
+    required String name,
+    required List<double> sizes,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/owner/container-types',
+      data: {'name': name, 'sizes': sizes},
+    );
+    final body = _readData(response.data);
+    return OwnerContainerType.fromJson(
+      Map<String, dynamic>.from(body['container_type'] as Map),
+    );
+  }
+
+  @override
+  Future<void> deleteOwnerContainerType(int id) async {
+    await _dio.delete<void>('/owner/container-types/$id');
+  }
+
+  // ── OR-08: Products (new shape) ───────────────────────────────────────────
+
+  @override
+  Future<List<OwnerProduct>> fetchOwnerProducts() async {
+    final response = await _dio.get<Map<String, dynamic>>('/owner/products');
+    final body = _readData(response.data);
+    final list = body['products'] as List<dynamic>? ?? [];
+    return list
+        .map((e) => OwnerProduct.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  @override
+  Future<OwnerProduct> createOwnerProduct({
+    required int milkTypeId,
+    required int containerTypeId,
+    required double rate,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/owner/products',
+      data: {
+        'milk_type_id': milkTypeId,
+        'container_type_id': containerTypeId,
+        'rate': rate,
+      },
+    );
+    final body = _readData(response.data);
+    return OwnerProduct.fromJson(
+      Map<String, dynamic>.from(body['product'] as Map),
+    );
+  }
+
+  @override
+  Future<void> deleteOwnerProduct(int id) async {
+    await _dio.delete<void>('/owner/products/$id');
   }
 }
 

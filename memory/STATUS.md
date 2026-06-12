@@ -1,39 +1,64 @@
 # PROJECT STATUS — LactoSync
-**Last Updated:** 2026-05-30 | **Overall:** 🟢 v4.8.4+8 — customer detail alignment + billing badges
+**Last Updated:** 2026-06-06 (EOD) | **Overall:** 🟢 v4.8.7+13 — Sprint CA complete; APK built; VPS deploy instructions ready for human
 
 ---
 
 ### 🏗️ Technical
-- **Customer list:** Search/sort same height (44px); mint cards per mockup
-- **Daily orders:** Fixed row layout (no vertical text wrap)
-- **Billing:** Per-customer Billed / Collected / Outstanding grid (no amount badges)
-- **Customer detail:** Delete when bills paid; generate bill button; activity log + restore
-- **Delete rules:** Block only unpaid balance (`CUSTOMER_HAS_UNPAID_BILLS`); subscriptions delete without log-block
-- **Activity API:** `GET /owner/activities`, `POST /owner/activities/{id}/restore`
-- **UI:** Green borders on search/sort/inputs; daily orders skip button; search+sort on orders/billing/payments
-- **WhatsApp docs:** Server PNG milk log + bill (DejaVu fonts); payment receipt text on record; UPI QR share API
-- **Dashboard:** Quick actions — Find Customer, Gen Bill, Record Payment, View QR (share to customer)
-- **No PDF in app:** Settings use image-only WhatsApp delivery; client `pdf` package removed
-- **Deploy:** ✅ API redeployed 2026-05-30 — activity table + delete logic live
-- **APK:** `build/app/outputs/flutter-apk/app-release.apk` v4.8.4+8
-- **Bill generate:** Recalculates existing month bill (not duplicate invoices)
-- **WhatsApp:** Credentials OK on server; bills/logs use session images (24h Meta window); payment receipt errors now surfaced in app
+- **App:** v4.8.7+13 · APK `build/app/outputs/flutter-apk/app-release.apk` (55.6 MB)
+- **API:** Production live · https://flutterapi.lactosync.com/api/v1
+- **Admin Web:** https://superadmin.lactosync.com — fully live (Sprint T1 complete + post-sprint additions)
+- **Git:** Sprint CA complete; APK v4.8.7+13 built; VPS deploy instructions ready for human
 
 ### 🎨 Product & Design
-- Milk log / bill layout: customer left, farm right, product/rate/month centered, thank-you footer
-- Owner popups: Cancel + primary actions side-by-side
+- Admin web: top navbar, modern dashboard, edit plan (no max_subscriptions), coupon system, tenant profile edit
+- WhatsApp: all 6 templates wired server-side; Meta template names set via env vars
 
 ---
 
-## ✅ Live farm logins
+## ✅ Completed today (2026-06-06)
 
+### Customer App — Sprint CA (Flutter + Laravel)
+- APK v4.8.7+13 built — Sprint CA complete (customer auth, dashboard, orders, bills, payments, profile, vacation)
+- VPS deploy instructions generated; human must run migration + docker cp + smoke test
+
+### Owner App (Flutter + Laravel)
+- APK v4.8.6+12 built — Sprint 6 features (settings cards, dynamic types, 12hr time, contact picker, subscription suspended screen)
+- WhatsApp template notifications fully wired for all 6 events:
+  - Bill ready → `lacto_sync_monthly_bill`
+  - Order log → `lacto_sync_order_log`
+  - Payment confirmed → `lacto_sync_payment_receipt`
+  - Vacation set → `lacto_sync_vacation_set`
+  - Vacation ended / delivery resumed → `lacto_sync_vacation_ended`
+  - Subscription qty/product changed → `lacto_sync_subscription_updated`
+- Bug fix: template names were wrong defaults (mismatched with Meta); corrected via `.env` on VPS; smoke-tested SUCCESS
+
+### Tenant Admin Web (superadmin.lactosync.com)
+- Tenant profile edit sheet: name, mobile, farm name, address, city, state, zip, GST number, active toggle, PIN reset
+- Coupon / promotional offer system: create coupons, toggle active, apply to tenant (extends renewal date)
+- `PUT /api/admin/v1/tenants/{id}/profile` endpoint live
+- Coupon API + DB tables (migrations ran on VPS): `coupons`, `tenant_coupon_redemptions`
+- Coupons nav tab added to top navbar
+
+---
+
+## ✅ Live test farms
 | Farm | Mobile | PIN |
 |------|--------|-----|
-| Shreeji Gir Gaushala | 9429040899 | *(your PIN)* |
 | Farenidham Gaushala | 9998866008 | 1234 |
 | Gokul Dairy Farm | 9876543210 | 1234 |
 
 ---
 
-## 🔲 Coming Next
-- Install APK v4.8.4+6; test bill recalc icon, bill detail Send button, WhatsApp with customer who messaged farm in last 24h
+## 🔲 Pending validation (your device)
+1. Install APK v4.8.6+12 on test device
+2. Set vacation for a customer → WhatsApp `lacto_sync_vacation_set` should arrive
+3. Change subscription shift → WhatsApp `lacto_sync_subscription_updated` should arrive
+4. Record payment → WhatsApp `lacto_sync_payment_receipt` should arrive
+5. Confirm `lacto_sync_monthly_bill` once Meta approves it (currently "in review")
+
+## ⚠️ One open item
+- `lacto_sync_monthly_bill` is still under Meta review — bill send will silently skip until approved
+
+## 🔲 Coming next (when you resume)
+- Legal/compliance pass before public farm rollout
+- Sales/marketing activation

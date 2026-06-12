@@ -2,47 +2,51 @@
 
 namespace App\Services\Operations;
 
-use App\Enums\ContainerType;
-
 /**
- * Splits subscription/order litres into container counts for daily prep.
+ * Greedy bin-pack: splits subscription/order litres into container counts.
  *
- * Glass bottles: 1 L and 500 ml only (greedy largest first).
- * Plastic bags: 2 L, 1.5 L, 1 L, 500 ml (greedy largest first).
+ * All public methods work with dynamic sizes derived from container_type_sizes
+ * rows — no hardcoded glass/plastic constants.
  */
 class MilkPreparationCalculator
 {
-    /** @var array<string, int> ml keyed by size key */
-    private const GLASS_SIZES = [
-        '1L' => 1000,
-        '500ml' => 500,
-    ];
-
-    /** @var array<string, int> ml keyed by size key */
-    private const PLASTIC_SIZES = [
-        '2L' => 2000,
-        '1.5L' => 1500,
-        '1L' => 1000,
-        '500ml' => 500,
-    ];
-
     /**
-     * @return array<string, int> size key => count
+     * Convert size_liters float values from container_type_sizes into the
+     * string-keyed ml map required by packWithSizes().
+     *
+     * @param  float[]  $sizeLiters  e.g. [2.0, 1.5, 1.0, 0.5]
+     * @return array<string, int>    e.g. ['2L' => 2000, '1.5L' => 1500, ...]
      */
-    public function pack(float $litres, ContainerType $containerType): array
+    public function sizesMapFromLiters(array $sizeLiters): array
     {
-        $sizes = $containerType === ContainerType::GlassBottle
-            ? self::GLASS_SIZES
-            : self::PLASTIC_SIZES;
-
-        $remainingMl = (int) round($litres * 1000);
-        if ($remainingMl <= 0) {
-            return $this->emptyCounts($sizes);
+        $map = [];
+        foreach ($sizeLiters as $liters) {
+            $ml = (int) round((float) $liters * 1000);
+            $map[$this->sizeKey($ml)] = $ml;
         }
 
-        $counts = $this->emptyCounts($sizes);
+        return $map;
+    }
 
-        foreach ($sizes as $key => $ml) {
+    /**
+     * Greedy bin-pack: fill largest container first, round remainder up into
+     * the smallest container so milk is never lost.
+     *
+     * @param  array<string, int>  $sizes  size_key => ml (any order)
+     * @return array<string, int>          size_key => count
+     */
+    public function packWithSizes(float $litres, array $sizes): array
+    {
+        $ordered = $this->orderSizesDesc($sizes);
+
+        $remainingMl = (int) round($litres * 1000);
+        if ($remainingMl <= 0 || $ordered === []) {
+            return $this->emptyCounts($ordered);
+        }
+
+        $counts = $this->emptyCounts($ordered);
+
+        foreach ($ordered as $key => $ml) {
             if ($ml <= 0) {
                 continue;
             }
@@ -52,7 +56,7 @@ class MilkPreparationCalculator
         }
 
         if ($remainingMl > 0) {
-            $smallestKey = array_key_last($sizes);
+            $smallestKey = array_key_last($ordered);
             $counts[$smallestKey] += 1;
         }
 
@@ -75,52 +79,29 @@ class MilkPreparationCalculator
     }
 
     /**
+     * @param  array<string, int>  $sizes
      * @return list<array{key: string, label: string}>
      */
-    public function sizeColumns(ContainerType $containerType): array
+    public function sizeColumnsFromSizes(array $sizes): array
     {
-        $sizes = $containerType === ContainerType::GlassBottle
-            ? self::GLASS_SIZES
-            : self::PLASTIC_SIZES;
+        $ordered = $this->orderSizesAsc($sizes);
 
-        $columns = array_map(
+        return array_values(array_map(
             fn (string $key, int $ml) => [
                 'key' => $key,
                 'label' => $this->sizeLabel($ml),
-                'ml' => $ml,
             ],
-            array_keys($sizes),
-            array_values($sizes),
-        );
-
-        usort($columns, fn (array $a, array $b) => $a['ml'] <=> $b['ml']);
-
-        return array_map(
-            fn (array $column) => [
-                'key' => $column['key'],
-                'label' => $column['label'],
-            ],
-            $columns,
-        );
-    }
-
-    public function containerLabel(ContainerType $containerType): string
-    {
-        return match ($containerType) {
-            ContainerType::GlassBottle => 'Glass Bottles',
-            ContainerType::PlasticBag => 'Plastic Bags',
-        };
+            array_keys($ordered),
+            array_values($ordered),
+        ));
     }
 
     /**
      * @param  array<string, int>  $counts
+     * @param  array<string, int>  $sizes
      */
-    public function litresFromCounts(array $counts, ContainerType $containerType): float
+    public function litresFromCountsWithSizes(array $counts, array $sizes): float
     {
-        $sizes = $containerType === ContainerType::GlassBottle
-            ? self::GLASS_SIZES
-            : self::PLASTIC_SIZES;
-
         $ml = 0;
         foreach ($sizes as $key => $sizeMl) {
             $ml += ($counts[$key] ?? 0) * $sizeMl;
@@ -129,12 +110,25 @@ class MilkPreparationCalculator
         return round($ml / 1000, 2);
     }
 
+    private function sizeKey(int $ml): string
+    {
+        if ($ml >= 1000 && $ml % 1000 === 0) {
+            $litres = $ml / 1000;
+
+            return fmod((float) $litres, 1.0) === 0.0
+                ? ((int) $litres).'L'
+                : $litres.'L';
+        }
+
+        return $ml.'ml';
+    }
+
     private function sizeLabel(int $ml): string
     {
         if ($ml >= 1000 && $ml % 1000 === 0) {
             $litres = $ml / 1000;
 
-            return fmod($litres, 1.0) === 0.0
+            return fmod((float) $litres, 1.0) === 0.0
                 ? ((int) $litres).' L'
                 : $litres.' L';
         }
@@ -142,6 +136,30 @@ class MilkPreparationCalculator
         return $ml >= 1000
             ? ($ml / 1000).' L'
             : $ml.' ml';
+    }
+
+    /**
+     * @param  array<string, int>  $sizes
+     * @return array<string, int>
+     */
+    private function orderSizesDesc(array $sizes): array
+    {
+        $ordered = $sizes;
+        uasort($ordered, fn (int $a, int $b) => $b <=> $a);
+
+        return $ordered;
+    }
+
+    /**
+     * @param  array<string, int>  $sizes
+     * @return array<string, int>
+     */
+    private function orderSizesAsc(array $sizes): array
+    {
+        $ordered = $sizes;
+        uasort($ordered, fn (int $a, int $b) => $a <=> $b);
+
+        return $ordered;
     }
 
     /**
