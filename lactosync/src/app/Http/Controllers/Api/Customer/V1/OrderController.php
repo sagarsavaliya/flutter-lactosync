@@ -102,9 +102,33 @@ class OrderController extends Controller
             $cursor->addDay();
         }
 
+        $consumptionRows = DailyOrderLog::query()
+            ->where('customer_id', $customer->id)
+            ->where('billing_month', $monthStr)
+            ->where('status', 'delivered')
+            ->get()
+            ->groupBy(fn (DailyOrderLog $log) => $log->product_name.'|'.$log->unit_rate)
+            ->map(function ($group) {
+                /** @var DailyOrderLog $first */
+                $first = $group->first();
+
+                return [
+                    'product_name'    => $first->product_name,
+                    'unit_rate'       => (float) $first->unit_rate,
+                    'total_quantity'  => round((float) $group->sum('quantity'), 2),
+                    'line_total'      => round((float) $group->sum('line_total'), 2),
+                ];
+            })
+            ->values();
+
         return ApiResponse::success([
             'month' => $monthStr,
             'days'  => $days,
+            'consumption' => [
+                'billing_month' => $monthStr,
+                'rows' => $consumptionRows,
+                'grand_total' => round((float) $consumptionRows->sum('line_total'), 2),
+            ],
         ]);
     }
 

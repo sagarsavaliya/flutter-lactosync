@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_widgets.dart';
+import '../widgets/customer_subscription_adapter.dart';
 import '../../data/repositories/customer_order_repository.dart';
 import '../providers/customer_dashboard_provider.dart';
 import '../providers/customer_order_provider.dart';
@@ -54,10 +59,15 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
     return _selectedMonth.isBefore(DateTime(now.year, now.month));
   }
 
+  bool get _isCurrentMonth {
+    final now = DateTime.now();
+    return _selectedMonth.year == now.year && _selectedMonth.month == now.month;
+  }
+
   void _openDaySheet(BuildContext context, Map<String, dynamic> day) {
     final status = day['status'] as String? ?? 'no_record';
     final entries = (day['entries'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    final isLocked = entries.any((e) => e['locked'] == true);
+    final isLocked = entries.every((e) => e['locked'] == true);
 
     if (status == 'expected' && !isLocked) {
       showModalBottomSheet<void>(
@@ -74,11 +84,8 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
           onSaved: () => ref.invalidate(customerOrdersProvider(_monthKey)),
         ),
       );
-    } else if (status == 'expected' && isLocked) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Changes are locked — order already submitted.')),
-      );
-    } else if (status == 'delivered' || status == 'skipped' || status == 'vacation') {
+    } else if (status == 'delivered' || status == 'skipped' || status == 'vacation' ||
+        (status == 'expected' && isLocked)) {
       final dashData = ref.read(customerDashboardProvider).value;
       final activeSubs = (dashData?['active_subscriptions'] as List?)
               ?.cast<Map<String, dynamic>>() ??
@@ -141,27 +148,49 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 4),
 
-                  // Active subscriptions
                   dashAsync.when(
-                    data: (data) {
-                      final rawSubs = data['active_subscriptions'];
+                    data: (dashData) {
+                      final rawSubs = dashData['active_subscriptions'];
                       final subs = rawSubs is List
                           ? rawSubs.cast<Map<String, dynamic>>()
                           : <Map<String, dynamic>>[];
+                      final ordersData = ordersAsync.valueOrNull;
+                      final days = (ordersData?['days'] as List?)
+                              ?.cast<Map<String, dynamic>>() ??
+                          const <Map<String, dynamic>>[];
+                      final hasOrderDays = ordersAsync.hasValue;
+
                       return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Text(
-                            'Active Subscriptions',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: CusColors.onSurface,
-                            ),
+                          CustomerDetailSectionLabel(
+                            title: AppStrings.subscriptionsTitle.toUpperCase(),
                           ),
-                          const SizedBox(height: 10),
-                          _SubscriptionsCard(subs: subs),
-                          const SizedBox(height: 24),
+                          if (subs.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                AppStrings.noSubscriptions,
+                                style: AppText.body.copyWith(
+                                  color: CustomerDetailColors.onSurfaceVariant,
+                                ),
+                              ),
+                            )
+                          else
+                            ...subs.asMap().entries.map((entry) {
+                              final line = customerSubscriptionLineFromOrders(
+                                subscription: entry.value,
+                                days: hasOrderDays ? days : const [],
+                              );
+                              return CustomerDetailSubscriptionCard(
+                                index: entry.key + 1,
+                                line: line,
+                                month: _selectedMonth,
+                                showCalendar: hasOrderDays,
+                                initiallyExpanded: entry.key == subs.length - 1,
+                              );
+                            }),
+                          const SizedBox(height: 8),
                         ],
                       );
                     },
@@ -169,17 +198,7 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
                     error: (_, __) => const SizedBox.shrink(),
                   ),
 
-                  // Month navigation
-                  _MonthSelector(
-                    selectedMonth: _selectedMonth,
-                    canGoBack: _canGoBack,
-                    canGoForward: _canGoForward,
-                    onPrevious: _previousMonth,
-                    onNext: _nextMonth,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Calendar
+                  // Orders section
                   ordersAsync.when(
                     loading: () => const Padding(
                       padding: EdgeInsets.symmetric(vertical: 40),
@@ -201,34 +220,88 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
                       final days = (data['days'] as List?)
                               ?.cast<Map<String, dynamic>>() ??
                           [];
-                      final delivered = days.where((d) => d['status'] == 'delivered').length;
-                      final skipped = days.where((d) => d['status'] == 'skipped').length;
-                      final vacation = days.where((d) => d['status'] == 'vacation').length;
+
+                      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                      final tomorrow = DateFormat('yyyy-MM-dd')
+                          .format(DateTime.now().add(const Duration(days: 1)));
+
+                      final todayDay = days.firstWhere(
+                        (d) => d['date'] == today,
+                        orElse: () => <String, dynamic>{},
+                      );
+                      final tomorrowDay = days.firstWhere(
+                        (d) => d['date'] == tomorrow,
+                        orElse: () => <String, dynamic>{},
+                      );
+
+                      final listDays = days
+                          .where((d) => d['status'] != 'no_record')
+                          .toList()
+                          .reversed
+                          .toList();
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _CalendarGrid(
-                            year: _selectedMonth.year,
-                            month: _selectedMonth.month,
-                            days: days,
-                            onDayTap: (day) => _openDaySheet(context, day),
-                          ),
-                          const SizedBox(height: 12),
-                          _CalendarLegend(),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'This Month',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: CusColors.onSurface,
+                          // Quick actions (current month only)
+                          if (_isCurrentMonth) ...[
+                            _QuickActionsCard(
+                              todayDay: todayDay,
+                              tomorrowDay: tomorrowDay,
+                              repository: ref.read(customerOrderRepositoryProvider),
+                              onSaved: () {
+                                ref.invalidate(customerOrdersProvider(_monthKey));
+                              },
                             ),
+                            const SizedBox(height: 20),
+                          ],
+
+                          // Month navigation
+                          _MonthSelector(
+                            selectedMonth: _selectedMonth,
+                            canGoBack: _canGoBack,
+                            canGoForward: _canGoForward,
+                            onPrevious: _previousMonth,
+                            onNext: _nextMonth,
                           ),
-                          const SizedBox(height: 10),
-                          _MonthlySummaryCard(
-                            delivered: delivered,
-                            skipped: skipped,
-                            vacationDays: vacation,
+                          const SizedBox(height: 16),
+
+                          // Order log list
+                          if (listDays.isEmpty)
+                            _EmptyOrdersCard()
+                          else
+                            _OrderLogList(
+                              days: listDays,
+                              onTap: (day) => _openDaySheet(context, day),
+                            ),
+                          const SizedBox(height: 24),
+
+                          CustomerDetailSectionLabel(
+                            title: AppStrings.consumptionTitle.toUpperCase(),
+                          ),
+                          Builder(
+                            builder: (context) {
+                              final consumption =
+                                  data['consumption'] as Map<String, dynamic>?;
+                              final rows = customerConsumptionRowsFromJson(consumption);
+                              final grandTotal =
+                                  customerConsumptionGrandTotal(consumption);
+                              if (rows.isEmpty) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Text(
+                                    AppStrings.noConsumptionRecorded,
+                                    style: AppText.body.copyWith(
+                                      color: CustomerDetailColors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return CustomerDetailConsumptionCard(
+                                rows: rows,
+                                grandTotal: grandTotal,
+                              );
+                            },
                           ),
                         ],
                       );
@@ -245,33 +318,391 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
   }
 }
 
-// ── Active subscriptions card ─────────────────────────────────────────────────
+// ── Quick Actions card ────────────────────────────────────────────────────────
 
-class _SubscriptionsCard extends StatelessWidget {
-  const _SubscriptionsCard({required this.subs});
-  final List<Map<String, dynamic>> subs;
+class _QuickActionsCard extends StatefulWidget {
+  const _QuickActionsCard({
+    required this.todayDay,
+    required this.tomorrowDay,
+    required this.repository,
+    required this.onSaved,
+  });
+
+  final Map<String, dynamic> todayDay;
+  final Map<String, dynamic> tomorrowDay;
+  final CustomerOrderRepository repository;
+  final VoidCallback onSaved;
+
+  @override
+  State<_QuickActionsCard> createState() => _QuickActionsCardState();
+}
+
+class _QuickActionsCardState extends State<_QuickActionsCard> {
+  // qty overrides: subscription_line_id → qty
+  final Map<int, int> _tomorrowQtys = {};
+  final Map<int, int> _todayQtys = {};
+  bool _savingTomorrow = false;
+  bool _savingToday = false;
+  bool _skipping = false;
+
+  List<Map<String, dynamic>> get _tomorrowEntries =>
+      ((widget.tomorrowDay['entries'] as List?)?.cast<Map<String, dynamic>>() ?? [])
+          .where((e) => e['locked'] == false)
+          .toList();
+
+  List<Map<String, dynamic>> get _todayUnlockedEntries =>
+      ((widget.todayDay['entries'] as List?)?.cast<Map<String, dynamic>>() ?? [])
+          .where((e) => e['locked'] == false)
+          .toList();
+
+  String get _tomorrowDateStr => widget.tomorrowDay['date'] as String? ?? '';
+  String get _todayDateStr => widget.todayDay['date'] as String? ?? '';
+
+  int _qtyFor(Map<int, int> overrides, Map<String, dynamic> entry) {
+    final id = entry['subscription_line_id'] as int;
+    return overrides[id] ?? (entry['qty'] as num?)?.toInt() ?? 1;
+  }
+
+  Future<void> _saveTomorrow() async {
+    setState(() => _savingTomorrow = true);
+    try {
+      for (final e in _tomorrowEntries) {
+        final id = e['subscription_line_id'] as int;
+        final newQty = _tomorrowQtys[id] ?? (e['qty'] as num?)?.toInt() ?? 1;
+        final origQty = (e['qty'] as num?)?.toInt() ?? 1;
+        if (newQty != origQty) {
+          await widget.repository.updateQty(_tomorrowDateStr, id, newQty);
+        }
+      }
+      if (mounted) widget.onSaved();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: CusColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _savingTomorrow = false);
+    }
+  }
+
+  Future<void> _saveToday() async {
+    setState(() => _savingToday = true);
+    try {
+      for (final e in _todayUnlockedEntries) {
+        final id = e['subscription_line_id'] as int;
+        final newQty = _todayQtys[id] ?? (e['qty'] as num?)?.toInt() ?? 1;
+        final origQty = (e['qty'] as num?)?.toInt() ?? 1;
+        if (newQty != origQty) {
+          await widget.repository.updateQty(_todayDateStr, id, newQty);
+        }
+      }
+      if (mounted) widget.onSaved();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: CusColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _savingToday = false);
+    }
+  }
+
+  Future<void> _skipTomorrow() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Skip Tomorrow'),
+        content: const Text('Skip all deliveries for tomorrow?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: CusColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Skip'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _skipping = true);
+    try {
+      await widget.repository.skipDay(_tomorrowDateStr);
+      if (mounted) {
+        widget.onSaved();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Tomorrow's delivery skipped.")),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: CusColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _skipping = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (subs.isEmpty) {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: const Row(
-          children: [
-            Icon(Icons.info_outline, size: 18, color: CusColors.onSurfaceVariant),
-            SizedBox(width: 10),
-            Text('No active subscriptions',
-                style: TextStyle(color: CusColors.onSurfaceVariant, fontSize: 14)),
-          ],
-        ),
-      );
-    }
+    final hasTomorrow = _tomorrowEntries.isNotEmpty;
+    final hasToday = _todayUnlockedEntries.isNotEmpty;
 
+    if (!hasTomorrow && !hasToday) return const SizedBox.shrink();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: CusColors.primaryContainer.withValues(alpha: 0.25)),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(
+              color: CusColors.primaryContainer.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.bolt_rounded, size: 18, color: CusColors.primaryContainer),
+                SizedBox(width: 8),
+                Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: CusColors.primaryContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Tomorrow's morning entries
+          if (hasTomorrow) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF8E1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.wb_sunny_outlined, size: 13, color: Color(0xFFE65100)),
+                        SizedBox(width: 4),
+                        Text(
+                          'Tomorrow — Morning',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFE65100)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            for (final e in _tomorrowEntries) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                child: _InlineStepperRow(
+                  entry: e,
+                  qty: _qtyFor(_tomorrowQtys, e),
+                  onChanged: (v) => setState(
+                    () => _tomorrowQtys[e['subscription_line_id'] as int] = v,
+                  ),
+                ),
+              ),
+            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: CusColors.primaryContainer,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        minimumSize: const Size.fromHeight(40),
+                      ),
+                      onPressed: _savingTomorrow || _skipping ? null : _saveTomorrow,
+                      child: _savingTomorrow
+                          ? const SizedBox(
+                              width: 16, height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Save', style: TextStyle(fontSize: 14)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: CusColors.error,
+                        side: BorderSide(color: CusColors.error.withValues(alpha: 0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        minimumSize: const Size.fromHeight(40),
+                      ),
+                      onPressed: _savingTomorrow || _skipping ? null : _skipTomorrow,
+                      child: _skipping
+                          ? SizedBox(
+                              width: 16, height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: CusColors.error))
+                          : const Text('Skip Tomorrow', style: TextStyle(fontSize: 13)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Today's evening entries
+          if (hasToday) ...[
+            if (hasTomorrow)
+              const Divider(height: 24, indent: 20, endIndent: 20),
+            Padding(
+              padding: EdgeInsets.fromLTRB(20, hasTomorrow ? 0 : 16, 20, 0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDE7F6),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.nights_stay_outlined, size: 13, color: Color(0xFF4527A0)),
+                        SizedBox(width: 4),
+                        Text(
+                          'Today — Evening',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF4527A0)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            for (final e in _todayUnlockedEntries) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                child: _InlineStepperRow(
+                  entry: e,
+                  qty: _qtyFor(_todayQtys, e),
+                  onChanged: (v) => setState(
+                    () => _todayQtys[e['subscription_line_id'] as int] = v,
+                  ),
+                ),
+              ),
+            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF4527A0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  minimumSize: const Size.fromHeight(40),
+                ),
+                onPressed: _savingToday ? null : _saveToday,
+                child: _savingToday
+                    ? const SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Save Evening Qty', style: TextStyle(fontSize: 14)),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineStepperRow extends StatelessWidget {
+  const _InlineStepperRow({required this.entry, required this.qty, required this.onChanged});
+
+  final Map<String, dynamic> entry;
+  final int qty;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = entry['product_name'] as String? ?? '';
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            name,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: CusColors.onSurface),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: CusColors.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove, size: 16),
+                onPressed: qty > 0 ? () => onChanged(qty - 1) : null,
+                padding: const EdgeInsets.all(6),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                color: CusColors.primaryContainer,
+              ),
+              SizedBox(
+                width: 30,
+                child: Text(
+                  '$qty',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: CusColors.onSurface,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add, size: 16),
+                onPressed: () => onChanged(qty + 1),
+                padding: const EdgeInsets.all(6),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                color: CusColors.primaryContainer,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Order log list ────────────────────────────────────────────────────────────
+
+class _OrderLogList extends StatelessWidget {
+  const _OrderLogList({required this.days, required this.onTap});
+
+  final List<Map<String, dynamic>> days;
+  final void Function(Map<String, dynamic>) onTap;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -281,54 +712,152 @@ class _SubscriptionsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (int i = 0; i < subs.length; i++) ...[
+          for (int i = 0; i < days.length; i++) ...[
             if (i > 0)
-              Divider(height: 1, thickness: 0.5, indent: 20, endIndent: 20, color: CusColors.outlineVariant),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: CusColors.secondaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.water_drop_outlined, size: 20, color: CusColors.primaryContainer),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          subs[i]['product_name']?.toString() ?? '',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: CusColors.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${_capitalise(subs[i]['shift']?.toString() ?? '')} · qty ${subs[i]['qty'] ?? ''}',
-                          style: const TextStyle(fontSize: 12, color: CusColors.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              Divider(
+                height: 1,
+                thickness: 0.5,
+                indent: 20,
+                endIndent: 20,
+                color: CusColors.outlineVariant.withValues(alpha: 0.5),
               ),
-            ),
+            _OrderLogRow(day: days[i], onTap: () => onTap(days[i])),
           ],
         ],
       ),
     );
   }
+}
 
-  String _capitalise(String s) =>
-      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1).toLowerCase()}';
+class _OrderLogRow extends StatelessWidget {
+  const _OrderLogRow({required this.day, required this.onTap});
+
+  final Map<String, dynamic> day;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = day['status'] as String? ?? 'no_record';
+    final dateStr = day['date'] as String? ?? '';
+    final entries = (day['entries'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final isLocked = entries.every((e) => e['locked'] == true);
+    final isEditable = status == 'expected' && !isLocked;
+
+    String formattedDate = dateStr;
+    try {
+      formattedDate = DateFormat('d MMM, EEE').format(DateTime.parse(dateStr));
+    } catch (_) {}
+
+    final Color statusColor;
+    final String statusLabel;
+    final Color statusBg;
+    switch (status) {
+      case 'delivered':
+        statusColor = CusColors.successGreen;
+        statusBg = const Color(0xFFE6F4EE);
+        statusLabel = 'Delivered';
+      case 'skipped':
+        statusColor = CusColors.warningAmber;
+        statusBg = const Color(0xFFFFF3E0);
+        statusLabel = 'Skipped';
+      case 'vacation':
+        statusColor = CusColors.vacationBlue;
+        statusBg = const Color(0xFFE3EDFC);
+        statusLabel = 'Vacation';
+      case 'expected':
+        statusColor = isLocked ? CusColors.onSurfaceVariant : CusColors.primaryContainer;
+        statusBg = isLocked ? const Color(0xFFF0F0F0) : CusColors.secondaryContainer;
+        statusLabel = isLocked ? 'Locked' : 'Upcoming';
+      default:
+        statusColor = CusColors.onSurfaceVariant;
+        statusBg = const Color(0xFFF0F0F0);
+        statusLabel = status;
+    }
+
+    // Build a short summary of entries (e.g. "Milk · 2L, Buffalo · 1L")
+    String entrySummary = '';
+    if (status != 'vacation' && entries.isNotEmpty) {
+      entrySummary = entries.map((e) {
+        final name = e['product_name'] as String? ?? '';
+        final qty = (e['qty'] as num?)?.toInt() ?? 0;
+        return '$name · ${qty}L';
+      }).join(', ');
+    }
+
+    return InkWell(
+      onTap: status != 'no_record' ? onTap : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    formattedDate,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: CusColors.onSurface,
+                    ),
+                  ),
+                  if (entrySummary.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      entrySummary,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: status == 'skipped'
+                            ? CusColors.warningAmber.withValues(alpha: 0.8)
+                            : CusColors.onSurfaceVariant,
+                        decoration: status == 'skipped' ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(20)),
+              child: Text(
+                statusLabel,
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: statusColor),
+              ),
+            ),
+            if (isEditable) ...[
+              const SizedBox(width: 8),
+              Icon(Icons.edit_outlined, size: 16, color: CusColors.primaryContainer),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyOrdersCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+      child: const Center(
+        child: Text(
+          'No deliveries recorded for this month.',
+          style: TextStyle(fontSize: 14, color: CusColors.onSurfaceVariant),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
 }
 
 // ── Month selector ────────────────────────────────────────────────────────────
@@ -392,219 +921,7 @@ class _MonthSelector extends StatelessWidget {
   }
 }
 
-// ── Calendar grid ─────────────────────────────────────────────────────────────
-
-class _CalendarGrid extends StatelessWidget {
-  const _CalendarGrid({
-    required this.year,
-    required this.month,
-    required this.days,
-    required this.onDayTap,
-  });
-
-  final int year;
-  final int month;
-  final List<Map<String, dynamic>> days;
-  final void Function(Map<String, dynamic>) onDayTap;
-
-  static const _dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-  @override
-  Widget build(BuildContext context) {
-    // Build lookup: dayNumber → API data
-    final Map<int, Map<String, dynamic>> dayMap = {};
-    for (final d in days) {
-      try {
-        final date = DateTime.parse(d['date'] as String);
-        if (date.year == year && date.month == month) {
-          dayMap[date.day] = d;
-        }
-      } catch (_) {}
-    }
-
-    final daysInMonth = DateTime(year, month + 1, 0).day;
-    // Dart weekday: 1=Mon … 7=Sun, so offset = weekday-1
-    final offset = DateTime(year, month, 1).weekday - 1;
-    final numRows = ((offset + daysInMonth) / 7).ceil();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 4))],
-      ),
-      padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
-      child: Column(
-        children: [
-          // Day-of-week headers
-          Row(
-            children: _dayHeaders
-                .map((d) => Expanded(
-                      child: Text(
-                        d,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: CusColors.onSurfaceVariant,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: 8),
-
-          // Calendar rows
-          for (int row = 0; row < numRows; row++)
-            Row(
-              children: List.generate(7, (col) {
-                final cellIndex = row * 7 + col;
-                final dayNum = cellIndex - offset + 1;
-                if (dayNum < 1 || dayNum > daysInMonth) {
-                  return const Expanded(child: SizedBox(height: 56));
-                }
-                return Expanded(
-                  child: _DayCell(
-                    dayNum: dayNum,
-                    dayData: dayMap[dayNum],
-                    onTap: dayMap[dayNum] != null ? () => onDayTap(dayMap[dayNum]!) : null,
-                  ),
-                );
-              }),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DayCell extends StatelessWidget {
-  const _DayCell({required this.dayNum, required this.dayData, required this.onTap});
-
-  final int dayNum;
-  final Map<String, dynamic>? dayData;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final status = dayData?['status'] as String? ?? 'no_record';
-    final entries = (dayData?['entries'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    final isLocked = entries.any((e) => e['locked'] == true);
-    final isEditable = status == 'expected' && !isLocked;
-    final isViewable = status == 'delivered' || status == 'skipped' || status == 'vacation';
-    final isTappable = (isEditable || isViewable) && onTap != null;
-
-    final dotColor = _dotColor(status);
-    final numColor = _numColor(status);
-
-    return GestureDetector(
-      onTap: isTappable ? onTap : null,
-      child: SizedBox(
-        height: 56,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: isEditable
-                  ? BoxDecoration(
-                      color: CusColors.secondaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    )
-                  : null,
-              alignment: Alignment.center,
-              child: Text(
-                '$dayNum',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: status == 'no_record' ? FontWeight.w400 : FontWeight.w600,
-                  color: numColor,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: dotColor,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _numColor(String status) {
-    switch (status) {
-      case 'delivered': return CusColors.successGreen;
-      case 'skipped': return CusColors.warningAmber;
-      case 'vacation': return CusColors.vacationBlue;
-      case 'expected': return CusColors.onSurface;
-      default: return CusColors.onSurfaceVariant;
-    }
-  }
-
-  Color _dotColor(String status) {
-    switch (status) {
-      case 'delivered': return CusColors.successGreen;
-      case 'skipped': return CusColors.warningAmber;
-      case 'vacation': return CusColors.vacationBlue;
-      case 'expected': return CusColors.outlineVariant;
-      default: return Colors.transparent;
-    }
-  }
-}
-
-// ── Calendar legend ───────────────────────────────────────────────────────────
-
-class _CalendarLegend extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _LegendDot(color: CusColors.successGreen, label: 'Delivered'),
-        const SizedBox(width: 16),
-        _LegendDot(color: CusColors.warningAmber, label: 'Skipped'),
-        const SizedBox(width: 16),
-        _LegendDot(color: CusColors.vacationBlue, label: 'Vacation'),
-      ],
-    );
-  }
-}
-
-class _LegendDot extends StatelessWidget {
-  const _LegendDot({required this.color, required this.label});
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 11, color: CusColors.onSurfaceVariant),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Day detail sheet (delivered / skipped / vacation) ────────────────────────
+// ── Day detail sheet (delivered / skipped / vacation / locked-expected) ───────
 
 class _DayDetailSheet extends StatelessWidget {
   const _DayDetailSheet({required this.day, required this.activeSubs});
@@ -623,7 +940,6 @@ class _DayDetailSheet extends StatelessWidget {
       formattedDate = DateFormat('EEEE, d MMMM').format(DateTime.parse(dateStr));
     } catch (_) {}
 
-    // Build display lines
     final lines = _buildLines(status, entries);
 
     return Padding(
@@ -675,7 +991,6 @@ class _DayDetailSheet extends StatelessWidget {
   }
 
   List<_LineData> _buildLines(String status, List<Map<String, dynamic>> entries) {
-    // For delivered: use actual entries if available
     if (status == 'delivered' && entries.isNotEmpty) {
       return entries.map((e) => _LineData(
         productName: e['product_name'] as String? ?? '',
@@ -683,7 +998,6 @@ class _DayDetailSheet extends StatelessWidget {
         qty: (e['qty'] as num?)?.toInt() ?? 0,
       )).toList();
     }
-    // For skipped/vacation (or delivered with empty entries): fall back to subscriptions
     return activeSubs.map((s) => _LineData(
       productName: s['product_name'] as String? ?? '',
       shift: s['shift'] as String? ?? '',
@@ -739,7 +1053,6 @@ class _DeliveryLine extends StatelessWidget {
     final shiftBg = isMorning ? const Color(0xFFFFF8E1) : const Color(0xFFEDE7F6);
     final shiftFg = isMorning ? const Color(0xFFE65100) : const Color(0xFF4527A0);
 
-    // qty display & color
     final String qtyText;
     final Color qtyColor;
     if (dayStatus == 'vacation') {
@@ -1030,116 +1343,6 @@ class _StepperRow extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ── Monthly summary card ──────────────────────────────────────────────────────
-
-class _MonthlySummaryCard extends StatelessWidget {
-  const _MonthlySummaryCard({
-    required this.delivered,
-    required this.skipped,
-    required this.vacationDays,
-  });
-
-  final int delivered;
-  final int skipped;
-  final int vacationDays;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 4))],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Expanded(
-              child: _StatItem(
-                count: delivered,
-                label: 'Delivered',
-                color: CusColors.successGreen,
-                icon: Icons.check_circle_outline,
-              ),
-            ),
-            VerticalDivider(
-              width: 1,
-              thickness: 0.5,
-              color: CusColors.outlineVariant.withValues(alpha: 0.5),
-            ),
-            Expanded(
-              child: _StatItem(
-                count: skipped,
-                label: 'Skipped',
-                color: CusColors.warningAmber,
-                icon: Icons.remove_circle_outline,
-              ),
-            ),
-            VerticalDivider(
-              width: 1,
-              thickness: 0.5,
-              color: CusColors.outlineVariant.withValues(alpha: 0.5),
-            ),
-            Expanded(
-              child: _StatItem(
-                count: vacationDays,
-                label: 'Vacation',
-                color: CusColors.vacationBlue,
-                icon: Icons.beach_access_outlined,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  const _StatItem({
-    required this.count,
-    required this.label,
-    required this.color,
-    required this.icon,
-  });
-
-  final int count;
-  final String label;
-  final Color color;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 22, color: color),
-        const SizedBox(height: 8),
-        Text(
-          '$count',
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: CusColors.onSurface,
-            height: 1,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: CusColors.onSurfaceVariant,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 }

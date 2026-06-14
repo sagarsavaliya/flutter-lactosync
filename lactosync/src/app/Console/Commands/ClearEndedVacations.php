@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\DeliveryShift;
 use App\Models\Customer;
+use App\Services\Operations\DailyOrderLogGenerator;
 use App\Services\WhatsApp\CustomerWhatsAppNotifier;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -10,10 +12,11 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Daily scheduler command that clears vacation mode for every customer
- * whose vacation_end date equals today, then sends a "delivery resumes"
- * WhatsApp notification to each affected customer.
+ * whose vacation_end date is <= today, then generates today's orders and
+ * sends a "delivery resumes" WhatsApp notification to each affected customer.
  *
- * Run via scheduler: customer:clear-ended-vacations (daily at 07:00)
+ * Run via scheduler: customer:clear-ended-vacations (daily at 04:30 IST,
+ * before morning order dispatch at farm's morning_order_time).
  */
 class ClearEndedVacations extends Command
 {
@@ -21,25 +24,47 @@ class ClearEndedVacations extends Command
 
     protected $description = 'Clear vacation mode for customers whose vacation ended today and send resume notifications';
 
-    public function handle(): int
+    public function handle(DailyOrderLogGenerator $generator): int
     {
-        $today = Carbon::today()->toDateString(); // YYYY-MM-DD
+        $timezone = config('lactosync.schedule.timezone', 'Asia/Kolkata');
+        $today    = Carbon::today($timezone);
 
+        // Use <= so any missed days (e.g. scheduler downtime) are caught up.
         $customers = Customer::query()
             ->whereNotNull('vacation_end')
-            ->whereDate('vacation_end', $today)
+            ->whereDate('vacation_end', '<=', $today->toDateString())
             ->with('farm')
             ->get();
 
         foreach ($customers as $customer) {
-            // Send WhatsApp notification — fire-and-forget; a failure must not
-            // prevent the vacation fields from being cleared for this customer.
+            // Clear vacation first so generateForFarm treats this customer as active.
+            $customer->update([
+                'vacation_start' => null,
+                'vacation_end'   => null,
+            ]);
+
+            // Regenerate today's orders immediately (idempotent — won't duplicate
+            // existing logs). Handles the case where morning dispatch already ran
+            // before vacation was cleared.
+            if ($customer->farm !== null) {
+                foreach ([DeliveryShift::Morning, DeliveryShift::Evening] as $shift) {
+                    try {
+                        $generator->generateForFarm($customer->farm, $today, $shift);
+                    } catch (\Throwable $e) {
+                        Log::warning('customer:clear-ended-vacations order-gen failed', [
+                            'customer_id' => $customer->id,
+                            'shift'       => $shift->value,
+                            'error'       => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            // Notify — fire-and-forget; failure must not block vacation clear.
             try {
-                // subscriptionResumed() guards whatsapp_enabled internally and
-                // fires the lacto_sync_sub_resumed (vacation-ended) template.
                 app(CustomerWhatsAppNotifier::class)->subscriptionResumed(
                     $customer,
-                    Carbon::tomorrow()->toDateString(),
+                    $today->toDateString(),
                     $customer->farm,
                 );
             } catch (\Throwable $e) {
@@ -48,12 +73,6 @@ class ClearEndedVacations extends Command
                     'error'       => $e->getMessage(),
                 ]);
             }
-
-            // Clear vacation fields regardless of notification outcome.
-            $customer->update([
-                'vacation_start' => null,
-                'vacation_end'   => null,
-            ]);
         }
 
         $this->info("Processed {$customers->count()} customer(s) with ended vacations.");

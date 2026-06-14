@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_provider.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/app_card.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/app_button.dart';
 import '../providers/delivery_provider.dart';
+import '../providers/owner_provider.dart';
+import '../widgets/owner_design_system.dart';
+import '../widgets/route_customer_tile.dart';
 
 class RouteDetailPage extends ConsumerStatefulWidget {
   const RouteDetailPage({super.key, required this.routeId});
@@ -16,18 +22,130 @@ class RouteDetailPage extends ConsumerStatefulWidget {
 }
 
 class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
-  // Assign delivery boy for today
+  DeliveryRouteModel? _route;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoute();
+  }
+
+  Future<void> _loadRoute() async {
+    try {
+      final routes = await ref.read(deliveryRoutesProvider.future);
+      if (!mounted) return;
+      DeliveryRouteModel? found;
+      for (final r in routes) {
+        if (r.id == widget.routeId) {
+          found = r;
+          break;
+        }
+      }
+      setState(() => _route = found);
+    } catch (_) {}
+  }
+
+  Future<void> _updateQty(int orderId, double qty) async {
+    try {
+      await ref.read(ownerRepositoryProvider).updateDailyOrder(
+            orderId,
+            quantity: qty,
+          );
+      ref.invalidate(routeCustomersProvider(widget.routeId));
+      ref.invalidate(deliveryRoutesProvider);
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  String _litersLabel(double liters) {
+    if (liters == liters.roundToDouble()) return '${liters.toInt()} L';
+    return '${liters.toStringAsFixed(1)} L';
+  }
+
+  String get _shiftLabel {
+    final shift = _route?.shift ?? '';
+    if (shift.isEmpty) return '';
+    return shift[0].toUpperCase() + shift.substring(1);
+  }
+
+  String get _today =>
+      DateTime.now().toIso8601String().substring(0, 10);
+
+  Future<void> _skipCustomer(RouteCustomerModel c) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Skip delivery'),
+        content: Text('Skip ${c.name} for today?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Skip',
+                style: TextStyle(color: Color(0xFFE07A2F))),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final dio = ref.read(dioProvider);
+    try {
+      await dio.post('/owner/skip-delivery', data: {
+        'customer_id': c.customerId,
+        'date': _today,
+      });
+      ref.invalidate(routeCustomersProvider(widget.routeId));
+      ref.invalidate(deliveryRoutesProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _undoSkip(RouteCustomerModel c) async {
+    final orderId = c.primaryOrderId;
+    if (orderId == null) return;
+    try {
+      await ref.read(ownerRepositoryProvider).updateDailyOrder(
+            orderId,
+            status: 'pending',
+          );
+      ref.invalidate(routeCustomersProvider(widget.routeId));
+      ref.invalidate(deliveryRoutesProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
   Future<void> _assignBoy(int? boyId) async {
     final dio = ref.read(dioProvider);
     try {
-      await dio.put('/api/v1/owner/routes/${widget.routeId}/assignments', data: {
+      await dio.put('/owner/routes/${widget.routeId}/assignments', data: {
         'delivery_boy_id': boyId,
-        'assigned_date': DateTime.now().toIso8601String().substring(0, 10),
+        'date': DateTime.now().toIso8601String().substring(0, 10),
       });
       ref.invalidate(routeCustomersProvider(widget.routeId));
+      ref.invalidate(deliveryRoutesProvider);
+      await _loadRoute();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Delivery boy assigned')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Delivery boy assigned')));
       }
     } catch (e) {
       if (mounted) {
@@ -44,10 +162,13 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
         title: const Text('Remove Customer'),
         content: const Text('Remove this customer from the route?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+            child:
+                const Text('Remove', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -56,8 +177,9 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
     final dio = ref.read(dioProvider);
     try {
       await dio.delete(
-          '/api/v1/owner/routes/${widget.routeId}/customers/$assignmentId');
+          '/owner/routes/${widget.routeId}/customers/$assignmentId');
       ref.invalidate(routeCustomersProvider(widget.routeId));
+      ref.invalidate(routeAvailableCustomersProvider(widget.routeId));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -66,14 +188,121 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
     }
   }
 
-  Future<void> _showAddCustomerSheet() async {
-    await showModalBottomSheet<void>(
+  Future<void> _moveCustomer(RouteCustomerModel c) async {
+    List<DeliveryRouteModel> routes;
+    try {
+      routes = await ref.read(deliveryRoutesProvider.future);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not load routes: $e')));
+      }
+      return;
+    }
+
+    final others =
+        routes.where((r) => r.id != widget.routeId && r.isActive).toList();
+    if (others.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No other routes available.')));
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    final target = await showModalBottomSheet<DeliveryRouteModel>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _AddCustomerSheet(routeId: widget.routeId),
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Move to Route',
+                style:
+                    TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
+          ...others.map((r) => ListTile(
+                leading: Icon(
+                  r.shift == 'morning'
+                      ? Icons.wb_sunny_outlined
+                      : Icons.nights_stay_outlined,
+                  color: r.shift == 'morning'
+                      ? Colors.amber[700]
+                      : Colors.indigo,
+                ),
+                title: Text(r.name),
+                subtitle: Text(
+                    r.shift[0].toUpperCase() + r.shift.substring(1)),
+                onTap: () => Navigator.pop(ctx, r),
+              )),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+    if (target == null || !mounted) return;
+
+    final dio = ref.read(dioProvider);
+    try {
+      await dio.delete(
+          '/owner/routes/${widget.routeId}/customers/${c.assignmentId}');
+      await dio.post('/owner/routes/${target.id}/customers',
+          data: {'customer_id': c.customerId});
+      ref.invalidate(routeCustomersProvider(widget.routeId));
+      ref.invalidate(routeAvailableCustomersProvider(widget.routeId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${c.name} moved to ${target.name}')));
+      }
+    } catch (e) {
+      ref.invalidate(routeCustomersProvider(widget.routeId));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Move failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _showCustomerActions(RouteCustomerModel c) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.swap_horiz),
+              title: const Text('Move to another route'),
+              onTap: () => Navigator.pop(ctx, 'move'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.remove_circle_outline, color: Colors.red),
+              title: const Text('Remove from route',
+                  style: TextStyle(color: Colors.red)),
+              onTap: () => Navigator.pop(ctx, 'remove'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == 'move') {
+      await _moveCustomer(c);
+    } else if (action == 'remove') {
+      await _removeCustomer(c.assignmentId);
+    }
+  }
+
+  Future<void> _showAddCustomerSheet() async {
+    await showOwnerBottomSheet<void>(
+      context: context,
+      child: _AddCustomerSheet(
+        routeId: widget.routeId,
+        shiftLabel: _shiftLabel,
+      ),
     );
     ref.invalidate(routeCustomersProvider(widget.routeId));
+    ref.invalidate(routeAvailableCustomersProvider(widget.routeId));
   }
 
   Future<void> _showAssignBoySheet() async {
@@ -87,7 +316,8 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
           const Padding(
             padding: EdgeInsets.all(16),
             child: Text('Assign Delivery Boy',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style:
+                    TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
           ...boys.map(
             (b) => ListTile(
@@ -97,7 +327,8 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
           ),
           ListTile(
             leading: const Icon(Icons.clear, color: Colors.red),
-            title: const Text('Unassign', style: TextStyle(color: Colors.red)),
+            title:
+                const Text('Unassign', style: TextStyle(color: Colors.red)),
             onTap: () => Navigator.pop(ctx, -1),
           ),
         ],
@@ -110,109 +341,212 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
   @override
   Widget build(BuildContext context) {
     final customersAsync = ref.watch(routeCustomersProvider(widget.routeId));
+    final routeTitle = _route?.name ?? 'Route';
+    final totalLiters = _route?.totalLiters ?? 0;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text('Route Detail'),
-        backgroundColor: AppColors.bg,
-        foregroundColor: AppColors.ink,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_pin_outlined),
-            tooltip: 'Assign Delivery Boy',
-            onPressed: _showAssignBoySheet,
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Add Customer',
-            onPressed: _showAddCustomerSheet,
-          ),
-        ],
-      ),
-      body: customersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (customers) {
-          if (customers.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      backgroundColor: const Color(0xFFF4F6EE),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 12, 8),
+              child: Row(
                 children: [
-                  const Icon(Icons.group_add_outlined,
-                      size: 64, color: Colors.grey),
-                  const SizedBox(height: 12),
-                  const Text('No customers on this route',
-                      style: TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                        size: 20, color: Color(0xFF1E2A1E)),
+                    onPressed: () => context.pop(),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          routeTitle,
+                          style: AppText.cardTitle.copyWith(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1E2A1E),
+                            height: 1.1,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        customersAsync.maybeWhen(
+                          data: (customers) => Text(
+                            '${_shiftLabel.isNotEmpty ? '$_shiftLabel · ' : ''}${customers.length} stops · ${_litersLabel(totalLiters)}',
+                            style: AppText.meta.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF7E8A7B),
+                            ),
+                          ),
+                          orElse: () => const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.assignment_ind_outlined,
+                        color: Color(0xFF2E6E45), size: 23),
+                    tooltip: 'Assign delivery boy',
+                    onPressed: _showAssignBoySheet,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add,
+                        color: Color(0xFF2E6E45), size: 24),
+                    tooltip: 'Add customer',
                     onPressed: _showAddCustomerSheet,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Customer'),
                   ),
                 ],
               ),
-            );
-          }
-          return ReorderableListView.builder(
-            padding: const EdgeInsets.all(16),
-            onReorder: (oldIdx, newIdx) async {
-              if (newIdx > oldIdx) newIdx--;
-              final reordered = [...customers];
-              final moved = reordered.removeAt(oldIdx);
-              reordered.insert(newIdx, moved);
-              // Optimistic update — then persist
-              final dio = ref.read(dioProvider);
-              try {
-                await dio.put(
-                  '/api/v1/owner/routes/${widget.routeId}/customers/reorder',
-                  data: {
-                    'order': reordered
-                        .asMap()
-                        .entries
-                        .map((e) => {
-                              'assignment_id': e.value.assignmentId,
-                              'sort_order': e.key + 1,
-                            })
-                        .toList(),
-                  },
-                );
-                ref.invalidate(routeCustomersProvider(widget.routeId));
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Reorder failed: $e')));
-                }
-              }
-            },
-            itemCount: customers.length,
-            itemBuilder: (context, i) {
-              final c = customers[i];
-              return AppCard(
-                key: ValueKey(c.assignmentId),
-                padding: EdgeInsets.zero,
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    child: Text('${i + 1}',
-                        style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold)),
+            ),
+            Container(
+              color: const Color(0xFFEEF2E7),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.drag_handle,
+                      size: 18, color: Color(0xFF7E8A7B)),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'Drag to set delivery order',
+                      style: AppText.meta.copyWith(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF7E8A7B),
+                      ),
+                    ),
                   ),
-                  title: Text(c.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: c.address.isNotEmpty ? Text(c.address) : null,
-                  trailing: IconButton(
-                    icon: const Icon(Icons.remove_circle_outline,
-                        color: Colors.red, size: 20),
-                    onPressed: () => _removeCustomer(c.assignmentId),
+                  GestureDetector(
+                    onTap: () => FocusScope.of(context).unfocus(),
+                    child: Text(
+                      'Done',
+                      style: AppText.meta.copyWith(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF2E6E45),
+                      ),
+                    ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                ],
+              ),
+            ),
+            Expanded(
+              child: customersAsync.when(
+                loading: () => const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary)),
+                error: (e, _) => Center(child: Text('Error: $e')),
+                data: (customers) {
+                  if (customers.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.group_add_outlined,
+                              size: 64, color: Colors.grey),
+                          const SizedBox(height: 12),
+                          const Text('No customers on this route',
+                              style: TextStyle(color: Colors.grey)),
+                          const SizedBox(height: 16),
+                          IntrinsicWidth(
+                            child: OutlinedButton.icon(
+                              onPressed: _showAddCustomerSheet,
+                              icon: const Icon(Icons.person_add_outlined,
+                                  size: 18),
+                              label: const Text('Add Customer'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: BorderSide(
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.5)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return ReorderableListView.builder(
+                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 16),
+                    buildDefaultDragHandles: false,
+                    onReorder: (oldIdx, newIdx) async {
+                      if (newIdx > oldIdx) newIdx--;
+                      final reordered = [...customers];
+                      final moved = reordered.removeAt(oldIdx);
+                      reordered.insert(newIdx, moved);
+                      final dio = ref.read(dioProvider);
+                      try {
+                        await dio.put(
+                          '/owner/routes/${widget.routeId}/customers/reorder',
+                          data: {
+                            'order': reordered
+                                .map((e) => e.assignmentId)
+                                .toList(),
+                          },
+                        );
+                        ref.invalidate(routeCustomersProvider(widget.routeId));
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Reorder failed: $e')));
+                        }
+                      }
+                    },
+                    itemCount: customers.length,
+                    itemBuilder: (context, i) {
+                      final c = customers[i];
+                      return Padding(
+                        key: ValueKey(c.assignmentId),
+                        padding: const EdgeInsets.only(bottom: 11),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                                color: const Color(0xFFECEFE5)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF283C28)
+                                    .withValues(alpha: 0.08),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: GestureDetector(
+                            onLongPress: () => _showCustomerActions(c),
+                            child: RouteCustomerTile(
+                              customer: c,
+                              index: i + 1,
+                              dragHandle: ReorderableDragStartListener(
+                                index: i,
+                                child: const Icon(Icons.drag_indicator,
+                                    size: 20, color: Color(0xFFC2CABB)),
+                              ),
+                              onSkip: c.onVacation || c.isSkipped
+                                  ? null
+                                  : () => _skipCustomer(c),
+                              onUndo: c.isSkipped && !c.onVacation
+                                  ? () => _undoSkip(c)
+                                  : null,
+                              onQtyChanged: _updateQty,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -221,8 +555,13 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
 // ── Add Customer to Route Sheet ───────────────────────────────────────────────
 
 class _AddCustomerSheet extends ConsumerStatefulWidget {
-  const _AddCustomerSheet({required this.routeId});
+  const _AddCustomerSheet({
+    required this.routeId,
+    required this.shiftLabel,
+  });
+
   final int routeId;
+  final String shiftLabel;
 
   @override
   ConsumerState<_AddCustomerSheet> createState() => _AddCustomerSheetState();
@@ -230,8 +569,9 @@ class _AddCustomerSheet extends ConsumerStatefulWidget {
 
 class _AddCustomerSheetState extends ConsumerState<_AddCustomerSheet> {
   final _searchCtrl = TextEditingController();
-  List<Map<String, dynamic>> _results = [];
-  bool _searching = false;
+  final Set<int> _selected = {};
+  bool _adding = false;
+  String _searchQuery = '';
 
   @override
   void dispose() {
@@ -239,108 +579,133 @@ class _AddCustomerSheetState extends ConsumerState<_AddCustomerSheet> {
     super.dispose();
   }
 
-  Future<void> _search(String q) async {
-    if (q.trim().isEmpty) {
-      setState(() => _results = []);
-      return;
-    }
-    setState(() => _searching = true);
-    final dio = ref.read(dioProvider);
-    try {
-      final res = await dio.get('/api/v1/owner/customers',
-          queryParameters: {'q': q.trim(), 'limit': 20});
-      final list = (res.data['data'] as List<dynamic>?) ?? [];
-      setState(() {
-        _results = list.cast<Map<String, dynamic>>();
-        _searching = false;
-      });
-    } catch (_) {
-      setState(() => _searching = false);
-    }
+  List<RouteEligibleCustomer> _filter(List<RouteEligibleCustomer> all) {
+    final q = _searchQuery.trim().toLowerCase();
+    if (q.isEmpty) return all;
+    return all.where((c) {
+      return c.name.toLowerCase().contains(q) ||
+          c.address.toLowerCase().contains(q);
+    }).toList();
   }
 
-  Future<void> _add(int customerId) async {
-    final dio = ref.read(dioProvider);
-    try {
-      await dio.post('/api/v1/owner/routes/${widget.routeId}/customers',
-          data: {'customer_id': customerId});
-      if (mounted) Navigator.of(context).pop();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+  void _toggle(int id) {
+    setState(() {
+      if (_selected.contains(id)) {
+        _selected.remove(id);
+      } else {
+        _selected.add(id);
       }
+    });
+  }
+
+  Future<void> _addSelected() async {
+    if (_selected.isEmpty) return;
+    setState(() => _adding = true);
+    final dio = ref.read(dioProvider);
+    int failed = 0;
+    for (final id in _selected.toList()) {
+      try {
+        await dio.post('/owner/routes/${widget.routeId}/customers',
+            data: {'customer_id': id});
+      } catch (_) {
+        failed++;
+      }
+    }
+    if (mounted) {
+      if (failed > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                '$failed customer(s) could not be added (already on route?)')));
+      }
+      Navigator.of(context).pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.8,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      builder: (_, controller) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          left: 16,
-          right: 16,
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
-            Center(
-              child: Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+    final eligibleAsync =
+        ref.watch(routeAvailableCustomersProvider(widget.routeId));
+    final subtitle = widget.shiftLabel.isNotEmpty
+        ? '${widget.shiftLabel} shift subscribers not on any route'
+        : 'Subscribers not on any route';
+
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.75,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OwnerSheetTitle('Add Customers to Route', subtitle: subtitle),
+          const SizedBox(height: AppSpace.md),
+          TextField(
+            controller: _searchCtrl,
+            decoration: InputDecoration(
+              hintText: 'Search by name or area…',
+              prefixIcon: const Icon(Icons.search),
+              isDense: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            const SizedBox(height: 16),
-            const Text('Add Customer to Route',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: 'Search customers…',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searching
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(
-                          height: 16, width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : null,
-              ),
-              onChanged: _search,
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: ListView.builder(
-                controller: controller,
-                itemCount: _results.length,
-                itemBuilder: (ctx, i) {
-                  final c = _results[i];
-                  return ListTile(
-                    title: Text(c['name'] as String? ?? ''),
-                    subtitle: Text(c['address'] as String? ?? ''),
-                    trailing: const Icon(Icons.add_circle_outline,
-                        color: Colors.green),
-                    onTap: () => _add(c['id'] as int),
+            onChanged: (v) => setState(() => _searchQuery = v),
+          ),
+          const SizedBox(height: AppSpace.sm),
+          Expanded(
+            child: eligibleAsync.when(
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Could not load: $e')),
+              data: (all) {
+                final filtered = _filter(all);
+                if (all.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No eligible customers.\nAll ${widget.shiftLabel.toLowerCase()} subscribers may already be on routes.',
+                      textAlign: TextAlign.center,
+                      style: AppText.body.copyWith(color: AppColors.inkMuted),
+                    ),
                   );
-                },
-              ),
+                }
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No matches for "$_searchQuery"',
+                      style: AppText.body.copyWith(color: AppColors.inkMuted),
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 4),
+                  itemBuilder: (ctx, i) {
+                    final c = filtered[i];
+                    return CheckboxListTile(
+                      value: _selected.contains(c.id),
+                      onChanged: (_) => _toggle(c.id),
+                      title: Text(c.name,
+                          style: const TextStyle(fontWeight: FontWeight.w500)),
+                      subtitle: c.address.isNotEmpty ? Text(c.address) : null,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      activeColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      tileColor: AppColors.surface,
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          if (_selected.isNotEmpty) ...[
+            const SizedBox(height: AppSpace.sm),
+            AppButton(
+              label:
+                  'Add ${_selected.length} customer${_selected.length == 1 ? '' : 's'}',
+              loading: _adding,
+              onPressed: _adding ? null : _addSelected,
             ),
           ],
-        ),
+        ],
       ),
     );
   }

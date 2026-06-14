@@ -185,6 +185,7 @@ Route::prefix('v1')->group(function () {
 
                 // Route customer assignments
                 Route::get('/routes/{route}/customers', [OwnerDeliveryController::class, 'routeCustomers']);
+                Route::get('/routes/{route}/available-customers', [OwnerDeliveryController::class, 'availableRouteCustomers']);
                 Route::post('/routes/{route}/customers', [OwnerDeliveryController::class, 'addRouteCustomer']);
                 Route::delete('/routes/{route}/customers/{assignment}', [OwnerDeliveryController::class, 'removeRouteCustomer']);
                 Route::put('/routes/{route}/customers/reorder', [OwnerDeliveryController::class, 'reorderRouteCustomers']);

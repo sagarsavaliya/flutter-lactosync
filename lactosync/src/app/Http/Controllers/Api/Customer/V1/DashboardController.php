@@ -64,6 +64,25 @@ class DashboardController extends Controller
 
         $vacationDays = $this->computeVacationDaysInMonth($customer, $now);
 
+        $consumptionRows = DailyOrderLog::query()
+            ->where('customer_id', $customer->id)
+            ->where('billing_month', $month)
+            ->where('status', 'delivered')
+            ->get()
+            ->groupBy(fn (DailyOrderLog $log) => $log->product_name.'|'.$log->unit_rate)
+            ->map(function ($group) {
+                /** @var DailyOrderLog $first */
+                $first = $group->first();
+
+                return [
+                    'product_name'    => $first->product_name,
+                    'unit_rate'       => (float) $first->unit_rate,
+                    'total_quantity'  => round((float) $group->sum('quantity'), 2),
+                    'line_total'      => round((float) $group->sum('line_total'), 2),
+                ];
+            })
+            ->values();
+
         // ── Active subscriptions ──────────────────────────────────────────────
         $activeSubscriptions = $customer
             ->subscriptionLines()
@@ -71,10 +90,14 @@ class DashboardController extends Controller
             ->with('product')
             ->get()
             ->map(fn ($line) => [
+                'subscription_line_id' => $line->id,
                 'product_name' => $line->product?->name ?? '',
                 'shift'        => $line->shift instanceof \BackedEnum
                     ? $line->shift->value
                     : (string) $line->shift,
+                'shift_label'  => $line->shift instanceof \BackedEnum
+                    ? $line->shift->label()
+                    : ucfirst((string) $line->shift),
                 'qty'          => (float) $line->quantity,
             ])
             ->values()
@@ -88,6 +111,11 @@ class DashboardController extends Controller
                 'delivered'     => $delivered,
                 'skipped'       => $skipped,
                 'vacation_days' => $vacationDays,
+            ],
+            'consumption' => [
+                'billing_month' => $month,
+                'rows' => $consumptionRows,
+                'grand_total' => round((float) $consumptionRows->sum('line_total'), 2),
             ],
             'active_subscriptions' => $activeSubscriptions,
         ]);

@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 
 
 import '../../../../core/constants/app_strings.dart';
-
+import '../../../../core/providers/module_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -91,7 +91,7 @@ class OwnerTopBar extends ConsumerWidget implements PreferredSizeWidget {
 
       automaticallyImplyLeading: false,
 
-      backgroundColor: dashboardMode ? DashboardColors.surface : OwnerTheme.background,
+      backgroundColor: dashboardMode ? DashboardColors.background : OwnerTheme.background,
 
       surfaceTintColor: Colors.transparent,
 
@@ -101,18 +101,15 @@ class OwnerTopBar extends ConsumerWidget implements PreferredSizeWidget {
 
       scrolledUnderElevation: 0,
 
-      bottom: PreferredSize(
-
-        preferredSize: const Size.fromHeight(1),
-
-        child: Divider(
-          height: 1,
-          color: dashboardMode
-              ? DashboardColors.outlineVariant.withValues(alpha: 0.3)
-              : AppColors.border.withValues(alpha: 0.6),
-        ),
-
-      ),
+      bottom: dashboardMode
+          ? null
+          : PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Divider(
+                height: 1,
+                color: AppColors.border.withValues(alpha: 0.6),
+              ),
+            ),
 
       titleSpacing: DashboardSpace.page,
 
@@ -138,7 +135,12 @@ class OwnerTopBar extends ConsumerWidget implements PreferredSizeWidget {
 
                 ),
 
-                _ProfileAvatar(initials: initials, ref: ref, onProfile: () => _showProfileDialog(context, ref)),
+                _ProfileAvatar(
+                  initials: initials,
+                  ref: ref,
+                  dashboardMode: true,
+                  onProfile: () => _showProfileDialog(context, ref),
+                ),
 
               ],
 
@@ -204,6 +206,8 @@ class OwnerTopBar extends ConsumerWidget implements PreferredSizeWidget {
 
                       ref: ref,
 
+                      dashboardMode: false,
+
                       onProfile: () => _showProfileDialog(context, ref),
 
                     ),
@@ -232,6 +236,8 @@ class _ProfileAvatar extends StatelessWidget {
 
     required this.ref,
 
+    required this.dashboardMode,
+
     required this.onProfile,
 
   });
@@ -241,6 +247,8 @@ class _ProfileAvatar extends StatelessWidget {
   final String initials;
 
   final WidgetRef ref;
+
+  final bool dashboardMode;
 
   final VoidCallback onProfile;
 
@@ -266,6 +274,8 @@ class _ProfileAvatar extends StatelessWidget {
 
         const PopupMenuItem(value: 'settings', child: Text(AppStrings.navSettings)),
 
+        const PopupMenuItem(value: 'refresh_modules', child: Text('Refresh Features')),
+
         const PopupMenuItem(value: 'signout', child: Text(AppStrings.signOut)),
 
       ],
@@ -285,6 +295,10 @@ class _ProfileAvatar extends StatelessWidget {
           case 'settings':
 
             context.go('/owner/settings');
+
+          case 'refresh_modules':
+
+            await ref.read(moduleProvider.notifier).fetch();
 
           case 'signout':
 
@@ -312,13 +326,21 @@ class _ProfileAvatar extends StatelessWidget {
 
           radius: 18,
 
-          backgroundColor: DashboardColors.primaryContainer,
+          backgroundColor: dashboardMode
+              ? const Color(0xFFA7E0B0)
+              : DashboardColors.primaryContainer,
 
           child: Text(
 
             initials,
 
-            style: DashboardText.kpiBadge.copyWith(color: DashboardColors.primary),
+            style: AppText.meta.copyWith(
+              fontSize: dashboardMode ? 13 : 10,
+              fontWeight: FontWeight.w800,
+              color: dashboardMode
+                  ? const Color(0xFF1E5233)
+                  : DashboardColors.primary,
+            ),
 
           ),
 

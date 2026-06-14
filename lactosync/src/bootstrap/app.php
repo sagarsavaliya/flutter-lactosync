@@ -35,7 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ->name('update-subscription-statuses');
 
         $schedule->command('customer:clear-ended-vacations')
-            ->dailyAt('07:00')
+            ->dailyAt('04:30')
             ->timezone($timezone)
             ->name('customer-clear-ended-vacations');
 

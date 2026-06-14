@@ -37,6 +37,16 @@ class OwnerShell extends ConsumerStatefulWidget {
 
 
 class _OwnerShellState extends ConsumerState<OwnerShell> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(moduleProvider.notifier).fetch());
+  }
+
+  Future<void> _retryModules() async {
+    await ref.read(moduleProvider.notifier).fetch();
+  }
+
   // ── Nav item definitions ────────────────────────────────────────────────────
 
   static const _baseItems = [
@@ -87,6 +97,7 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
     final index = _indexFromLocation(location, items);
     final isHome = index == 0;
     final isCustomers = index == 1;
+    final isRoutes = items[index].path == '/owner/routes';
 
     // Fallback title for settings (not in bottom nav).
     final title = location.startsWith('/owner/settings')
@@ -94,7 +105,7 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
         : _titleForIndex(index, items);
 
     return Scaffold(
-      backgroundColor: isHome
+      backgroundColor: isHome || isRoutes
           ? DashboardColors.background
           : isCustomers
               ? CustomerListColors.background
@@ -102,7 +113,7 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
       appBar: OwnerTopBar(
         screenTitle: title,
         dashboardMode: isHome,
-        titleColor: isCustomers ? CustomerListColors.accent : null,
+        titleColor: isCustomers ? const Color(0xFF2E6E45) : null,
       ),
 
       body: Column(

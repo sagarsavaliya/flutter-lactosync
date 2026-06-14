@@ -5,18 +5,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/network/api_exception.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/owner_models.dart';
 import '../providers/owner_provider.dart';
 import '../widgets/customer_list_styles.dart';
-import '../widgets/owner_form_theme.dart';
+import '../widgets/customers_list_tile.dart';
 import '../widgets/owner_design_system.dart';
-import '../widgets/owner_widgets.dart';
+import '../../../../core/network/api_exception.dart';
 import '../widgets/owner_action_sheets.dart';
 import '../widgets/vacation_sheet.dart';
+
+class _ListEntry {
+  const _ListEntry.header(this.letter) : customer = null;
+  const _ListEntry.customer(this.customer) : letter = null;
+
+  final String? letter;
+  final OwnerCustomer? customer;
+}
 
 class CustomersListPage extends ConsumerStatefulWidget {
   const CustomersListPage({super.key});
@@ -27,6 +32,9 @@ class CustomersListPage extends ConsumerStatefulWidget {
 
 class _CustomersListPageState extends ConsumerState<CustomersListPage> {
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
+  final _sectionKeys = <String, GlobalKey>{};
+
   CustomerSort _sort = CustomerSort.nameAsc;
   Timer? _debounce;
   String _search = '';
@@ -35,6 +43,7 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -60,7 +69,7 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const OwnerSheetTitle(AppStrings.sortLabel),
-          const SizedBox(height: AppSpace.sm),
+          const SizedBox(height: 12),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(AppStrings.sortNameAsc, style: AppText.body),
@@ -122,11 +131,45 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
     );
   }
 
+  List<_ListEntry> _buildEntries(List<OwnerCustomer> customers) {
+    final entries = <_ListEntry>[];
+    String? currentLetter;
+
+    for (final customer in customers) {
+      final letter = customerIndexLetter(customer.fullName);
+      if (letter != currentLetter) {
+        currentLetter = letter;
+        _sectionKeys.putIfAbsent(letter, GlobalKey.new);
+        entries.add(_ListEntry.header(letter));
+      }
+      entries.add(_ListEntry.customer(customer));
+    }
+    return entries;
+  }
+
+  List<String> _sectionLetters(List<_ListEntry> entries) {
+    return entries
+        .where((e) => e.letter != null)
+        .map((e) => e.letter!)
+        .toList();
+  }
+
+  void _scrollToLetter(String letter) {
+    final key = _sectionKeys[letter];
+    final ctx = key?.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        alignment: 0.05,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final listAsync = ref.watch(customersListProvider(_query));
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
 
     return ColoredBox(
       color: CustomerListColors.background,
@@ -136,52 +179,103 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ColoredBox(
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: OwnerSearchSortRow(
-                    controller: _searchController,
-                    hintText: AppStrings.searchCustomersHint,
-                    onChanged: _onSearchChanged,
-                    onSort: _showSortMenu,
-                  ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: CustomersSearchSortRow(
+                  controller: _searchController,
+                  hintText: 'Search name, mobile...',
+                  onChanged: _onSearchChanged,
+                  onSort: _showSortMenu,
                 ),
               ),
               Expanded(
                 child: listAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(
+                      color: CustomerListColors.accent,
+                    ),
+                  ),
                   error: (_, __) => Center(
-                    child: TextButton(onPressed: _refreshList, child: const Text('Retry')),
+                    child: TextButton(
+                      onPressed: _refreshList,
+                      child: const Text('Retry'),
+                    ),
                   ),
                   data: (data) {
                     if (data.customers.isEmpty) {
                       return Center(
                         child: Text(
                           AppStrings.customersEmpty,
-                          style: AppText.body.copyWith(color: inkMuted),
+                          style: AppText.body.copyWith(
+                            color: CustomerListColors.addressMuted,
+                          ),
                         ),
                       );
                     }
 
-                    return RefreshIndicator(
-                      onRefresh: _refreshList,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                        itemCount: data.customers.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: CustomerListMetrics.cardGap),
-                        itemBuilder: (context, index) {
-                          final customer = data.customers[index];
-                          return CustomerListTile(
-                            name: customer.fullName,
-                            address: customer.shortAddress,
-                            status: customer.displayStatus,
-                            subscriptionCount: customer.subscriptionCount,
-                            onVacationTap: () => _openVacationSheet(customer),
-                            onTap: () => context.push('/owner/customers/${customer.id}'),
-                          );
-                        },
-                      ),
+                    final entries = _buildEntries(data.customers);
+                    final letters = _sectionLetters(entries);
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: RefreshIndicator(
+                            color: CustomerListColors.accent,
+                            onRefresh: _refreshList,
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(
+                                  16, 0, 8, 96),
+                              itemCount: entries.length + 1,
+                              itemBuilder: (context, index) {
+                                if (index == 0) {
+                                  return CustomersStatusStrip(
+                                    activeCount: data.summary.active,
+                                    inactiveCount: data.summary.inactive,
+                                    vacationCount: data.summary.onVacation,
+                                  );
+                                }
+
+                                final entry = entries[index - 1];
+                                if (entry.letter != null) {
+                                  return KeyedSubtree(
+                                    key: _sectionKeys[entry.letter!],
+                                    child: CustomersSectionHeader(
+                                      letter: entry.letter!,
+                                    ),
+                                  );
+                                }
+
+                                final customer = entry.customer!;
+                                return Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: CustomerListMetrics.cardGap,
+                                  ),
+                                  child: CustomerListTile(
+                                    name: customer.fullName,
+                                    address: customer.shortAddress,
+                                    status: customer.displayStatus,
+                                    subscriptionCount:
+                                        customer.subscriptionCount,
+                                    vacationEnd: customer.vacationEnd,
+                                    onVacationTap: customer.displayStatus ==
+                                            CustomerDisplayStatus.inactive
+                                        ? null
+                                        : () => _openVacationSheet(customer),
+                                    onTap: () => context.push(
+                                        '/owner/customers/${customer.id}'),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        CustomersAlphabetIndex(
+                          letters: letters,
+                          onLetter: _scrollToLetter,
+                        ),
+                      ],
                     );
                   },
                 ),

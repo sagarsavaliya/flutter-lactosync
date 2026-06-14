@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../network/dio_provider.dart';
@@ -9,17 +10,20 @@ class ModuleState {
   const ModuleState({
     this.modules = const {},
     this.loaded = false,
+    this.hasError = false,
   });
 
   final Map<String, bool> modules;
   final bool loaded;
+  final bool hasError;
 
   bool isEnabled(String slug) => modules[slug] ?? false;
 
-  ModuleState copyWith({Map<String, bool>? modules, bool? loaded}) {
+  ModuleState copyWith({Map<String, bool>? modules, bool? loaded, bool? hasError}) {
     return ModuleState(
       modules: modules ?? this.modules,
       loaded: loaded ?? this.loaded,
+      hasError: hasError ?? this.hasError,
     );
   }
 }
@@ -31,13 +35,14 @@ class ModuleNotifier extends StateNotifier<ModuleState> {
 
   Future<void> fetch() async {
     try {
-      final res = await _dio.get('/api/v1/owner/modules');
+      final res = await _dio.get('/owner/modules');
       final data = res.data['data'] as Map<String, dynamic>? ?? {};
-      final modules = data.map((k, v) => MapEntry(k, v == true));
+      final modules = data.map((k, v) => MapEntry(k, v is bool && v));
+      debugPrint('[modules] loaded: $modules');
       state = ModuleState(modules: modules, loaded: true);
-    } catch (_) {
-      // On failure, keep previous state but mark as loaded so UI doesn't block.
-      state = state.copyWith(loaded: true);
+    } catch (e) {
+      debugPrint('[modules] fetch failed: $e');
+      state = state.copyWith(loaded: true, hasError: true);
     }
   }
 

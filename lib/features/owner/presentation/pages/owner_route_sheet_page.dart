@@ -148,7 +148,7 @@ class _RouteCard extends StatelessWidget {
     if (ok != true || !context.mounted) return;
     final dio = ref.read(dioProvider);
     try {
-      await dio.post('/api/v1/owner/skip-delivery', data: {
+      await dio.post('/owner/skip-delivery', data: {
         'order_id': orderId,
         'date': query.date,
       });

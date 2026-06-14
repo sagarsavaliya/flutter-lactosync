@@ -14,7 +14,7 @@
 ---
 
 ## Project Summary
-Mobile-first SaaS for **dairy farm owners** in India. Owners manage customer subscriptions, daily milk delivery order logs, vacation pauses, monthly billing, and customer communication via **WhatsApp** (OTP + PDF statements). **Flutter app only** — no web admin. **Laravel API** backend with scheduled jobs and queue workers. Multi-tenant: each farm is isolated by `farm_id`.
+Mobile-first SaaS for **dairy farm owners** in India. Owners manage customer subscriptions, daily milk delivery order logs, vacation pauses, monthly billing, and customer communication via **WhatsApp** (OTP + PDF statements). **Flutter app** (owner + customer + delivery boy roles) · **React admin** (superadmin) · **Laravel API** backend with scheduled jobs and queue workers. Multi-tenant: each farm is isolated by `farm_id`.
 
 ---
 
@@ -29,7 +29,8 @@ Mobile-first SaaS for **dairy farm owners** in India. Owners manage customer sub
 ---
 
 ## Tech Stack
-- **Frontend:** Flutter 3 · Riverpod · go_router · Dio
+- **Frontend:** Flutter 3 · Riverpod · go_router · Dio (owner + customer + delivery boy)
+- **Admin web:** React · superadmin.lactosync.com
 - **Backend:** Laravel 13 · PHP 8.4 · Sanctum (mobile tokens)
 - **Database:** MySQL 8
 - **Cache / Queue:** Redis 7
@@ -95,4 +96,4 @@ Mobile-first SaaS for **dairy farm owners** in India. Owners manage customer sub
 - **Status:** No formal brief in repo — rules captured here + DECISIONS.md
 
 ---
-*Last updated: CEO Agent | 2026-06-05 — v4.8.6+12, mid-June rollout prep*
+*Last updated: CEO Agent | 2026-06-13 — v4.10.x, 3-app + admin*

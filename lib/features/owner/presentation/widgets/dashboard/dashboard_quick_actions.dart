@@ -2,50 +2,66 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/constants/app_strings.dart';
+import '../../../../../core/theme/app_typography.dart';
 import '../owner_action_sheets.dart';
-import 'dashboard_styles.dart';
 
+/// Quick actions grid — frame 4 (4 columns).
 class DashboardQuickActions extends ConsumerWidget {
   const DashboardQuickActions({super.key});
+
+  static const _label = Color(0xFF46524A);
+  static const _iconBg = Color(0xFFEAF3EB);
+  static const _green = Color(0xFF2E6E45);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(AppStrings.dashboardQuickActions.toUpperCase(), style: DashboardText.overviewLabel),
-        const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: DashboardSpace.sm,
-          crossAxisSpacing: DashboardSpace.sm,
-          childAspectRatio: 1.35,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 6, 2, 11),
+          child: Text(
+            AppStrings.dashboardQuickActions.toUpperCase(),
+            style: AppText.meta.copyWith(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              color: const Color(0xFF8C938A),
+            ),
+          ),
+        ),
+        Row(
           children: [
-            _QuickActionTile(
-              icon: Icons.person_search_outlined,
-              label: AppStrings.dashboardFindCustomer,
-              iconColor: DashboardColors.primary,
-              onTap: () => OwnerActionSheets.showFindCustomer(context, ref),
+            Expanded(
+              child: _QuickActionTile(
+                icon: Icons.person_add_alt_1_outlined,
+                label: AppStrings.dashboardFindCustomer,
+                onTap: () => OwnerActionSheets.showFindCustomer(context, ref),
+              ),
             ),
-            _QuickActionTile(
-              icon: Icons.receipt_long_outlined,
-              label: AppStrings.dashboardGenBill,
-              iconColor: DashboardColors.tertiary,
-              onTap: () => OwnerActionSheets.showGenerateBill(context, ref),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickActionTile(
+                icon: Icons.receipt_long_outlined,
+                label: AppStrings.dashboardGenBill,
+                onTap: () => OwnerActionSheets.showGenerateBill(context, ref),
+              ),
             ),
-            _QuickActionTile(
-              icon: Icons.payments_outlined,
-              label: AppStrings.dashboardRecordPayment,
-              iconColor: DashboardColors.secondary,
-              onTap: () => OwnerActionSheets.showCollectPayment(context, ref),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickActionTile(
+                icon: Icons.payments_outlined,
+                label: AppStrings.dashboardRecordPayment,
+                onTap: () => OwnerActionSheets.showCollectPayment(context, ref),
+              ),
             ),
-            _QuickActionTile(
-              icon: Icons.qr_code_2_outlined,
-              label: AppStrings.dashboardViewQr,
-              iconColor: DashboardColors.primary,
-              onTap: () => OwnerActionSheets.showFarmUpiQr(context, ref),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickActionTile(
+                icon: Icons.qr_code_2_outlined,
+                label: AppStrings.dashboardViewQr,
+                onTap: () => OwnerActionSheets.showFarmUpiQr(context, ref),
+              ),
             ),
           ],
         ),
@@ -58,49 +74,63 @@ class _QuickActionTile extends StatelessWidget {
   const _QuickActionTile({
     required this.icon,
     required this.label,
-    required this.iconColor,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
-  final Color iconColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: DashboardColors.surface,
-      borderRadius: BorderRadius.circular(12),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: DashboardColors.outlineVariant.withValues(alpha: 0.35)),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFECEFE5)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF283C28).withValues(alpha: 0.08),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            padding: const EdgeInsets.fromLTRB(6, 14, 6, 12),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                DecoratedBox(
+                Container(
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
+                    color: DashboardQuickActions._iconBg,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(icon, color: iconColor, size: 22),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: DashboardQuickActions._green,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 9),
                 Text(
-                  label.toUpperCase(),
+                  label,
                   textAlign: TextAlign.center,
                   maxLines: 2,
-                  style: DashboardText.quickActionLabel,
+                  style: AppText.meta.copyWith(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                    color: DashboardQuickActions._label,
+                    height: 1.15,
+                  ),
                 ),
               ],
             ),

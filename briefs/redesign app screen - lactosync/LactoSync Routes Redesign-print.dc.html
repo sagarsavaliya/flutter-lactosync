@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  body { margin: 0; }
+  button { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#E7EAE2; padding:44px 32px 88px; font-family:Nunito, sans-serif;">
+
+  <div style="max-width:1480px; margin:0 auto 40px;">
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div style="width:42px; height:42px; border-radius:13px; background:#2E6E45; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(46,110,69,0.28);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#CFF0D6" stroke-width="2.1" stroke-linecap="round"><path d="M6 4a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H6"/><circle cx="6" cy="4.4" r="1.1" fill="#CFF0D6" stroke="none"/><circle cx="18" cy="15.6" r="1.1" fill="#CFF0D6" stroke="none"/></svg>
+      </div>
+      <div>
+        <div style="font-family:Quicksand; font-weight:700; font-size:22px; color:#1E2A1E; letter-spacing:-0.2px;">LactoSync · Routes redesign</div>
+        <div style="font-weight:600; font-size:13px; color:#6E7A6C; margin-top:2px;">Same brand DNA — denser rows, inline quantity steppers, skip actions, and packing chips that kill the empty space.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:52px; justify-content:center; align-items:flex-start; flex-wrap:wrap;">
+
+    <!-- ================= FRAME 1 · ROUTES OVERVIEW ================= -->
+    <div style="display:flex; flex-direction:column; gap:16px; align-items:center;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="width:22px; height:22px; border-radius:7px; background:#2E6E45; color:#fff; font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center;">1</span>
+        <span style="font-weight:700; font-size:14px; color:#46524A; letter-spacing:0.2px;">Routes overview</span>
+      </div>
+
+      <div style="width:402px; background:#F4F6EE; border-radius:42px; overflow:hidden; box-shadow:0 30px 60px -24px rgba(40,60,40,0.4), 0 0 0 1px rgba(0,0,0,0.04); border:7px solid #11160F;">
+        <!-- status bar -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 22px 4px;">
+          <span style="font-weight:700; font-size:14px; color:#1E2A1E;">4:27</span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-weight:700; font-size:11px; color:#1E2A1E;">5G</span>
+            <svg width="17" height="12" viewBox="0 0 17 12" fill="#1E2A1E"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/></svg>
+            <svg width="23" height="12" viewBox="0 0 24 12"><rect x="1" y="2" width="19" height="8" rx="2.4" fill="none" stroke="#1E2A1E" stroke-width="1.2"/><rect x="2.6" y="3.6" width="13" height="4.8" rx="1.2" fill="#1E2A1E"/><rect x="21" y="4.4" width="2" height="3.2" rx="1" fill="#1E2A1E"/></svg>
+            <span style="font-weight:700; font-size:11px; color:#1E2A1E;">78%</span>
+          </div>
+        </div>
+
+        <!-- app header -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 20px 14px;">
+          <span style="font-weight:700; font-size:14px; color:#46524A; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Farenidham Gaus…</span>
+          <span style="font-family:Quicksand; font-weight:700; font-size:20px; color:#2E6E45;">Routes</span>
+          <span style="width:38px; height:38px; border-radius:50%; background:#A7E0B0; color:#1E5233; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;">JK</span>
+        </div>
+
+        <!-- scroll body -->
+        <div style="padding:6px 16px 14px; max-height:744px; overflow:hidden;">
+
+          <!-- greeting summary -->
+          <div style="background:linear-gradient(135deg,#2E6E45,#3C8557); border-radius:22px; padding:16px 18px; color:#EAF7EC; box-shadow:0 12px 24px -12px rgba(46,110,69,0.5); margin-bottom:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div>
+                <div style="font-weight:700; font-size:13px; color:#BFE6C8;">Good morning, Jaydeep</div>
+                <div style="font-family:Quicksand; font-weight:700; font-size:19px; margin-top:3px;">Today's deliveries</div>
+              </div>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#FFD98A" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2" fill="#FFD98A" stroke="none"/><path d="M12 2.5v2.4M12 19.1v2.4M21.5 12h-2.4M4.9 12H2.5M18.7 5.3l-1.7 1.7M7 17l-1.7 1.7M18.7 18.7 17 17M7 7 5.3 5.3"/></svg>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:14px;">
+              <div style="flex:1; background:rgba(255,255,255,0.13); border-radius:13px; padding:9px 12px;">
+                <div style="font-family:Quicksand; font-weight:700; font-size:17px;">2</div>
+                <div style="font-weight:700; font-size:11px; color:#C8EBD0;">routes</div>
+              </div>
+              <div style="flex:1; background:rgba(255,255,255,0.13); border-radius:13px; padding:9px 12px;">
+                <div style="font-family:Quicksand; font-weight:700; font-size:17px;">25</div>
+                <div style="font-weight:700; font-size:11px; color:#C8EBD0;">stops</div>
+              </div>
+              <div style="flex:1; background:rgba(255,255,255,0.13); border-radius:13px; padding:9px 12px;">
+                <div style="font-family:Quicksand; font-weight:700; font-size:17px;">32 L</div>
+                <div style="font-weight:700; font-size:11px; color:#C8EBD0;">to pack</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- routes title row -->
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:2px 4px 12px;">
+            <span style="font-family:Quicksand; font-weight:700; font-size:22px; color:#1E2A1E;">Routes</span>
+            <div style="display:flex; align-items:center; gap:14px;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3A463C" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17.5" cy="9" r="2.2"/><path d="M16 19a4.5 4.5 0 0 1 5.5-4"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3A463C" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+          </div>
+
+          <!-- tabs -->
+          <div style="display:flex; border-bottom:1px solid #E1E5D9; margin-bottom:16px;">
+            <div style="flex:1; text-align:center; padding-bottom:11px; border-bottom:3px solid #2E6E45; margin-bottom:-1px;">
+              <span style="font-family:Quicksand; font-weight:700; font-size:16px; color:#2E6E45;">Morning</span>
+            </div>
+            <div style="flex:1; text-align:center; padding-bottom:11px;">
+              <span style="font-family:Quicksand; font-weight:600; font-size:16px; color:#9AA597;">Evening</span>
+            </div>
+          </div>
+
+          <!-- route cards -->
+          <sc-for list="{{ routes }}" as="r" hint-placeholder-count="2">
+            <div style="background:#FFFFFF; border:1px solid #ECEFE5; border-radius:20px; padding:15px 16px; margin-bottom:13px; box-shadow:0 6px 18px -10px rgba(40,60,40,0.18);">
+              <div style="display:flex; align-items:flex-start; gap:13px;">
+                <div style="width:46px; height:46px; border-radius:14px; background:#FCE6BD; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E89A2E" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3.8" fill="#F2AE43" stroke="none"/><path d="M12 3v2.2M12 18.8V21M21 12h-2.2M5.2 12H3M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6M18.4 18.4l-1.6-1.6M7.2 7.2 5.6 5.6"/></svg>
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-family:Quicksand; font-weight:700; font-size:19px; color:#1E2A1E; line-height:1.15;">{{ r.name }}</div>
+                  <div style="display:flex; align-items:center; gap:6px; margin-top:5px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="17" r="2.2"/><circle cx="17" cy="17" r="2.2"/><path d="M9 17h6M5 17H4l1-6h7l3 3h2a2 2 0 0 1 2 2v1h-1"/></svg>
+                    <span style="font-weight:700; font-size:13.5px; color:#2E6E45;">{{ r.rider }}</span>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px; padding-top:2px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7A6C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 9.5-9.5a2 2 0 0 0 0-3l-.5-.5a2 2 0 0 0-3 0L4.5 15.5 4 20z"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7A6C" stroke-width="2.1" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+              </div>
+              <!-- stat strip -->
+              <div style="display:flex; align-items:stretch; margin-top:14px; background:#F6F8F1; border:1px solid #ECEFE5; border-radius:14px; overflow:hidden;">
+                <div style="flex:1; padding:10px 6px; text-align:center;">
+                  <div style="font-family:Quicksand; font-weight:700; font-size:16px; color:#1E2A1E;">{{ r.stops }}</div>
+                  <div style="font-weight:700; font-size:10.5px; color:#8C938A; margin-top:1px;">STOPS</div>
+                </div>
+                <div style="width:1px; background:#E4E8DD;"></div>
+                <div style="flex:1; padding:10px 6px; text-align:center;">
+                  <div style="font-family:Quicksand; font-weight:700; font-size:16px; color:#2E6E45;">{{ r.litres }}</div>
+                  <div style="font-weight:700; font-size:10.5px; color:#8C938A; margin-top:1px;">TO PACK</div>
+                </div>
+                <div style="width:1px; background:#E4E8DD;"></div>
+                <div style="flex:1; padding:10px 6px; text-align:center;">
+                  <div style="font-family:Quicksand; font-weight:700; font-size:16px; color:#1E2A1E;">{{ r.window }}</div>
+                  <div style="font-weight:700; font-size:10.5px; color:#8C938A; margin-top:1px;">WINDOW</div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+
+          <!-- add route ghost -->
+          <div style="border:1.5px dashed #C5CFBE; border-radius:18px; padding:14px; display:flex; align-items:center; justify-content:center; gap:8px; color:#6E8A72;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E8A72" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            <span style="font-weight:700; font-size:14px;">Add a route</span>
+          </div>
+        </div>
+
+        <!-- bottom nav -->
+        <div style="display:flex; justify-content:space-around; align-items:flex-end; padding:9px 4px 12px; background:#FFFFFF; border-top:1px solid #ECEFE5;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A2A99E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span style="font-weight:700; font-size:10px; color:#A2A99E;">Home</span></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A2A99E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17.5" cy="9" r="2.2"/><path d="M16 19a4.5 4.5 0 0 1 5.5-4"/></svg><span style="font-weight:700; font-size:10px; color:#A2A99E;">Customers</span></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A2A99E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="18" r="1.9"/><circle cx="17" cy="18" r="1.9"/><path d="M9 18h6M5 18H4V8h10v4m0-4h3l3 4v6h-1"/></svg><span style="font-weight:700; font-size:10px; color:#A2A99E;">Orders</span></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.2" stroke-linecap="round"><path d="M6 4a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H6"/><circle cx="6" cy="4.4" r="1.2" fill="#2E6E45" stroke="none"/><circle cx="18" cy="15.6" r="1.2" fill="#2E6E45" stroke="none"/></svg><span style="font-weight:800; font-size:10px; color:#2E6E45;">Routes</span></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A2A99E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h5"/></svg><span style="font-weight:700; font-size:10px; color:#A2A99E;">Billing</span></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A2A99E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2.4"/><path d="M3 10h18"/></svg><span style="font-weight:700; font-size:10px; color:#A2A99E;">Payments</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FRAME 2 · TODAY'S PACKING ================= -->
+    <div style="display:flex; flex-direction:column; gap:16px; align-items:center;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="width:22px; height:22px; border-radius:7px; background:#2E6E45; color:#fff; font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center;">2</span>
+        <span style="font-weight:700; font-size:14px; color:#46524A; letter-spacing:0.2px;">Today's packing</span>
+      </div>
+
+      <div style="width:402px; background:#F4F6EE; border-radius:42px; overflow:hidden; box-shadow:0 30px 60px -24px rgba(40,60,40,0.4), 0 0 0 1px rgba(0,0,0,0.04); border:7px solid #11160F;">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 22px 4px;">
+          <span style="font-weight:700; font-size:14px; color:#1E2A1E;">4:27</span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-weight:700; font-size:11px; color:#1E2A1E;">5G</span>
+            <svg width="17" height="12" viewBox="0 0 17 12" fill="#1E2A1E"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/></svg>
+            <svg width="23" height="12" viewBox="0 0 24 12"><rect x="1" y="2" width="19" height="8" rx="2.4" fill="none" stroke="#1E2A1E" stroke-width="1.2"/><rect x="2.6" y="3.6" width="13" height="4.8" rx="1.2" fill="#1E2A1E"/><rect x="21" y="4.4" width="2" height="3.2" rx="1" fill="#1E2A1E"/></svg>
+            <span style="font-weight:700; font-size:11px; color:#1E2A1E;">78%</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 20px 14px;">
+          <span style="font-weight:700; font-size:14px; color:#46524A; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Farenidham Gaus…</span>
+          <span style="font-family:Quicksand; font-weight:700; font-size:20px; color:#2E6E45;">Routes</span>
+          <span style="width:38px; height:38px; border-radius:50%; background:#A7E0B0; color:#1E5233; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;">JK</span>
+        </div>
+
+        <div style="padding:6px 16px 14px; max-height:744px; overflow:hidden;">
+          <!-- tabs -->
+          <div style="display:flex; border-bottom:1px solid #E1E5D9; margin-bottom:14px;">
+            <div style="flex:1; text-align:center; padding-bottom:11px; border-bottom:3px solid #2E6E45; margin-bottom:-1px;">
+              <span style="font-family:Quicksand; font-weight:700; font-size:16px; color:#2E6E45;">Morning</span>
+            </div>
+            <div style="flex:1; text-align:center; padding-bottom:11px;">
+              <span style="font-family:Quicksand; font-weight:600; font-size:16px; color:#9AA597;">Evening</span>
+            </div>
+          </div>
+
+          <!-- expanded route card -->
+          <div style="background:#FFFFFF; border:1px solid #ECEFE5; border-radius:22px; box-shadow:0 8px 22px -12px rgba(40,60,40,0.2); overflow:hidden;">
+            <!-- card header -->
+            <div style="display:flex; align-items:flex-start; gap:13px; padding:15px 16px 14px;">
+              <div style="width:46px; height:46px; border-radius:14px; background:#FCE6BD; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E89A2E" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3.8" fill="#F2AE43" stroke="none"/><path d="M12 3v2.2M12 18.8V21M21 12h-2.2M5.2 12H3M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6M18.4 18.4l-1.6-1.6M7.2 7.2 5.6 5.6"/></svg>
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-family:Quicksand; font-weight:700; font-size:19px; color:#1E2A1E; line-height:1.15;">Punitnagar Road</div>
+                <div style="display:flex; align-items:center; gap:6px; margin-top:5px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="17" r="2.2"/><circle cx="17" cy="17" r="2.2"/><path d="M9 17h6M5 17H4l1-6h7l3 3h2a2 2 0 0 1 2 2v1h-1"/></svg>
+                  <span style="font-weight:700; font-size:13.5px; color:#2E6E45;">Vikram Thakor</span>
+                  <span style="font-weight:600; font-size:13px; color:#9AA597;">· 20 stops</span>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; padding-top:2px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7A6C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 9.5-9.5a2 2 0 0 0 0-3l-.5-.5a2 2 0 0 0-3 0L4.5 15.5 4 20z"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.1" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg>
+              </div>
+            </div>
+
+            <!-- packing banner -->
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:0 16px 14px;">
+              <div style="display:flex; align-items:center; gap:9px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E89A2E" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3.4" fill="#F2AE43" stroke="none"/><path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M18 6l-1.4 1.4M7.4 16.6 6 18M18 18l-1.4-1.4M7.4 7.4 6 6"/></svg>
+                <span style="font-family:Quicksand; font-weight:700; font-size:16px; color:#1E2A1E;">Today's packing</span>
+              </div>
+              <span style="background:#CDE9CF; color:#1E5233; font-weight:800; font-size:13px; padding:6px 12px; border-radius:10px;">25.5 L</span>
+            </div>
+
+            <!-- container groups -->
+            <sc-for list="{{ packing }}" as="g" hint-placeholder-count="2">
+              <div style="padding:0 16px 6px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin:4px 0 10px;">
+                  <span style="font-weight:800; font-size:11.5px; letter-spacing:1.2px; color:#8C938A;">{{ g.bag }}</span>
+                  <span style="background:#F1E2C9; color:#9A7B3E; font-weight:800; font-size:11.5px; padding:4px 10px; border-radius:8px;">{{ g.total }}</span>
+                </div>
+                <div style="background:#F7F9F2; border:1px solid #ECEFE5; border-radius:16px; overflow:hidden; margin-bottom:14px;">
+                  <sc-for list="{{ g.products }}" as="p" hint-placeholder-count="2">
+                    <div style="padding:12px 14px; border-bottom:1px solid #ECEFE5; opacity:{{ p.op }};">
+                      <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span style="width:9px; height:9px; border-radius:50%; background:{{ p.dot }};"></span>
+                          <span style="font-weight:800; font-size:14px; color:#1E5233;">{{ p.animal }}</span>
+                          <span style="font-weight:700; font-size:13px; color:#7E8A7B;">₹{{ p.price }}</span>
+                        </div>
+                        <span style="font-family:Quicksand; font-weight:700; font-size:15px; color:{{ p.totalColor }};">{{ p.total }}</span>
+                      </div>
+                      <div style="display:flex; flex-wrap:wrap; gap:7px; margin-top:10px;">
+                        <sc-for list="{{ p.sizes }}" as="s" hint-placeholder-count="3">
+                          <span style="display:inline-flex; align-items:center; gap:6px; background:#FFFFFF; border:1px solid #DFE6D8; border-radius:9px; padding:5px 9px;">
+                            <span style="font-weight:700; font-size:12px; color:#46604C;">{{ s.size }}</span>
+                            <span style="background:#CDE9CF; color:#1E5233; font-weight:800; font-size:11.5px; min-width:18px; text-align:center; padding:1px 5px; border-radius:6px;">{{ s.n }}</span>
+                          </span>
+                        </sc-for>
+                        <sc-if value="{{ p.empty }}" hint-placeholder-val="{{ true }}">
+                          <span style="font-weight:700; font-size:12px; color:#B3BAAE; font-style:italic;">No packing today</span>
+                        </sc-if>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+
+            <!-- open route -->
+            <div style="padding:2px 16px 18px;">
+              <button style="width:100%; background:#2E6E45; color:#fff; border:none; border-radius:15px; padding:14px; font-family:Quicksand; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; gap:9px; cursor:pointer; box-shadow:0 10px 22px -10px rgba(46,110,69,0.6);">
+                Open route
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- bottom nav -->
+        <div style="display:flex; justify-content:space-around; align-items:flex-end; padding:9px 4px 12px; background:#FFFFFF; border-top:1px solid #ECEFE5;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A2A99E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span style="font-weight:700; font-size:10px; color:#A2A99E;">Home</span></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A2A99E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17.5" cy="9" r="2.2"/><path d="M16 19a4.5 4.5 0 0 1 5.5-4"/></svg><span style="font-weight:700; font-size:10px; color:#A2A99E;">Customers</span></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A2A99E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="18" r="1.9"/><circle cx="17" cy="18" r="1.9"/><path d="M9 18h6M5 18H4V8h10v4m0-4h3l3 4v6h-1"/></svg><span style="font-weight:700; font-size:10px; color:#A2A99E;">Orders</span></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.2" stroke-linecap="round"><path d="M6 4a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H6"/><circle cx="6" cy="4.4" r="1.2" fill="#2E6E45" stroke="none"/><circle cx="18" cy="15.6" r="1.2" fill="#2E6E45" stroke="none"/></svg><span style="font-weight:800; font-size:10px; color:#2E6E45;">Routes</span></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A2A99E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h5"/></svg><span style="font-weight:700; font-size:10px; color:#A2A99E;">Billing</span></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px; width:56px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A2A99E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2.4"/><path d="M3 10h18"/></svg><span style="font-weight:700; font-size:10px; color:#A2A99E;">Payments</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FRAME 3 · CUSTOMER LIST ================= -->
+    <div style="display:flex; flex-direction:column; gap:16px; align-items:center;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="width:22px; height:22px; border-radius:7px; background:#2E6E45; color:#fff; font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center;">3</span>
+        <span style="font-weight:700; font-size:14px; color:#46524A; letter-spacing:0.2px;">Customer list · inline steppers</span>
+      </div>
+
+      <div style="width:402px; background:#F4F6EE; border-radius:42px; overflow:hidden; box-shadow:0 30px 60px -24px rgba(40,60,40,0.4), 0 0 0 1px rgba(0,0,0,0.04); border:7px solid #11160F;">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 22px 4px;">
+          <span style="font-weight:700; font-size:14px; color:#1E2A1E;">4:27</span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-weight:700; font-size:11px; color:#1E2A1E;">5G</span>
+            <svg width="17" height="12" viewBox="0 0 17 12" fill="#1E2A1E"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/></svg>
+            <svg width="23" height="12" viewBox="0 0 24 12"><rect x="1" y="2" width="19" height="8" rx="2.4" fill="none" stroke="#1E2A1E" stroke-width="1.2"/><rect x="2.6" y="3.6" width="13" height="4.8" rx="1.2" fill="#1E2A1E"/><rect x="21" y="4.4" width="2" height="3.2" rx="1" fill="#1E2A1E"/></svg>
+            <span style="font-weight:700; font-size:11px; color:#1E2A1E;">77%</span>
+          </div>
+        </div>
+
+        <!-- app bar -->
+        <div style="display:flex; align-items:center; gap:12px; padding:8px 18px 12px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E2A1E" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          <div style="flex:1; min-width:0;">
+            <div style="font-family:Quicksand; font-weight:700; font-size:19px; color:#1E2A1E; line-height:1.1;">Punitnagar Road</div>
+            <div style="font-weight:700; font-size:12px; color:#7E8A7B; margin-top:2px;">Morning · 20 stops · 25.5 L</div>
+          </div>
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v16l-7-4-7 4V4a1 1 0 0 1 1-1z"/><path d="M9 9h6"/></svg>
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </div>
+
+        <!-- drag hint -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 18px; background:#EEF2E7; margin:0 0 4px;">
+          <div style="display:flex; align-items:center; gap:9px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7E8A7B" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 14h16"/></svg>
+            <span style="font-weight:700; font-size:12.5px; color:#7E8A7B;">Drag to set delivery order</span>
+          </div>
+          <span style="font-weight:800; font-size:12px; color:#2E6E45;">Done</span>
+        </div>
+
+        <!-- list -->
+        <div style="padding:8px 14px 14px; max-height:1180px; overflow:hidden;">
+          <sc-for list="{{ customers }}" as="c" hint-placeholder-count="8">
+            <div style="display:flex; align-items:stretch; gap:11px; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:18px; padding:12px 13px; margin-bottom:11px; box-shadow:0 4px 14px -10px rgba(40,60,40,0.22); opacity:{{ c.op }};">
+              <!-- drag + number -->
+              <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding-top:2px;">
+                <svg width="14" height="20" viewBox="0 0 14 20" fill="#C2CABB"><circle cx="4" cy="4" r="1.6"/><circle cx="10" cy="4" r="1.6"/><circle cx="4" cy="10" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="4" cy="16" r="1.6"/><circle cx="10" cy="16" r="1.6"/></svg>
+                <span style="width:27px; height:27px; border-radius:9px; background:#EAF3EB; color:#2E6E45; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center;">{{ c.seq }}</span>
+              </div>
+
+              <!-- main -->
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+                  <div style="min-width:0;">
+                    <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+                      <span style="font-family:Quicksand; font-weight:700; font-size:15.5px; color:#1E2A1E; line-height:1.15;">{{ c.name }}</span>
+                      <sc-if value="{{ c.skipped }}" hint-placeholder-val="{{ false }}">
+                        <span style="display:inline-flex; align-items:center; gap:3px; background:#FBEAD0; color:#A06A1E; font-weight:800; font-size:10px; padding:2px 7px; border-radius:6px;">SKIPPED</span>
+                      </sc-if>
+                    </div>
+                  </div>
+                  <!-- right rail -->
+                  <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                    <sc-if value="{{ c.skipped }}" hint-placeholder-val="{{ false }}">
+                      <button style="display:flex; align-items:center; gap:5px; background:#FBEAD0; border:1px solid #F1D9AE; border-radius:9px; padding:6px 9px; color:#A06A1E; font-weight:800; font-size:11px; cursor:pointer;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A06A1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg>
+                        Undo
+                      </button>
+                    </sc-if>
+                    <sc-if value="{{ c.active }}" hint-placeholder-val="{{ true }}">
+                      <button style="display:flex; align-items:center; gap:5px; background:#FFFFFF; border:1px solid #E4E8DD; border-radius:9px; padding:6px 9px; color:#8C938A; font-weight:800; font-size:11px; cursor:pointer;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8C938A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l9 8-9 8zM18 4v16"/></svg>
+                        Skip
+                      </button>
+                    </sc-if>
+                    <button style="width:28px; height:30px; background:transparent; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                      <svg width="5" height="20" viewBox="0 0 5 20" fill="#9AA597"><circle cx="2.5" cy="3" r="2"/><circle cx="2.5" cy="10" r="2"/><circle cx="2.5" cy="17" r="2"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- product stepper chips -->
+                <div style="display:flex; flex-direction:column; gap:7px; margin-top:10px;">
+                  <sc-for list="{{ c.products }}" as="p" hint-placeholder-count="1">
+                    <div style="display:flex; align-items:center; gap:8px; background:#EFF6EC; border:1px solid #DCEBDC; border-radius:12px; padding:5px 6px 5px 11px; align-self:flex-start; max-width:100%;">
+                      <span style="width:8px; height:8px; border-radius:50%; background:{{ p.dot }}; flex-shrink:0;"></span>
+                      <span style="font-weight:800; font-size:12.5px; color:#246B3A; white-space:nowrap;">{{ p.animal }}</span>
+                      <span style="font-weight:700; font-size:12px; color:#6E8A72; white-space:nowrap;">₹{{ p.price }}</span>
+                      <div style="display:flex; align-items:center; gap:8px; margin-left:4px;">
+                        <button style="width:23px; height:23px; border-radius:50%; border:1px solid #CFE3CF; background:#FFFFFF; color:#2E6E45; font-weight:800; font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">−</button>
+                        <span style="font-family:Quicksand; font-weight:700; font-size:13.5px; color:#1E5233; min-width:38px; text-align:center;">{{ p.vol }}</span>
+                        <button style="width:23px; height:23px; border-radius:50%; border:1px solid #CFE3CF; background:#FFFFFF; color:#2E6E45; font-weight:800; font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">+</button>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const COW = '#84C68E';
+    const BUF = '#4E8C6E';
+
+    const routes = [
+      { name: 'Punitnagar Road', rider: 'Vikram Thakor', stops: 20, litres: '25.5 L', window: 'Morning' },
+      { name: 'Vavdi Route', rider: 'Govind Thakor', stops: 5, litres: '6.5 L', window: 'Morning' },
+    ];
+
+    const packing = [
+      { bag: 'GLASS BOTTLE', total: '4 Ltr', products: [
+        { animal: 'Buffalo', price: 80, total: '3.5 L', dot: BUF, sizes: [ {size:'500 ml', n:1}, {size:'1 L', n:3} ] },
+        { animal: 'Cow', price: 80, total: '0.5 L', dot: COW, sizes: [ {size:'500 ml', n:1} ] },
+      ]},
+      { bag: 'PLASTIC BAG', total: '21.5 Ltr', products: [
+        { animal: 'Buffalo', price: 80, total: '0 L', dot: BUF, sizes: [] },
+        { animal: 'Cow', price: 63, total: '13 L', dot: COW, sizes: [ {size:'500 ml', n:3}, {size:'1 L', n:4}, {size:'1.5 L', n:1}, {size:'2 L', n:3} ] },
+        { animal: 'Cow', price: 65, total: '1.5 L', dot: COW, sizes: [ {size:'1.5 L', n:1} ] },
+        { animal: 'Cow', price: 70, total: '7 L', dot: COW, sizes: [ {size:'1 L', n:5}, {size:'2 L', n:1} ] },
+      ]},
+    ].map(g => ({ ...g, products: g.products.map(p => ({
+      ...p,
+      empty: p.sizes.length === 0,
+      op: p.sizes.length === 0 ? 0.5 : 1,
+      totalColor: p.sizes.length === 0 ? '#B3BAAE' : '#2E6E45',
+    })) }));
+
+    const raw = [
+      ['AELVISH BALDHA', 'Avni Palace · Rajkot', [['Cow',65,'1.5 L',COW]]],
+      ['ALPESHBHAI', 'Rudra · Rajkot', [['Cow',63,'1.5 L',COW]]],
+      ['BHARTIBEN BHANDERI', 'BB 34 · Rajkot', [['Cow',70,'1 L',COW]]],
+      ['BHAVESHBHAI PATEL', 'Radhekrishna 302 · Rajkot', [['Cow',70,'1 L',COW]]],
+      ['Bhaveshbhai raghuvir', 'Raghuvir 402 · Rajkot', [['Buffalo',80,'1.5 L',BUF]]],
+      ['BHAVISHABEN', 'Tridan 1202 · Rajkot', [['Cow',63,'0.5 L',COW]], true],
+      ['Bhavnaben Rajapara', 'Raghuvir 401 · Rajkot', [['Cow',70,'1 L',COW]]],
+      ['BHUMIKABEN', 'Shiv Park 269 · Rajkot', [['Cow',70,'1 L',COW]]],
+      ['Bintuben shilp', 'Shilp B 502 · Rajkot', [['Buffalo',80,'1 L',BUF],['Cow',63,'1 L',COW]]],
+      ['BIPINBHAI MAVANI', 'Crystal 801 · Rajkot', [['Cow',63,'1 L',COW]]],
+      ['CHAKUBHAI', 'Vrundavan Vatika · Rajkot', [['Cow',63,'1 L',COW]]],
+      ['Darshanaben Avsar', 'Avsar A 401 · Rajkot', [['Buffalo',80,'1 L',BUF],['Cow',63,'0.5 L',COW]]],
+    ];
+
+    const customers = raw.map((row, i) => {
+      const skipped = !!row[3];
+      return {
+        seq: i + 1,
+        name: row[0],
+        addr: row[1],
+        skipped,
+        active: !skipped,
+        op: skipped ? 0.62 : 1,
+        products: row[2].map(p => ({ animal: p[0], price: p[1], vol: p[2], dot: p[3] })),
+      };
+    });
+
+    return { routes, packing, customers };
+  }
+}
+</script>
+<script>
+(async () => {
+  // Prepend so page-supplied @page / break rules (deck-stage's margin:0,
+  // author CSS) keep source-order precedence over the baseline.
+  const baseCss = document.createElement('style');
+  baseCss.textContent = "@media print {\n  @page { margin: 0.5cm; }\n  html, body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }\n  section, article, figure, table { break-inside: avoid; }\n  *, *::before, *::after {\n    animation-delay: -99s !important; animation-duration: .001s !important;\n    animation-iteration-count: 1 !important; animation-fill-mode: both !important;\n    animation-play-state: running !important; transition-duration: 0s !important;\n  }\n}";
+  document.head.prepend(baseCss);
+  if (document.readyState === 'loading') {
+    await new Promise((r) => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  }
+  let ds = document.querySelector('deck-stage');
+  // whenDefined never resolves when nothing registers the element, so only
+  // await it when a <deck-stage> tag exists (and race a timeout regardless).
+  if (ds && !customElements.get('deck-stage')) {
+    try {
+      await Promise.race([
+        customElements.whenDefined('deck-stage'),
+        new Promise((r) => setTimeout(r, 3000)),
+      ]);
+    } catch (e) {}
+    ds = document.querySelector('deck-stage');
+  }
+  // dc-runtime assigns window.DCLogic at init and mounts into #dc-root on
+  // DOMContentLoaded; settle on that subtree so React has rendered before
+  // print(). Non-DC pages fall through to weighing body.
+  const isDc = !ds && 'DCLogic' in window;
+  const settleRoot = ds || (isDc ? document.getElementById('dc-root') : null) || document.body;
+  if (settleRoot) {
+    // Weigh only content children — skip script/style/template so inline
+    // Babel/CSS doesn't register as stable "content" before the framework
+    // has mounted anything.
+    const MEDIA = 'img,svg,canvas,video,picture,iframe,embed,object';
+    const weigh = () => {
+      let text = 0, media = 0;
+      for (const c of settleRoot.children) {
+        const t = c.tagName;
+        if (t === 'SCRIPT' || t === 'STYLE' || t === 'TEMPLATE') continue;
+        text += (c.textContent || '').trim().length;
+        media += c.querySelectorAll(MEDIA).length + (c.matches(MEDIA) ? 1 : 0);
+      }
+      return text + media * 100;
+    };
+    // "Non-zero and stable" alone is not sufficient to mean rendered: generic
+    // body can carry a static shell while async main content is pending, and
+    // #dc-root can carry the root DC's static text while child refs are still
+    // .sc-placeholder boxes. Gate generic on readyState 'complete', and never
+    // accept stability while a dc-runtime placeholder is present.
+    const isGeneric = settleRoot === document.body;
+    const deadline = Date.now() + 15000;
+    let last = -1, stable = 0;
+    while (Date.now() < deadline) {
+      const n = weigh();
+      const ready =
+        (!isGeneric || document.readyState === 'complete') &&
+        !settleRoot.querySelector('.sc-placeholder');
+      if (n > 0 && n === last && ready) { if (++stable >= 2) break; } else { stable = 0; }
+      last = n;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+  try { await document.fonts.ready; } catch (e) {}
+  // Jump every animation to its end state so print() never captures a slide
+  // mid-entrance. Ordering matters: the 0s-transition style must be live
+  // BEFORE data-deck-active is set so attribute-keyed transitions don't
+  // start a (now-0s) run from the pre-active base.
+  const st = document.createElement('style');
+  st.textContent = '*,*::before,*::after{animation-delay:-99s !important;animation-duration:.001s !important;animation-iteration-count:1 !important;animation-fill-mode:both !important;animation-play-state:running !important;transition-duration:0s !important}';
+  document.head.appendChild(st);
+  for (const d of document.querySelectorAll('deck-stage')) {
+    for (const c of d.children) {
+      const t = c.tagName;
+      if (t === 'SCRIPT' || t === 'STYLE' || t === 'TEMPLATE') continue;
+      c.setAttribute('data-deck-active', '');
+    }
+  }
+  try {
+    const sweep = () => {
+      for (const a of document.getAnimations()) {
+        try { a.finish(); } catch (e) {
+          try { a.currentTime = (a.effect && a.effect.getComputedTiming().duration) || 0; a.pause(); } catch (e2) {}
+        }
+      }
+    };
+    sweep();
+    await new Promise((r) => requestAnimationFrame(r));
+    sweep();
+    await new Promise((r) => requestAnimationFrame(r));
+  } catch (e) {}
+  setTimeout(() => { try { window.print(); } catch (e) {} }, 200);
+})();
+</script>
+</body>
+</html>

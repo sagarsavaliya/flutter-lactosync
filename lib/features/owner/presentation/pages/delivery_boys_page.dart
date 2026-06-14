@@ -29,7 +29,7 @@ class _DeliveryBoysPageState extends ConsumerState<DeliveryBoysPage> {
   Future<void> _resetPin(DeliveryBoyModel boy) async {
     final dio = ref.read(dioProvider);
     try {
-      final res = await dio.post('/api/v1/owner/delivery-boys/${boy.id}/reset-pin');
+      final res = await dio.post('/owner/delivery-boys/${boy.id}/reset-pin');
       final pin = res.data['data']['temporary_pin'] as String;
       if (!mounted) return;
       await showDialog<void>(
@@ -216,10 +216,10 @@ class _DeliveryBoySheetState extends ConsumerState<_DeliveryBoySheet> {
     };
     try {
       if (widget.existing == null) {
-        await dio.post('/api/v1/owner/delivery-boys', data: payload);
+        await dio.post('/owner/delivery-boys', data: payload);
       } else {
         await dio.patch(
-            '/api/v1/owner/delivery-boys/${widget.existing!.id}',
+            '/owner/delivery-boys/${widget.existing!.id}',
             data: payload);
       }
       if (mounted) Navigator.of(context).pop();

@@ -1,8 +1,8 @@
 # STATUS — LactoSync
 
-> **Where we are / what's next:** Critical hotfix v4.9.1+15 ready — fixes 4 reported bugs (settings 500, dashboard milk_preparation null, customer auth 404, all customer screens broken). PHP already updated locally; needs VPS deploy. Flutter APK needs rebuild. See Next Actions below.
+> **Where we are / what's next:** Customers list (frame 5) + Customer detail (frame 6) redesigned per `LactoSync Routes Redesign.dc.html`. Device-test on Farenidham; commit when approved. No new APK unless requested.
 >
-> _Last updated: 2026-06-10 by CEO_
+> _Last updated: 2026-06-13_
 
 ---
 
@@ -10,14 +10,14 @@
 
 | Item | Value |
 | ---- | ----- |
-| App version | `4.9.1+15` |
-| APK path | `build/app/outputs/flutter-apk/app-release.apk` (rebuild needed) |
-| API | Deployed on Hostinger VPS — live |
+| App version | `4.10.12+34` (local build) |
+| APK path | `build/app/outputs/flutter-apk/app-release.apk` |
+| API | Deployed on Hostinger VPS — live (routes enrichment deployed) |
 | Admin Web | https://superadmin.lactosync.com — live |
 | Stack | Flutter 3 · Riverpod · go_router · Dio / Laravel 13 · PHP 8.4 · MySQL 8 · Redis |
 | Live farm accounts | 3 (Shreeji Gir Gaushala · Farenidham Gaushala · Gokul Dairy Farm) |
 | Git remote | https://github.com/sagarsavaliya/flutter-lactosync.git |
-| Default branch | `main` — **never commit directly; feature branches + PR + human approval required** |
+| Default branch | `main` — local WIP uncommitted |
 
 ---
 
@@ -33,8 +33,8 @@
 | Tab | What exists |
 | --- | ----------- |
 | **Home (Dashboard)** | KPI cards; quick actions; milk preparation panel; owner greeting |
-| **Customers** | Search + sort; active/inactive mini-toggle; vacation sheet; tap → Customer Detail |
-| **Customer Detail** | Cards A–D; edit sheets; delete (blocked on unpaid balance only); generate bill; send milk log; restore activity |
+| **Customers** | Redesigned directory (frame 5): search/sort, vacation count strip, A–Z index, PAUSE/RESUME, subs badge on avatar |
+| **Customer Detail** | Redesigned (frame 6): hero card, calendar heatmap, consumption table, dues card, billing history, payments log |
 | **Daily Orders** | Order rows; skip button; mark delivered / adjust qty; generate orders button |
 | **Billing** | Per-customer Billed / Collected / Outstanding grid; bulk-send invoices; tap → Invoice Detail |
 | **Invoice Detail** | Line items; record payment (cash/UPI); send invoice via WhatsApp |

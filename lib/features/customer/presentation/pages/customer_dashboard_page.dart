@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_widgets.dart';
+import '../widgets/customer_subscription_adapter.dart';
 import '../providers/customer_dashboard_provider.dart';
 import '../providers/customer_order_provider.dart';
 import '../providers/customer_profile_provider.dart';
@@ -111,30 +114,50 @@ class _DashboardBody extends StatelessWidget {
                   const SizedBox(height: 24),
 
                   if (subs.isNotEmpty) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Active Subscriptions',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: CusColors.onSurface,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => context.go('/customer/orders'),
-                          child: const Text(
-                            'Manage',
-                            style: TextStyle(color: CusColors.primaryContainer, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
+                    CustomerDetailSectionLabel(
+                      title: AppStrings.subscriptionsTitle.toUpperCase(),
                     ),
+                    ...subs.asMap().entries.map((entry) {
+                      final line = customerSubscriptionLineFromOrders(
+                        subscription: entry.value,
+                        days: const [],
+                      );
+                      return CustomerDetailSubscriptionCard(
+                        index: entry.key + 1,
+                        line: line,
+                        month: DateTime(DateTime.now().year, DateTime.now().month),
+                        showCalendar: false,
+                      );
+                    }),
                     const SizedBox(height: 8),
-                    _SubscriptionsList(subs: subs),
-                    const SizedBox(height: 24),
                   ],
+                  CustomerDetailSectionLabel(
+                    title: AppStrings.consumptionTitle.toUpperCase(),
+                  ),
+                  Builder(
+                    builder: (context) {
+                      final consumption = data['consumption'] as Map<String, dynamic>?;
+                      final rows = customerConsumptionRowsFromJson(consumption);
+                      final grandTotal = customerConsumptionGrandTotal(consumption);
+                      if (rows.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            AppStrings.noConsumptionRecorded,
+                            style: TextStyle(
+                              color: CusColors.onSurfaceVariant,
+                              fontSize: 14,
+                            ),
+                          ),
+                        );
+                      }
+                      return CustomerDetailConsumptionCard(
+                        rows: rows,
+                        grandTotal: grandTotal,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
 
                   const SizedBox(height: 20),
                 ]),
@@ -624,71 +647,4 @@ Future<bool?> _showConfirmSheet({
       ),
     ),
   );
-}
-
-// ── Active subscriptions ──────────────────────────────────────────────────────
-
-class _SubscriptionsList extends StatelessWidget {
-  const _SubscriptionsList({required this.subs});
-  final List<Map<String, dynamic>> subs;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 4))],
-      ),
-      child: Column(
-        children: [
-          for (int i = 0; i < subs.length; i++) ...[
-            if (i > 0)
-              Divider(height: 1, thickness: 0.5, indent: 20, endIndent: 20, color: CusColors.outlineVariant),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: CusColors.secondaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.water_drop_outlined, size: 20, color: CusColors.primaryContainer),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          subs[i]['product_name']?.toString() ?? '',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: CusColors.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${_capitalise(subs[i]['shift']?.toString() ?? '')} · qty ${subs[i]['qty'] ?? ''}',
-                          style: const TextStyle(fontSize: 12, color: CusColors.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  String _capitalise(String s) =>
-      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1).toLowerCase()}';
 }

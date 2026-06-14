@@ -1,35 +1,35 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens from dashboard_Lactosync_design.html
+/// Design tokens — aligned with briefs/redesign app screen lactosync frame 4.
 abstract final class DashboardColors {
-  static const primary = Color(0xFF386948);
+  static const primary = Color(0xFF2E6E45);
   static const onPrimary = Color(0xFFE8FFE9);
-  static const primaryContainer = Color(0xFFB9EFC5);
-  static const onPrimaryContainer = Color(0xFF2A5B3B);
+  static const primaryContainer = Color(0xFFA7E0B0);
+  static const onPrimaryContainer = Color(0xFF1E5233);
 
   static const secondary = Color(0xFF665E53);
   static const secondaryFixed = Color(0xFFECE1D3);
 
   static const tertiary = Color(0xFF745C27);
 
-  static const background = Color(0xFFF7FAF4);
+  static const background = Color(0xFFF4F6EE);
   static const surface = Color(0xFFFFFFFF);
-  static const surfaceContainer = Color(0xFFE9F0E8);
+  static const surfaceContainer = Color(0xFFEEF2E7);
   static const surfaceContainerLow = Color(0xFFF0F5EE);
 
-  static const onSurface = Color(0xFF2C342E);
-  static const onSurfaceVariant = Color(0xFF59615A);
-  static const outlineVariant = Color(0xFFABB4AC);
+  static const onSurface = Color(0xFF1E2A1E);
+  static const onSurfaceVariant = Color(0xFF7E8A7B);
+  static const outlineVariant = Color(0xFFECEFE5);
 
-  static const error = Color(0xFFA83836);
+  static const error = Color(0xFFA06A1E);
 }
 
 abstract final class DashboardText {
   static const farmName = TextStyle(
-    fontSize: 20,
+    fontSize: 13.5,
     fontWeight: FontWeight.w800,
-    letterSpacing: -0.3,
-    color: DashboardColors.primary,
+    letterSpacing: 0.4,
+    color: Color(0xFF46524A),
     height: 1.1,
   );
 
@@ -42,11 +42,11 @@ abstract final class DashboardText {
   );
 
   static const greeting = TextStyle(
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: FontWeight.w700,
     color: DashboardColors.primary,
-    height: 1.15,
-    fontFamily: 'Georgia',
+    height: 1.1,
+    letterSpacing: -0.4,
   );
 
   static const kpiBadge = TextStyle(

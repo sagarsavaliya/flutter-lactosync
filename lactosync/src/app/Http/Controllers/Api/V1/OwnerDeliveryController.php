@@ -10,6 +10,7 @@ use App\Models\DeliveryBoyRouteAssignment;
 use App\Models\DeliveryRoute;
 use App\Models\FarmOwner;
 use App\Models\RouteCustomerAssignment;
+use App\Services\Operations\RouteDeliverySummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -26,6 +27,10 @@ use Illuminate\Support\Facades\Hash;
  */
 class OwnerDeliveryController extends Controller
 {
+    public function __construct(
+        private readonly RouteDeliverySummaryService $routeSummary,
+    ) {}
+
     // =========================================================================
     // S8-07 — Delivery boys CRUD
     // =========================================================================
@@ -149,15 +154,33 @@ class OwnerDeliveryController extends Controller
     {
         /** @var FarmOwner $owner */
         $owner = $request->user();
+        $date  = (string) $request->query('date', Carbon::today()->toDateString());
 
         $routes = DeliveryRoute::where('farm_id', $owner->farm_id)
             ->orderBy('shift')
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get()
-            ->map(fn (DeliveryRoute $r) => $this->formatRoute($r));
+            ->get();
 
-        return response()->json(['success' => true, 'data' => $routes]);
+        $context = $this->routeSummary->loadContext($owner->farm, $routes, $date);
+
+        $boyAssignments = DeliveryBoyRouteAssignment::query()
+            ->whereIn('route_id', $routes->pluck('id'))
+            ->where('assigned_date', $date)
+            ->with('deliveryBoy')
+            ->get()
+            ->keyBy('route_id');
+
+        $data = $routes->map(function (DeliveryRoute $route) use ($context, $date, $boyAssignments) {
+            $boyAssignment = $boyAssignments[$route->id] ?? null;
+            $boy           = $boyAssignment && $boyAssignment->deliveryBoy
+                ? $this->formatBoy($boyAssignment->deliveryBoy)
+                : null;
+
+            return $this->routeSummary->formatRouteSummary($route, $context, $date, $boy);
+        });
+
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /** POST /owner/routes */
@@ -251,18 +274,81 @@ class OwnerDeliveryController extends Controller
             return $this->notFound();
         }
 
+        $date    = (string) $request->query('date', Carbon::today()->toDateString());
+        $context = $this->routeSummary->loadContext($owner->farm, collect([$route]), $date);
+
         $assignments = RouteCustomerAssignment::where('route_id', $route->id)
             ->where('assigned_date', RouteCustomerAssignment::STANDING_DATE)
-            ->with('customer')
+            ->with([
+                'customer.subscriptions' => fn ($q) => $q
+                    ->where('status', 'active')
+                    ->whereNull('deleted_at'),
+                'customer.subscriptions.lines.product',
+            ])
             ->orderBy('sort_order')
             ->get()
-            ->map(fn (RouteCustomerAssignment $a) => [
-                'id'         => $a->id,
-                'sort_order' => $a->sort_order,
-                'customer'   => $this->formatCustomerForDelivery($a->customer),
-            ]);
+            ->map(fn (RouteCustomerAssignment $a) => $this->routeSummary->formatAssignment(
+                $a,
+                $route,
+                $context,
+                $date,
+            ));
 
         return response()->json(['success' => true, 'data' => $assignments]);
+    }
+
+    /**
+     * GET /owner/routes/{route}/available-customers
+     *
+     * Active customers with a subscription on this route's shift who are not
+     * already assigned to any route for this farm.
+     */
+    public function availableRouteCustomers(Request $request, DeliveryRoute $route): JsonResponse
+    {
+        /** @var FarmOwner $owner */
+        $owner = $request->user();
+
+        if ($route->farm_id !== $owner->farm_id) {
+            return $this->notFound();
+        }
+
+        $search = trim((string) $request->query('search', ''));
+
+        $assignedCustomerIds = RouteCustomerAssignment::query()
+            ->where('assigned_date', RouteCustomerAssignment::STANDING_DATE)
+            ->whereHas('route', fn ($q) => $q->where('farm_id', $owner->farm_id))
+            ->pluck('customer_id');
+
+        $query = Customer::query()
+            ->where('farm_id', $owner->farm_id)
+            ->where('is_active', true)
+            ->when(
+                $assignedCustomerIds->isNotEmpty(),
+                fn ($q) => $q->whereNotIn('id', $assignedCustomerIds),
+            )
+            ->whereHas('subscriptions', function ($q) use ($route) {
+                $q->where('status', 'active')
+                    ->whereNull('deleted_at')
+                    ->whereHas('lines', fn ($line) => $line->where('shift', $route->shift));
+            });
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('contact', 'like', "%{$search}%")
+                    ->orWhere('area', 'like', "%{$search}%");
+            });
+        }
+
+        $customers = $query
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->map(fn (Customer $customer) => $this->formatCustomerForDelivery($customer))
+            ->values();
+
+        return response()->json(['success' => true, 'data' => $customers]);
     }
 
     /** POST /owner/routes/{route}/customers */
