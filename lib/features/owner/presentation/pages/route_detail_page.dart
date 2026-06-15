@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_provider.dart';
-import '../widgets/customer_detail/customer_detail_styles.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../providers/delivery_provider.dart';
 import '../providers/owner_provider.dart';
+import '../widgets/customer_detail/customer_detail_styles.dart';
+import '../widgets/dashboard/dashboard_styles.dart';
 import '../widgets/owner_design_system.dart';
+import '../widgets/owner_screen_widgets.dart';
 import '../widgets/route_customer_tile.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class RouteDetailPage extends ConsumerStatefulWidget {
   const RouteDetailPage({super.key, required this.routeId});
@@ -55,13 +59,11 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
       ref.invalidate(deliveryRoutesProvider);
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     }
   }
@@ -109,8 +111,7 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
       ref.invalidate(deliveryRoutesProvider);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     }
   }
@@ -127,8 +128,7 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
       ref.invalidate(deliveryRoutesProvider);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     }
   }
@@ -144,13 +144,11 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
       ref.invalidate(deliveryRoutesProvider);
       await _loadRoute();
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Delivery boy assigned')));
+        AppSnackBar.show(context, 'Delivery boy assigned');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     }
   }
@@ -182,8 +180,7 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
       ref.invalidate(routeAvailableCustomersProvider(widget.routeId));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     }
   }
@@ -194,8 +191,7 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
       routes = await ref.read(deliveryRoutesProvider.future);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not load routes: $e')));
+        AppSnackBar.show(context, 'Could not load routes: $e');
       }
       return;
     }
@@ -204,8 +200,7 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
         routes.where((r) => r.id != widget.routeId && r.isActive).toList();
     if (others.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No other routes available.')));
+        AppSnackBar.show(context, 'No other routes available.');
       }
       return;
     }
@@ -252,14 +247,12 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
       ref.invalidate(routeCustomersProvider(widget.routeId));
       ref.invalidate(routeAvailableCustomersProvider(widget.routeId));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${c.name} moved to ${target.name}')));
+        AppSnackBar.show(context, '${c.name} moved to ${target.name}');
       }
     } catch (e) {
       ref.invalidate(routeCustomersProvider(widget.routeId));
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Move failed: $e')));
+        AppSnackBar.show(context, 'Move failed: $e');
       }
     }
   }
@@ -345,18 +338,27 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
     final totalLiters = _route?.totalLiters ?? 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6EE),
+      backgroundColor: CustomerDetailColors.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 12, 8),
+              padding: const EdgeInsets.fromLTRB(
+                DashboardSpace.page - 4,
+                AppSpace.sm,
+                DashboardSpace.page - 4,
+                AppSpace.sm,
+              ),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                        size: 20, color: Color(0xFF1E2A1E)),
+                    icon: const Icon(
+                      LucideIcons.chevronLeft,
+                      size: 22,
+                      color: CustomerDetailColors.onSurface,
+                    ),
+                    visualDensity: VisualDensity.compact,
                     onPressed: () => context.pop(),
                   ),
                   Expanded(
@@ -368,7 +370,7 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
                           style: AppText.cardTitle.copyWith(
                             fontSize: 19,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFF1E2A1E),
+                            color: CustomerDetailColors.accent,
                             height: 1.1,
                           ),
                           maxLines: 1,
@@ -380,7 +382,7 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
                             style: AppText.meta.copyWith(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: const Color(0xFF7E8A7B),
+                              color: CustomerDetailColors.iconMuted,
                             ),
                           ),
                           orElse: () => const SizedBox.shrink(),
@@ -389,91 +391,144 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.assignment_ind_outlined,
-                        color: Color(0xFF2E6E45), size: 23),
+                    icon: const Icon(
+                      LucideIcons.bike,
+                      color: CustomerDetailColors.accent,
+                      size: 22,
+                    ),
                     tooltip: 'Assign delivery boy',
+                    visualDensity: VisualDensity.compact,
                     onPressed: _showAssignBoySheet,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.add,
-                        color: Color(0xFF2E6E45), size: 24),
+                    icon: const Icon(
+                      LucideIcons.userPlus,
+                      color: CustomerDetailColors.accent,
+                      size: 22,
+                    ),
                     tooltip: 'Add customer',
+                    visualDensity: VisualDensity.compact,
                     onPressed: _showAddCustomerSheet,
                   ),
                 ],
               ),
             ),
-            Container(
-              color: const Color(0xFFEEF2E7),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.drag_handle,
-                      size: 18, color: Color(0xFF7E8A7B)),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Text(
-                      'Drag to set delivery order',
-                      style: AppText.meta.copyWith(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF7E8A7B),
+            DecoratedBox(
+              decoration: const BoxDecoration(
+                color: DashboardColors.surfaceContainer,
+                border: Border(
+                  top: BorderSide(color: CustomerDetailColors.border),
+                  bottom: BorderSide(color: CustomerDetailColors.border),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DashboardSpace.page,
+                  vertical: AppSpace.sm,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      LucideIcons.gripHorizontal,
+                      size: 18,
+                      color: CustomerDetailColors.iconMuted,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        'Drag to set delivery order',
+                        style: AppText.meta.copyWith(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: CustomerDetailColors.iconMuted,
+                        ),
                       ),
                     ),
-                  ),
-                  GestureDetector(
-                    onTap: () => FocusScope.of(context).unfocus(),
-                    child: Text(
-                      'Done',
-                      style: AppText.meta.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF2E6E45),
+                    GestureDetector(
+                      onTap: () => FocusScope.of(context).unfocus(),
+                      child: Text(
+                        'Done',
+                        style: AppText.meta.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: CustomerDetailColors.accent,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             Expanded(
               child: customersAsync.when(
                 loading: () => const Center(
-                    child: CircularProgressIndicator(color: CustomerDetailColors.accent)),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                  child: CircularProgressIndicator(
+                    color: CustomerDetailColors.accent,
+                  ),
+                ),
+                error: (e, _) => Center(
+                  child: Text(
+                    'Error: $e',
+                    style: AppText.body.copyWith(
+                      color: CustomerDetailColors.labelMuted,
+                    ),
+                  ),
+                ),
                 data: (customers) {
                   if (customers.isEmpty) {
                     return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.group_add_outlined,
-                              size: 64, color: Colors.grey),
-                          const SizedBox(height: 12),
-                          const Text('No customers on this route',
-                              style: TextStyle(color: Colors.grey)),
-                          const SizedBox(height: 16),
-                          IntrinsicWidth(
-                            child: OutlinedButton.icon(
+                      child: Padding(
+                        padding: const EdgeInsets.all(DashboardSpace.page),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              LucideIcons.users,
+                              size: 48,
+                              color: CustomerDetailColors.iconMuted
+                                  .withValues(alpha: 0.7),
+                            ),
+                            const SizedBox(height: AppSpace.sm),
+                            Text(
+                              'No customers on this route',
+                              style: AppText.body.copyWith(
+                                color: CustomerDetailColors.labelMuted,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpace.md),
+                            OutlinedButton.icon(
                               onPressed: _showAddCustomerSheet,
-                              icon: const Icon(Icons.person_add_outlined,
-                                  size: 18),
+                              icon: const Icon(
+                                LucideIcons.userPlus,
+                                size: 18,
+                              ),
                               label: const Text('Add Customer'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: CustomerDetailColors.accent,
-                                side: BorderSide(
-                                    color: CustomerDetailColors.accent
-                                        .withValues(alpha: 0.5)),
+                                side: const BorderSide(
+                                  color: CustomerDetailColors.accentBorder,
+                                ),
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 12),
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   }
                   return ReorderableListView.builder(
-                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 16),
+                    padding: const EdgeInsets.fromLTRB(
+                      DashboardSpace.page,
+                      12,
+                      DashboardSpace.page,
+                      AppSpace.md,
+                    ),
                     buildDefaultDragHandles: false,
                     onReorder: (oldIdx, newIdx) async {
                       if (newIdx > oldIdx) newIdx--;
@@ -493,8 +548,7 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
                         ref.invalidate(routeCustomersProvider(widget.routeId));
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Reorder failed: $e')));
+                          AppSnackBar.show(context, 'Reorder failed: $e');
                         }
                       }
                     },
@@ -503,22 +557,9 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
                       final c = customers[i];
                       return Padding(
                         key: ValueKey(c.assignmentId),
-                        padding: const EdgeInsets.only(bottom: 11),
+                        padding: const EdgeInsets.only(bottom: 12),
                         child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                                color: const Color(0xFFECEFE5)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF283C28)
-                                    .withValues(alpha: 0.08),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
+                          decoration: ownerWhiteCardDecoration(),
                           child: GestureDetector(
                             onLongPress: () => _showCustomerActions(c),
                             child: RouteCustomerTile(
@@ -526,8 +567,11 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
                               index: i + 1,
                               dragHandle: ReorderableDragStartListener(
                                 index: i,
-                                child: const Icon(Icons.drag_indicator,
-                                    size: 20, color: Color(0xFFC2CABB)),
+                                child: const Icon(
+                                  LucideIcons.gripVertical,
+                                  size: 20,
+                                  color: CustomerDetailColors.iconMuted,
+                                ),
                               ),
                               onSkip: c.onVacation || c.isSkipped
                                   ? null
@@ -613,9 +657,8 @@ class _AddCustomerSheetState extends ConsumerState<_AddCustomerSheet> {
     }
     if (mounted) {
       if (failed > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                '$failed customer(s) could not be added (already on route?)')));
+        AppSnackBar.show(context, 
+                '$failed customer(s) could not be added (already on route?)');
       }
       Navigator.of(context).pop();
     }

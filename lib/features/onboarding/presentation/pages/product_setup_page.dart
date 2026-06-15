@@ -15,6 +15,7 @@ import '../../../owner/domain/entities/settings_models.dart';
 import '../../../owner/presentation/providers/owner_provider.dart';
 import '../../../owner/presentation/widgets/product_form_fields.dart';
 import '../providers/onboarding_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class _SavedProductDraft {
   _SavedProductDraft({
@@ -66,22 +67,16 @@ class _ProductSetupPageState extends ConsumerState<ProductSetupPage> {
 
   bool _validateDraft(List<MilkTypeItem> milkTypes) {
     if (_values.milkTypeId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.milkTypeLabel)),
-      );
+      AppSnackBar.show(context, AppStrings.milkTypeLabel);
       return false;
     }
     final rate = double.tryParse(_values.rateText.trim());
     if (rate == null || rate <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.rateRequired)),
-      );
+      AppSnackBar.show(context, AppStrings.rateRequired);
       return false;
     }
     if (_values.selectedContainerIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.containerSizesRequired)),
-      );
+      AppSnackBar.show(context, AppStrings.containerSizesRequired);
       return false;
     }
     if (_values.nameText.trim().isEmpty) {
@@ -190,9 +185,7 @@ class _ProductSetupPageState extends ConsumerState<ProductSetupPage> {
       context.go('/onboarding/dashboard');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mapDioError(e).message)),
-      );
+      AppSnackBar.show(context, mapDioError(e).message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

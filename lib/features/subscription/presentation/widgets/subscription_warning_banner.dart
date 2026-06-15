@@ -19,6 +19,7 @@ import '../../../../core/models/subscription_status.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../features/owner/presentation/providers/owner_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class SubscriptionWarningBanner extends ConsumerWidget {
   const SubscriptionWarningBanner({super.key, required this.warning});
@@ -41,21 +42,14 @@ class SubscriptionWarningBanner extends ConsumerWidget {
       );
       final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!launched && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open UPI app. Please pay manually.'),
-          ),
-        );
+        AppSnackBar.show(context, 'Could not open UPI app. Please pay manually.');
       }
     } else {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Please contact LactoSync support to clear your dues.',
-            ),
-            duration: Duration(seconds: 5),
-          ),
+        AppSnackBar.show(
+          context,
+          'Please contact LactoSync support to clear your dues.',
+          duration: const Duration(seconds: 5),
         );
       }
     }

@@ -11,6 +11,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 import '../providers/delivery_boy_auth_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class DeliveryBoyLoginPage extends ConsumerStatefulWidget {
   const DeliveryBoyLoginPage({super.key});
@@ -46,12 +47,7 @@ class _DeliveryBoyLoginPageState extends ConsumerState<DeliveryBoyLoginPage> {
       context.go('/delivery-boy/home');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(mapDioError(e).message),
-          backgroundColor: CustomerDetailColors.danger,
-        ),
-      );
+      AppSnackBar.showError(context, mapDioError(e).message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -133,7 +129,22 @@ class _DeliveryBoyLoginPageState extends ConsumerState<DeliveryBoyLoginPage> {
                   ],
                   onChanged: (_) => setState(() {}),
                 ),
-                const SizedBox(height: AppSpace.lg),
+                const SizedBox(height: AppSpace.xs),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.push(
+                      '/delivery-boy/forgot-pin',
+                      extra: _phoneCtrl.text.trim(),
+                    ),
+                    child: Text(
+                      'Forgot PIN?',
+                      style: AppText.label
+                          .copyWith(color: CustomerDetailColors.accent),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpace.md),
                 AppButton(
                   label: 'Login',
                   loading: _loading,

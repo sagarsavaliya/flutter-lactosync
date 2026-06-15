@@ -51,25 +51,19 @@ class OwnerRepositoryImpl implements OwnerRepository {
   @override
 
   Future<CustomersListResult> fetchCustomers(CustomersQuery query) async {
-
-    final response = await _dio.get<Map<String, dynamic>>(
-
-      '/owner/customers',
-
-      queryParameters: {
-
-        if (query.search.isNotEmpty) 'search': query.search,
-
-        'status': query.statusParam,
-
-        'sort': query.sortParam,
-
-      },
-
-    );
-
-    return CustomersListResult.fromJson(_readData(response.data));
-
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/owner/customers',
+        queryParameters: {
+          if (query.search.isNotEmpty) 'search': query.search,
+          'status': query.statusParam,
+          'sort': query.sortParam,
+        },
+      );
+      return CustomersListResult.fromJson(_readData(response.data));
+    } catch (e) {
+      throw mapDioError(e);
+    }
   }
 
 

@@ -253,6 +253,15 @@ Route::prefix('delivery-boy/v1')->group(function (): void {
     Route::prefix('auth')->group(function (): void {
         Route::post('login', [DeliveryBoyAuthController::class, 'login'])
             ->middleware('throttle:10,1');
+
+        Route::prefix('forgot-pin')->group(function (): void {
+            Route::post('send-otp', [DeliveryBoyAuthController::class, 'sendForgotPinOtp'])
+                ->middleware('throttle:10,1');
+            Route::post('verify-otp', [DeliveryBoyAuthController::class, 'verifyForgotPinOtp'])
+                ->middleware('throttle:10,1');
+            Route::post('reset', [DeliveryBoyAuthController::class, 'resetForgotPin'])
+                ->middleware('throttle:10,1');
+        });
     });
 
     // Authenticated delivery boy routes

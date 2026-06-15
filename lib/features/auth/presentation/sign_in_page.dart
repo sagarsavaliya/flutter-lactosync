@@ -27,6 +27,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/redesign_scaffold.dart';
 
 import 'providers/auth_provider.dart';
+import '../../../core/widgets/app_snackbar.dart';
 
 
 
@@ -110,7 +111,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
 
       final message = mapDioError(e).message;
 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      AppSnackBar.show(context, message);
 
     } finally {
 

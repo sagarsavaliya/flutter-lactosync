@@ -17,6 +17,7 @@ import 'owner_design_system.dart';
 import 'owner_form_theme.dart';
 import 'owner_shared_widgets.dart';
 import '../../../onboarding/presentation/widgets/rate_calculation_card.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class EditCustomerSheet extends ConsumerStatefulWidget {
   const EditCustomerSheet({super.key, required this.customer});
@@ -91,9 +92,7 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
       final granted = await FlutterContacts.requestPermission(readonly: true);
       if (!mounted) return;
       if (!granted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.contactsPermissionDenied)),
-        );
+        AppSnackBar.show(context, AppStrings.contactsPermissionDenied);
         return;
       }
       final contact = await FlutterContacts.openExternalPick();
@@ -104,9 +103,7 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
       _lastController.text = full.name.last.trim();
       if (full.phones.isEmpty) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.contactNoPhone)),
-        );
+        AppSnackBar.show(context, AppStrings.contactNoPhone);
         return;
       }
       final phone = full.phones.first;
@@ -116,9 +113,7 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
       _contactController.text = last10;
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.contactImportError)),
-      );
+      AppSnackBar.show(context, AppStrings.contactImportError);
     } finally {
       if (mounted) setState(() => _importingContact = false);
     }
@@ -148,12 +143,10 @@ class _EditCustomerSheetState extends ConsumerState<EditCustomerSheet> {
           );
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.saveChanges)),
-      );
+      AppSnackBar.show(context, AppStrings.saveChanges);
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -430,12 +423,10 @@ class _EditSubscriptionSheetState extends ConsumerState<EditSubscriptionSheet> {
           );
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.saveChanges)),
-      );
+      AppSnackBar.show(context, AppStrings.saveChanges);
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -637,12 +628,10 @@ class _CreateSubscriptionSheetState extends ConsumerState<CreateSubscriptionShee
           );
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.createSubscriptionBtn)),
-      );
+      AppSnackBar.show(context, AppStrings.createSubscriptionBtn);
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -817,7 +806,7 @@ class _UpdateOrderLogSheetState extends ConsumerState<UpdateOrderLogSheet> {
       if (mounted) setState(() => _rows = rows);
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -843,15 +832,13 @@ class _UpdateOrderLogSheetState extends ConsumerState<UpdateOrderLogSheet> {
           );
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.orderLogUpdated)),
-      );
+      AppSnackBar.show(context, AppStrings.orderLogUpdated);
     } on ApiException catch (e) {
       if (mounted) {
         final message = e.code == 'UPDATE_FAILED' && e.message.contains('payment')
             ? AppStrings.billRecalcBlocked
             : e.message;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        AppSnackBar.show(context, message);
       }
     } finally {
       if (mounted) setState(() => _saving = false);

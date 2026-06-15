@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 
+import 'app_snackbar.dart';
+
 /// Short-lived status toasts for multi-step owner actions.
 class ActionToast {
-  static void show(BuildContext context, String message, {Duration? duration}) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          duration: duration ?? const Duration(seconds: 4),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+  static void show(
+    BuildContext context,
+    String message, {
+    Duration? duration,
+    bool defer = false,
+  }) {
+    AppSnackBar.show(context, message, duration: duration, defer: defer);
   }
 
   static Future<T> run<T>(

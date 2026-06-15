@@ -7,6 +7,7 @@ import '../../../../core/theme/redesign_colors.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 import '../providers/delivery_boy_auth_provider.dart';
 import '../providers/delivery_boy_route_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class DeliveryBoyRouteSheetPage extends ConsumerStatefulWidget {
   const DeliveryBoyRouteSheetPage({super.key});
@@ -383,8 +384,7 @@ class _CustomerRow extends ConsumerWidget {
       ref.invalidate(deliveryBoyRouteSheetProvider(sheetKey));
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     }
   }

@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/network/dio_provider.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/delivery_provider.dart';
+import '../widgets/customer_detail/customer_detail_styles.dart';
 import '../widgets/dashboard/dashboard_styles.dart';
-import '../widgets/route_milk_prep_compact.dart';
+import '../widgets/owner_design_system.dart';
+import '../widgets/owner_screen_widgets.dart';
 import '../widgets/route_customer_tile.dart';
+import '../widgets/route_milk_prep_compact.dart';
 import '../widgets/routes_today_hero.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 /// Routes overview — matches briefs/redesign app screen lactosync frame 1.
 class RoutesPage extends ConsumerStatefulWidget {
@@ -75,77 +81,100 @@ class _RoutesPageState extends ConsumerState<RoutesPage>
         final activeRoutes = _isMorning ? morning : evening;
         final totals = routesShiftTotals(activeRoutes);
 
-        return RefreshIndicator(
-          color: DashboardColors.primary,
-          onRefresh: () async =>
-              ref.invalidate(deliveryRoutesProvider),
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 100),
-            children: [
-              RoutesTodayHeroCard(
-                ownerFirstName: _ownerFirstName(),
-                isMorning: _isMorning,
-                routeCount: totals.routeCount,
-                stops: totals.stops,
-                liters: totals.liters,
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 2, 20, 12),
-                child: Row(
-                  children: [
-                    Text(
-                      'Routes',
-                      style: AppText.cardTitle.copyWith(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1E2A1E),
+        return ColoredBox(
+          color: CustomerDetailColors.background,
+          child: RefreshIndicator(
+            color: DashboardColors.primary,
+            onRefresh: () async =>
+                ref.invalidate(deliveryRoutesProvider),
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 88),
+              children: [
+                RoutesTodayHeroCard(
+                  ownerFirstName: _ownerFirstName(),
+                  isMorning: _isMorning,
+                  routeCount: totals.routeCount,
+                  stops: totals.stops,
+                  liters: totals.liters,
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    DashboardSpace.page,
+                    0,
+                    DashboardSpace.page,
+                    AppSpace.sm,
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Routes',
+                        style: AppText.cardTitle.copyWith(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: CustomerDetailColors.onSurface,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(
+                          LucideIcons.users,
+                          color: CustomerDetailColors.bodyInk,
+                          size: 22,
+                        ),
+                        tooltip: 'Delivery boys',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => context.push('/owner/delivery-boys'),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          LucideIcons.plus,
+                          color: CustomerDetailColors.bodyInk,
+                          size: 22,
+                        ),
+                        tooltip: 'Add route',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: _showAddSheet,
+                      ),
+                    ],
+                  ),
+                ),
+                _RoutesShiftTabs(controller: _tabs),
+                const SizedBox(height: 12),
+                if (activeRoutes.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DashboardSpace.page,
+                    ),
+                    child: Text(
+                      _isMorning
+                          ? 'No morning routes yet.'
+                          : 'No evening routes yet.',
+                      textAlign: TextAlign.center,
+                      style: AppText.meta.copyWith(
+                        color: CustomerDetailColors.iconMuted,
                       ),
                     ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.group_add_outlined,
-                          color: Color(0xFF3A463C), size: 22),
-                      tooltip: 'Delivery boys',
-                      onPressed: () => context.push('/owner/delivery-boys'),
+                  )
+                else
+                  ...activeRoutes.map(
+                    (route) => _RouteCard(
+                      route: route,
+                      onRefresh: () => ref.invalidate(deliveryRoutesProvider),
+                      onEdit: () => _showEditSheet(route),
+                      onDelete: () => _confirmDeleteRoute(route),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add,
-                          color: Color(0xFF3A463C), size: 24),
-                      tooltip: 'Add route',
-                      onPressed: _showAddSheet,
-                    ),
-                  ],
-                ),
-              ),
-              _RoutesShiftTabs(controller: _tabs),
-              const SizedBox(height: 16),
-              if (activeRoutes.isEmpty)
+                  ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    _isMorning
-                        ? 'No morning routes yet.'
-                        : 'No evening routes yet.',
-                    textAlign: TextAlign.center,
-                    style: AppText.meta.copyWith(
-                      color: DashboardColors.onSurfaceVariant,
-                    ),
+                  padding: const EdgeInsets.fromLTRB(
+                    DashboardSpace.page,
+                    AppSpace.xs,
+                    DashboardSpace.page,
+                    AppSpace.md,
                   ),
-                )
-              else
-                ...activeRoutes.map(
-                  (route) => _RouteCard(
-                    route: route,
-                    onRefresh: () => ref.invalidate(deliveryRoutesProvider),
-                    onEdit: () => _showEditSheet(route),
-                    onDelete: () => _confirmDeleteRoute(route),
-                  ),
+                  child: _DashedAddRouteButton(onTap: _showAddSheet),
                 ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                child: _DashedAddRouteButton(onTap: _showAddSheet),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -185,9 +214,7 @@ class _RoutesPageState extends ConsumerState<RoutesPage>
       await deleteDeliveryRoute(ref, route.id);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mapDioError(e).message)),
-      );
+      AppSnackBar.show(context, mapDioError(e).message);
     }
   }
 }
@@ -200,13 +227,13 @@ class _RoutesShiftTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: DashboardSpace.page),
       child: TabBar(
         controller: controller,
-        indicatorColor: const Color(0xFF2E6E45),
+        indicatorColor: CustomerDetailColors.accent,
         indicatorWeight: 3,
-        labelColor: const Color(0xFF2E6E45),
-        unselectedLabelColor: const Color(0xFF9AA597),
+        labelColor: CustomerDetailColors.accent,
+        unselectedLabelColor: CustomerDetailColors.iconMuted,
         labelStyle: AppText.cardTitle.copyWith(
           fontSize: 16,
           fontWeight: FontWeight.w700,
@@ -214,9 +241,9 @@ class _RoutesShiftTabs extends StatelessWidget {
         unselectedLabelStyle: AppText.cardTitle.copyWith(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFF9AA597),
+          color: CustomerDetailColors.iconMuted,
         ),
-        dividerColor: const Color(0xFFE1E5D9),
+        dividerColor: CustomerDetailColors.border,
         tabs: const [
           Tab(text: 'Morning'),
           Tab(text: 'Evening'),
@@ -254,15 +281,21 @@ class _RouteCardState extends State<_RouteCard> {
     final hasRider = riderName != null && riderName.isNotEmpty;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 13),
+      padding: const EdgeInsets.fromLTRB(
+        DashboardSpace.page,
+        0,
+        DashboardSpace.page,
+        12,
+      ),
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(_expanded ? 22 : 20),
-          border: Border.all(color: const Color(0xFFECEFE5)),
+        decoration: ownerWhiteCardDecoration(
+          radius: _expanded ? 22 : OwnerScreenMetrics.cardRadius,
+        ).copyWith(
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF283C28).withValues(alpha: _expanded ? 0.12 : 0.08),
+              color: const Color(0xFF283C28).withValues(
+                alpha: _expanded ? 0.12 : 0.08,
+              ),
               blurRadius: _expanded ? 22 : 18,
               offset: Offset(0, _expanded ? 8 : 6),
             ),
@@ -272,7 +305,7 @@ class _RouteCardState extends State<_RouteCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(16, 15, 12, _expanded ? 14 : 15),
+              padding: EdgeInsets.fromLTRB(16, 15, 10, _expanded ? 14 : 15),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -288,7 +321,7 @@ class _RouteCardState extends State<_RouteCard> {
                             height: 46,
                             decoration: BoxDecoration(
                               color: isMorning
-                                  ? const Color(0xFFFCE6BD)
+                                  ? CustomerDetailColors.morningChipBg
                                   : const Color(0xFFE0E4F5),
                               borderRadius: BorderRadius.circular(14),
                             ),
@@ -312,7 +345,7 @@ class _RouteCardState extends State<_RouteCard> {
                                   style: AppText.cardTitle.copyWith(
                                     fontSize: 19,
                                     fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF1E2A1E),
+                                    color: CustomerDetailColors.onSurface,
                                     height: 1.15,
                                   ),
                                 ),
@@ -323,8 +356,8 @@ class _RouteCardState extends State<_RouteCard> {
                                       Icons.two_wheeler_outlined,
                                       size: 16,
                                       color: hasRider
-                                          ? const Color(0xFF2E6E45)
-                                          : const Color(0xFF9AA597),
+                                          ? CustomerDetailColors.accent
+                                          : CustomerDetailColors.iconMuted,
                                     ),
                                     const SizedBox(width: 6),
                                     Expanded(
@@ -339,9 +372,9 @@ class _RouteCardState extends State<_RouteCard> {
                                           fontWeight: FontWeight.w700,
                                           color: hasRider
                                               ? (_expanded
-                                                  ? const Color(0xFF9AA597)
-                                                  : const Color(0xFF2E6E45))
-                                              : const Color(0xFF9AA597),
+                                                  ? CustomerDetailColors.iconMuted
+                                                  : CustomerDetailColors.accent)
+                                              : CustomerDetailColors.iconMuted,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -364,8 +397,11 @@ class _RouteCardState extends State<_RouteCard> {
                         borderRadius: BorderRadius.circular(8),
                         child: const Padding(
                           padding: EdgeInsets.all(6),
-                          child: Icon(Icons.edit_outlined,
-                              size: 20, color: Color(0xFF6E7A6C)),
+                          child: Icon(
+                            LucideIcons.pencil,
+                            size: 18,
+                            color: CustomerDetailColors.morningChipInk,
+                          ),
                         ),
                       ),
                       InkWell(
@@ -373,8 +409,11 @@ class _RouteCardState extends State<_RouteCard> {
                         borderRadius: BorderRadius.circular(8),
                         child: const Padding(
                           padding: EdgeInsets.all(6),
-                          child: Icon(Icons.delete_outline,
-                              size: 20, color: Color(0xFF6E7A6C)),
+                          child: Icon(
+                            LucideIcons.trash2,
+                            size: 18,
+                            color: CustomerDetailColors.morningChipInk,
+                          ),
                         ),
                       ),
                       InkWell(
@@ -386,11 +425,11 @@ class _RouteCardState extends State<_RouteCard> {
                             turns: _expanded ? 0.5 : 0,
                             duration: const Duration(milliseconds: 200),
                             child: Icon(
-                              Icons.expand_more,
-                              size: 20,
+                              LucideIcons.chevronDown,
+                              size: 18,
                               color: _expanded
-                                  ? const Color(0xFF2E6E45)
-                                  : const Color(0xFF6E7A6C),
+                                  ? CustomerDetailColors.accent
+                                  : CustomerDetailColors.morningChipInk,
                             ),
                           ),
                         ),
@@ -426,7 +465,7 @@ class _RouteCardState extends State<_RouteCard> {
                   child: FilledButton(
                     onPressed: () => context.push('/owner/routes/${route.id}'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E6E45),
+                      backgroundColor: CustomerDetailColors.accent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 28,
@@ -476,31 +515,32 @@ class _DashedAddRouteButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: const Color(0xFFC5CFBE),
-              width: 1.5,
-              strokeAlign: BorderSide.strokeAlignInside,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.add, size: 18, color: Color(0xFF6E8A72)),
-              const SizedBox(width: 8),
-              Text(
-                'Add a route',
-                style: AppText.meta.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF6E8A72),
+        borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+        child: OwnerDashedOutline(
+          radius: CustomerDetailMetrics.sectionCardRadius,
+          color: CustomerDetailColors.accentBorder,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  LucideIcons.plus,
+                  size: 18,
+                  color: CustomerDetailColors.accent,
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  'Add a route',
+                  style: AppText.meta.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: CustomerDetailColors.accent,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -557,8 +597,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     } finally {
       if (mounted) setState(() => _saving = false);

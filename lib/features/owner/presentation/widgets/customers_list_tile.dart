@@ -152,7 +152,6 @@ class _NameBlock extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(
                   Icons.flight_takeoff_rounded,
@@ -160,7 +159,7 @@ class _NameBlock extends StatelessWidget {
                   color: CustomerListColors.vacationBlue,
                 ),
                 const SizedBox(width: 5),
-                Flexible(
+                Expanded(
                   child: Text(
                     vacationMeta!,
                     maxLines: 1,

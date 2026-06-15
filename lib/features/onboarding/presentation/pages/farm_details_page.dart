@@ -23,6 +23,7 @@ import '../../../../core/widgets/redesign_scaffold.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 import '../providers/onboarding_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 
 
@@ -160,11 +161,7 @@ class _FarmDetailsPageState extends ConsumerState<FarmDetailsPage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-
-        SnackBar(content: Text(mapDioError(e).message)),
-
-      );
+      AppSnackBar.show(context, mapDioError(e).message);
 
     } finally {
 

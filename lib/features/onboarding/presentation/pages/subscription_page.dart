@@ -16,6 +16,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/onboarding_models.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/rate_calculation_card.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 const List<double> kSubscriptionQtyOptions = [
   0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0,
@@ -94,9 +95,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
 
   Future<void> _submit() async {
     if (_selectedCustomer == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a customer first')),
-      );
+      AppSnackBar.show(context, 'Add a customer first');
       return;
     }
 
@@ -117,9 +116,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
     }
 
     if (payload.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add at least one product line')),
-      );
+      AppSnackBar.show(context, 'Add at least one product line');
       return;
     }
 
@@ -134,9 +131,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
       context.go('/dashboard');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mapDioError(e).message)),
-      );
+      AppSnackBar.show(context, mapDioError(e).message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

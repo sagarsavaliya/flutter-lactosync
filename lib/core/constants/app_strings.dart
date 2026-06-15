@@ -263,7 +263,7 @@ abstract final class AppStrings {
   static const billingPartial = 'Partial';
   static const billingUnpaid = 'Unpaid';
   static const billingEmpty = 'No bills for this month';
-  static const billingDetailTitle = 'Bill details';
+  static const billingDetailTitle = 'Bill detail';
   static const billingLineItems = 'Items';
   static const billingPayments = 'Payments';
   static const billingNoPayments = 'No payments recorded yet';
@@ -405,9 +405,12 @@ abstract final class AppStrings {
   static const selectCustomerLabel = 'Select customer';
   static const sendBillOnWhatsApp = 'Send bill on WhatsApp';
   static const generateBillButton = 'Generate bill';
-  static const recalculateBillButton = 'Recalculate';
+  static const recalculateBillButton = 'Regenerate';
   static const generateBillSuccess = 'Bill generated';
   static const recalculateBillSuccess = 'Bill recalculated';
+  static const printBillButton = 'Print';
+  static const shareBillButton = 'Share';
+  static const shareBillFailed = 'Could not share bill';
   static const collectPaymentTitle = 'Collect payment';
   static const selectPendingBill = 'Pending bill';
   static const paymentAmountLabel = 'Amount';

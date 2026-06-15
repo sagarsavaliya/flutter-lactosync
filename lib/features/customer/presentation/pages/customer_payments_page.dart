@@ -10,6 +10,7 @@ import '../../../owner/presentation/widgets/customer_detail/customer_detail_widg
 import '../../data/repositories/customer_billing_repository.dart';
 import '../providers/customer_billing_provider.dart';
 import '../providers/customer_dashboard_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class CustomerPaymentsPage extends ConsumerWidget {
   const CustomerPaymentsPage({super.key});
@@ -199,9 +200,7 @@ class _OutstandingCardState extends State<_OutstandingCard> {
   Future<void> _launchUpi() async {
     final vpa = widget.upiVpa;
     if (vpa == null || vpa.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('UPI payment not configured by the dairy.')),
-      );
+      AppSnackBar.show(context, 'UPI payment not configured by the dairy.');
       return;
     }
     final payee = Uri.encodeComponent(widget.upiPayeeName ?? 'Dairy');
@@ -212,9 +211,7 @@ class _OutstandingCardState extends State<_OutstandingCard> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No UPI app found. Please install one to continue.')),
-      );
+      AppSnackBar.show(context, 'No UPI app found. Please install one to continue.');
     }
   }
 

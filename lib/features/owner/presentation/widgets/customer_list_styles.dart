@@ -164,7 +164,6 @@ class CustomersShiftSummaryCards extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 2, 0, 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
             child: _ShiftSummaryCard(
@@ -272,8 +271,7 @@ class _ShiftStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      textBaseline: TextBaseline.alphabetic,
-      crossAxisAlignment: CrossAxisAlignment.baseline,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           '$value',
@@ -428,29 +426,31 @@ class CustomersAlphabetIndex extends StatelessWidget {
     final available = letters.toSet();
     return Padding(
       padding: const EdgeInsets.only(right: 5, top: 4),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          for (final ch in _alphabet.split(''))
-            GestureDetector(
-              onTap: available.contains(ch) ? () => onLetter(ch) : null,
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 1),
-                child: Text(
-                  ch,
-                  style: AppText.meta.copyWith(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: available.contains(ch)
-                        ? CustomerListColors.accent
-                        : CustomerListColors.indexInk,
-                    height: 1.35,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            for (final ch in _alphabet.split(''))
+              GestureDetector(
+                onTap: available.contains(ch) ? () => onLetter(ch) : null,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 1),
+                  child: Text(
+                    ch,
+                    style: AppText.meta.copyWith(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: available.contains(ch)
+                          ? CustomerListColors.accent
+                          : CustomerListColors.indexInk,
+                      height: 1.35,
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

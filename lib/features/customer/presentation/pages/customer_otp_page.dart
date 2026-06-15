@@ -13,6 +13,7 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
 import '../providers/customer_auth_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class CustomerOtpPage extends ConsumerStatefulWidget {
   const CustomerOtpPage({
@@ -101,12 +102,7 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
       _startCountdown();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(mapDioError(e).message),
-          backgroundColor: CustomerDetailColors.danger,
-        ),
-      );
+      AppSnackBar.showError(context, mapDioError(e).message);
     } finally {
       if (mounted) setState(() => _sendLoading = false);
     }
@@ -132,12 +128,7 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
       context.push('/customer/set-pin', extra: {'contact': _sentToContact});
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(mapDioError(e).message),
-          backgroundColor: CustomerDetailColors.danger,
-        ),
-      );
+      AppSnackBar.showError(context, mapDioError(e).message);
     } finally {
       if (mounted) setState(() => _verifyLoading = false);
     }
@@ -148,17 +139,10 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
       await ref.read(customerAuthRepositoryProvider).sendOtp(_sentToContact);
       if (!mounted) return;
       _startCountdown();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP resent on WhatsApp.')),
-      );
+      AppSnackBar.show(context, 'OTP resent on WhatsApp.');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(mapDioError(e).message),
-          backgroundColor: CustomerDetailColors.danger,
-        ),
-      );
+      AppSnackBar.showError(context, mapDioError(e).message);
     }
   }
 

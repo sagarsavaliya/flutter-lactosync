@@ -9,6 +9,7 @@ import '../../../../core/theme/redesign_colors.dart';
 import '../../../../core/widgets/app_dialogs.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 import '../providers/delivery_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class OwnerRouteSheetPage extends ConsumerStatefulWidget {
   const OwnerRouteSheetPage({super.key});
@@ -166,9 +167,7 @@ class _RouteCard extends StatelessWidget {
       ref.invalidate(ownerRouteSheetProvider(query));
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(mapDioError(e).message)),
-        );
+        AppSnackBar.show(context, mapDioError(e).message);
       }
     }
   }

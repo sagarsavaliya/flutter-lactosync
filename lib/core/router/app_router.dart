@@ -33,8 +33,10 @@ import '../../features/owner/presentation/pages/customer_detail_page.dart';
 import '../../features/owner/presentation/pages/edit_customer_page.dart';
 import '../../features/owner/presentation/pages/customers_list_page.dart';
 import '../../features/owner/presentation/pages/daily_orders_page.dart';
+import '../../features/delivery_boy/presentation/pages/delivery_boy_forgot_pin_page.dart';
 import '../../features/delivery_boy/presentation/pages/delivery_boy_home_page.dart';
 import '../../features/delivery_boy/presentation/pages/delivery_boy_login_page.dart';
+import '../../features/delivery_boy/presentation/pages/delivery_boy_reset_pin_page.dart';
 import '../../features/delivery_boy/presentation/pages/delivery_boy_route_sheet_page.dart';
 import '../../features/delivery_boy/presentation/pages/delivery_boy_set_pin_page.dart';
 import '../../features/delivery_boy/presentation/shell/delivery_boy_shell.dart';
@@ -297,6 +299,24 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/delivery-boy/login',
       builder: (context, state) => const DeliveryBoyLoginPage(),
+    ),
+    GoRoute(
+      path: '/delivery-boy/forgot-pin',
+      builder: (context, state) {
+        final phone = state.extra as String? ?? '';
+        return DeliveryBoyForgotPinPage(initialPhone: phone);
+      },
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/delivery-boy/reset-pin',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return DeliveryBoyResetPinPage(
+          phone: (extra['phone'] as String?) ?? '',
+          resetToken: (extra['reset_token'] as String?) ?? '',
+        );
+      },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

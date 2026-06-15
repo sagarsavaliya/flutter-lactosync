@@ -1115,6 +1115,7 @@ class OwnerController extends Controller
             'id' => $log->id,
             'customer_id' => $log->customer_id,
             'customer_name' => $log->customer?->fullName() ?? '',
+            'short_address' => $log->customer?->shortAddress() ?? '',
             'subscription_id' => $log->subscription_id,
             'subscription_line_id' => $log->subscription_line_id,
             'product_id' => $log->product_id,

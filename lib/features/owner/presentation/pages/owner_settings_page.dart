@@ -17,6 +17,7 @@ import '../providers/owner_provider.dart';
 import '../widgets/customer_detail/customer_detail_styles.dart';
 import '../widgets/owner_design_system.dart';
 import '../widgets/owner_screen_widgets.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class OwnerSettingsPage extends ConsumerStatefulWidget {
   const OwnerSettingsPage({super.key});
@@ -82,9 +83,7 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
     } on ApiException catch (_) {
       if (mounted) {
         setState(() => _prefillCustomerAddress = !newValue);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppStrings.settingsPrefillSaveFailed)),
-        );
+        AppSnackBar.show(context, AppStrings.settingsPrefillSaveFailed);
       }
     }
   }
@@ -151,7 +150,7 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
       ref.invalidate(ownerSettingsProvider);
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     }
   }
@@ -193,13 +192,11 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
             _loaded = false; // allow re-load on next build
             if (mounted) {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text(AppStrings.settingsSaved)),
-              );
+              AppSnackBar.show(context, AppStrings.settingsSaved);
             }
           } on ApiException catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+              AppSnackBar.show(context, e.message);
             }
           } finally {
             if (mounted) setState(() => _savingFarm = false);
@@ -363,8 +360,7 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
                           } on ApiException catch (e) {
                             if (mounted) {
                               setState(() => _includeFarmHeader = !v);
-                              ScaffoldMessenger.of(context)
-                                  .showSnackBar(SnackBar(content: Text(e.message)));
+                              AppSnackBar.show(context, e.message);
                             }
                           }
                         },
@@ -838,14 +834,11 @@ class _MilkTypesSectionState extends ConsumerState<_MilkTypesSection> {
             ref.invalidate(milkTypesProvider);
             if (mounted) {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text(AppStrings.settingsMilkTypeAdded)),
-              );
+              AppSnackBar.show(context, AppStrings.settingsMilkTypeAdded);
             }
           } on ApiException catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(e.message)));
+              AppSnackBar.show(context, e.message);
             }
           } finally {
             if (mounted) setState(() => _adding = false);
@@ -867,9 +860,7 @@ class _MilkTypesSectionState extends ConsumerState<_MilkTypesSection> {
       ref.invalidate(milkTypesProvider);
     } on ApiException catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.settingsToggleError)),
-        );
+        AppSnackBar.show(context, AppStrings.settingsToggleError);
         ref.invalidate(milkTypesProvider);
       }
     }
@@ -893,7 +884,7 @@ class _MilkTypesSectionState extends ConsumerState<_MilkTypesSection> {
         final msg = e.code == 'TYPE_IN_USE'
             ? AppStrings.settingsDeleteTypeBlocked
             : e.message;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        AppSnackBar.show(context, msg);
         ref.invalidate(milkTypesProvider);
       }
     }
@@ -1150,15 +1141,11 @@ class _ContainerTypesSectionState extends ConsumerState<_ContainerTypesSection> 
             ref.invalidate(ownerContainerTypesProvider);
             if (mounted) {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text(AppStrings.settingsContainerTypeAdded)),
-              );
+              AppSnackBar.show(context, AppStrings.settingsContainerTypeAdded);
             }
           } on ApiException catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(e.message)));
+              AppSnackBar.show(context, e.message);
             }
           }
         },
@@ -1180,14 +1167,11 @@ class _ContainerTypesSectionState extends ConsumerState<_ContainerTypesSection> 
       await ref.read(ownerRepositoryProvider).deleteOwnerContainerType(item.id);
       ref.invalidate(ownerContainerTypesProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.settingsContainerTypeRemoved)),
-        );
+        AppSnackBar.show(context, AppStrings.settingsContainerTypeRemoved);
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     }
   }
@@ -1623,14 +1607,11 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
             ref.invalidate(ownerProductsProvider);
             if (mounted) {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text(AppStrings.settingsProductAdded)),
-              );
+              AppSnackBar.show(context, AppStrings.settingsProductAdded);
             }
           } on ApiException catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(e.message)));
+              AppSnackBar.show(context, e.message);
             }
           }
         },
@@ -1656,14 +1637,11 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
             ref.invalidate(ownerProductsProvider);
             if (mounted) {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text(AppStrings.settingsProductUpdated)),
-              );
+              AppSnackBar.show(context, AppStrings.settingsProductUpdated);
             }
           } on ApiException catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(e.message)));
+              AppSnackBar.show(context, e.message);
             }
           }
         },
@@ -1685,14 +1663,11 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
       await ref.read(ownerRepositoryProvider).deleteOwnerProduct(product.id);
       ref.invalidate(ownerProductsProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.settingsProductRemoved)),
-        );
+        AppSnackBar.show(context, AppStrings.settingsProductRemoved);
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     }
   }

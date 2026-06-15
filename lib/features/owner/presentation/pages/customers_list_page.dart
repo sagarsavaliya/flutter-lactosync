@@ -12,8 +12,10 @@ import '../widgets/customer_list_styles.dart';
 import '../widgets/customers_list_tile.dart';
 import '../widgets/owner_design_system.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/network/dio_provider.dart';
 import '../widgets/owner_action_sheets.dart';
 import '../widgets/vacation_sheet.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class _ListEntry {
   const _ListEntry.header(this.letter) : customer = null;
@@ -124,7 +126,7 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
           await _refreshList();
         } on ApiException catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+            AppSnackBar.show(context, e.message);
           }
         }
       },
@@ -139,12 +141,26 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
       final letter = customerIndexLetter(customer.fullName);
       if (letter != currentLetter) {
         currentLetter = letter;
-        _sectionKeys.putIfAbsent(letter, GlobalKey.new);
         entries.add(_ListEntry.header(letter));
       }
       entries.add(_ListEntry.customer(customer));
     }
+
+    final letters = entries
+        .where((e) => e.letter != null)
+        .map((e) => e.letter!)
+        .toSet();
+    _sectionKeys.removeWhere((key, _) => !letters.contains(key));
+    for (final letter in letters) {
+      _sectionKeys.putIfAbsent(letter, GlobalKey.new);
+    }
+
     return entries;
+  }
+
+  String _errorMessage(Object error) {
+    if (error is ApiException) return error.message;
+    return mapDioError(error).message;
   }
 
   List<String> _sectionLetters(List<_ListEntry> entries) {
@@ -195,10 +211,35 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
                       color: CustomerListColors.accent,
                     ),
                   ),
-                  error: (_, __) => Center(
-                    child: TextButton(
-                      onPressed: _refreshList,
-                      child: const Text('Retry'),
+                  error: (error, _) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.cloud_off_outlined,
+                            size: 40,
+                            color: CustomerListColors.addressMuted,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _errorMessage(error),
+                            style: AppText.body.copyWith(
+                              color: CustomerListColors.addressMuted,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: CustomerListColors.accent,
+                            ),
+                            onPressed: _refreshList,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   data: (data) {
@@ -216,63 +257,69 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
                     final entries = _buildEntries(data.customers);
                     final letters = _sectionLetters(entries);
 
-                    return Row(
+                    return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: RefreshIndicator(
-                            color: CustomerListColors.accent,
-                            onRefresh: _refreshList,
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.fromLTRB(
-                                  16, 0, 8, 96),
-                              itemCount: entries.length + 1,
-                              itemBuilder: (context, index) {
-                                if (index == 0) {
-                                  return CustomersShiftSummaryCards(
-                                    morning: data.morning,
-                                    evening: data.evening,
-                                  );
-                                }
-
-                                final entry = entries[index - 1];
-                                if (entry.letter != null) {
-                                  return KeyedSubtree(
-                                    key: _sectionKeys[entry.letter!],
-                                    child: CustomersSectionHeader(
-                                      letter: entry.letter!,
-                                    ),
-                                  );
-                                }
-
-                                final customer = entry.customer!;
-                                return Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: CustomerListMetrics.cardGap,
-                                  ),
-                                  child: CustomerListTile(
-                                    name: customer.fullName,
-                                    address: customer.shortAddress,
-                                    status: customer.displayStatus,
-                                    subscriptionCount:
-                                        customer.subscriptionCount,
-                                    vacationEnd: customer.vacationEnd,
-                                    onVacationTap: customer.displayStatus ==
-                                            CustomerDisplayStatus.inactive
-                                        ? null
-                                        : () => _openVacationSheet(customer),
-                                    onTap: () => context.push(
-                                        '/owner/customers/${customer.id}'),
-                                  ),
-                                );
-                              },
-                            ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                          child: CustomersShiftSummaryCards(
+                            morning: data.morning,
+                            evening: data.evening,
                           ),
                         ),
-                        CustomersAlphabetIndex(
-                          letters: letters,
-                          onLetter: _scrollToLetter,
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: RefreshIndicator(
+                                  color: CustomerListColors.accent,
+                                  onRefresh: _refreshList,
+                                  child: ListView.builder(
+                                    controller: _scrollController,
+                                    padding: const EdgeInsets.fromLTRB(16, 0, 8, 96),
+                                    itemCount: entries.length,
+                                    itemBuilder: (context, index) {
+                                      final entry = entries[index];
+                                      if (entry.letter != null) {
+                                        return KeyedSubtree(
+                                          key: _sectionKeys[entry.letter!],
+                                          child: CustomersSectionHeader(
+                                            letter: entry.letter!,
+                                          ),
+                                        );
+                                      }
+
+                                      final customer = entry.customer!;
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: CustomerListMetrics.cardGap,
+                                        ),
+                                        child: CustomerListTile(
+                                          name: customer.fullName,
+                                          address: customer.shortAddress,
+                                          status: customer.displayStatus,
+                                          subscriptionCount: customer.subscriptionCount,
+                                          vacationEnd: customer.vacationEnd,
+                                          onVacationTap: customer.displayStatus ==
+                                                  CustomerDisplayStatus.inactive
+                                              ? null
+                                              : () => _openVacationSheet(customer),
+                                          onTap: () => context.push(
+                                            '/owner/customers/${customer.id}',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              CustomersAlphabetIndex(
+                                letters: letters,
+                                onLetter: _scrollToLetter,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     );

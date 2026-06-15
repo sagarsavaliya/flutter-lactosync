@@ -17,6 +17,7 @@ import '../widgets/customer_detail/customer_detail_widgets.dart';
 import '../widgets/owner_design_system.dart';
 import '../widgets/owner_action_sheets.dart';
 import '../widgets/vacation_sheet.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class _SubscriptionLineView {
   const _SubscriptionLineView({
@@ -85,9 +86,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
       await ref.read(ownerRepositoryProvider).deleteCustomer(id);
       if (mounted) {
         ref.invalidate(customersListProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.deleteCustomerDone)),
-        );
+        AppSnackBar.show(context, AppStrings.deleteCustomerDone);
         context.pop();
       }
     } on ApiException catch (e) {
@@ -95,9 +94,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
         final message = e.code == 'CUSTOMER_HAS_UNPAID_BILLS' || e.code == 'CUSTOMER_HAS_HISTORY'
             ? AppStrings.deleteCustomerBlocked
             : e.message;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        AppSnackBar.show(context, message);
       }
     }
   }
@@ -119,7 +116,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
           if (mounted) ref.invalidate(customerDetailProvider(_query));
         } on ApiException catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+            AppSnackBar.show(context, e.message);
           }
         }
       },
@@ -132,9 +129,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
   }) async {
     if (!data.customer.whatsappEnabled) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.whatsappNo)),
-        );
+        AppSnackBar.show(context, AppStrings.whatsappNo);
       }
       return;
     }
@@ -195,9 +190,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
   Future<void> _remindCustomer(CustomerDetailInfo customer, double pending) async {
     if (!customer.whatsappEnabled) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.whatsappNo)),
-        );
+        AppSnackBar.show(context, AppStrings.whatsappNo);
       }
       return;
     }
@@ -214,15 +207,18 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
     }
   }
 
-  (double paid, double pending) _billingTotals(List<OwnerInvoice> bills, String billingMonth) {
-    var paid = 0.0;
-    var pending = 0.0;
-    for (final bill in bills) {
-      if (bill.billingMonth != billingMonth) continue;
-      paid += bill.amountPaid;
-      pending += bill.balanceDue;
-    }
-    return (paid, pending);
+  List<OwnerInvoice> _billsThroughMonth(List<OwnerInvoice> bills, String selectedMonth) {
+    final normalizedSelected = normalizeBillingMonth(selectedMonth);
+    return bills
+        .where(
+          (bill) =>
+              normalizeBillingMonth(bill.billingMonth).compareTo(normalizedSelected) <= 0,
+        )
+        .toList()
+      ..sort(
+        (a, b) => normalizeBillingMonth(b.billingMonth)
+            .compareTo(normalizeBillingMonth(a.billingMonth)),
+      );
   }
 
   String _formatAmount(double value) {
@@ -261,17 +257,17 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                 data: (data) {
                   final customer = data.customer;
                   final subscriptionLines = _flattenSubscriptionLines(data.subscriptions);
+                  final selectedBillingMonth = _billingMonthParam(_month);
+                  final monthBills =
+                      _billsThroughMonth(data.billingHistory, selectedBillingMonth);
                   final visibleBills = _showAllBills
-                      ? data.billingHistory
-                      : data.billingHistory.take(3).toList();
-                  final (totalPaid, totalPending) =
-                      _billingTotals(data.billingHistory, _billingMonthParam(_month));
-                  final pendingBills =
-                      data.billingHistory.where((b) => b.balanceDue > 0).toList();
-                  // Dues card reflects the customer's full outstanding across all
-                  // months (cumulative) — previous unpaid months roll up here.
-                  final cumulativePending = data.billingHistory
-                      .fold<double>(0, (sum, b) => sum + b.balanceDue);
+                      ? monthBills
+                      : monthBills.take(3).toList();
+                  final (_, aggregatePending) = billingHistoryAggregateTotals(monthBills);
+                  final pendingBills = data.billingHistory
+                      .where((b) => b.status != 'paid' && billingChipAmount(b) > 0)
+                      .toList();
+                  final cumulativePending = billingHistoryAggregateTotals(data.billingHistory).$2;
                   final cumulativePaid = data.billingHistory
                       .fold<double>(0, (sum, b) => sum + b.amountPaid);
                   final isOnVacation = customer.displayStatus == CustomerDisplayStatus.vacation;
@@ -288,7 +284,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                         CustomerDetailHeroCard(
                           customer: customer,
                           monthTotal: data.consumption.grandTotal,
-                          pendingTotal: totalPending,
+                          pendingTotal: aggregatePending,
                           subscriptionCount: subscriptionLines.length,
                         ),
                         const SizedBox(height: 16),
@@ -299,12 +295,14 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                         const SizedBox(height: 12),
                         CustomerDetailMonthNav(
                           month: _month,
-                          onPrevious: () => setState(
-                            () => _month = DateTime(_month.year, _month.month - 1),
-                          ),
-                          onNext: () => setState(
-                            () => _month = DateTime(_month.year, _month.month + 1),
-                          ),
+                          onPrevious: () => setState(() {
+                            _month = DateTime(_month.year, _month.month - 1);
+                            _showAllBills = false;
+                          }),
+                          onNext: () => setState(() {
+                            _month = DateTime(_month.year, _month.month + 1);
+                            _showAllBills = false;
+                          }),
                         ),
                         CustomerDetailSectionLabel(
                           title: AppStrings.subscriptionsTitle.toUpperCase(),
@@ -369,11 +367,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                                       );
                                   if (mounted) {
                                     ref.invalidate(customerDetailProvider(_query));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(AppStrings.deleteSubscriptionDone),
-                                      ),
-                                    );
+                                    AppSnackBar.show(context, AppStrings.deleteSubscriptionDone);
                                   }
                                 } on ApiException catch (e) {
                                   if (mounted) {
@@ -383,9 +377,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                                       'SUBSCRIPTION_IN_USE' => AppStrings.deleteSubscriptionBlocked,
                                       _ => e.message,
                                     };
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text(message)),
-                                    );
+                                    AppSnackBar.show(context, message);
                                   }
                                 }
                               },
@@ -434,11 +426,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                               : null,
                         ),
                         CustomerDetailBillingHistorySection(
-                          totalPaidLabel:
-                              '${AppStrings.billingPaidShort} ₹${_formatAmount(totalPaid)}',
-                          totalPendingLabel:
-                              '${AppStrings.billingPendingShort} ₹${_formatAmount(totalPending)}',
-                          bills: data.billingHistory,
+                          bills: monthBills,
                           visibleBills: visibleBills,
                           showAllBills: _showAllBills,
                           onGenerateBill: () async {
@@ -453,7 +441,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                           },
                           onBillTap: (invoice) =>
                               context.push('/owner/billing/${invoice.id}'),
-                          onToggleShowAll: data.billingHistory.length > 3
+                          onToggleShowAll: monthBills.length > 3
                               ? () => setState(() => _showAllBills = !_showAllBills)
                               : null,
                           emptyMessage: AppStrings.noBillsGenerated,

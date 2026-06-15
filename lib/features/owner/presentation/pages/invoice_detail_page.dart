@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/widgets/action_toast.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/services/invoice_document_builder.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/print_document.dart';
+import '../../../../core/widgets/action_toast.dart';
 import '../../domain/entities/owner_models.dart';
 import '../providers/owner_provider.dart';
 import '../widgets/customer_detail/customer_detail_styles.dart';
@@ -26,6 +30,7 @@ class InvoiceDetailPage extends ConsumerStatefulWidget {
 
 class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
   bool _sending = false;
+  bool _regenerating = false;
 
   ({Color bg, Color fg, Color border}) _statusStyle(String status) {
     return switch (status) {
@@ -55,6 +60,91 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
     };
   }
 
+  double _dueAmount(OwnerInvoice invoice) {
+    if (invoice.status == 'paid') return 0;
+    if (invoice.balanceDue > 0) return invoice.balanceDue;
+    return invoice.totalAmount - invoice.amountPaid;
+  }
+
+  String _formatDate(DateTime date) => DateFormat('d MMM yyyy').format(date);
+
+  String _formatPaymentDate(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value;
+    return DateFormat('dd MMM yyyy').format(parsed);
+  }
+
+  String _billingPeriod(OwnerInvoice invoice) {
+    if (invoice.billingMonth.isNotEmpty) {
+      final parsed = DateTime.tryParse('${invoice.billingMonth}-01');
+      if (parsed != null) {
+        final lastDay = DateTime(parsed.year, parsed.month + 1, 0).day;
+        return '1–$lastDay ${DateFormat('MMMM yyyy').format(parsed)}';
+      }
+    }
+    return invoice.billingMonth;
+  }
+
+  String _linePeriodShort(String billingMonth) {
+    final parsed = DateTime.tryParse('$billingMonth-01');
+    if (parsed == null) return billingMonth;
+    final lastDay = DateTime(parsed.year, parsed.month + 1, 0).day;
+    return '1–$lastDay ${DateFormat('MMM').format(parsed)}';
+  }
+
+  Future<String> _invoiceDocument(InvoiceDetailResult data) async {
+    final settings = await ref.read(ownerSettingsProvider.future);
+    return InvoiceDocumentBuilder(farmName: settings.farm.name).build(
+      invoice: data.invoice,
+      lines: data.lines,
+      payments: data.payments,
+    );
+  }
+
+  Future<void> _regenerateBill(OwnerInvoice invoice) async {
+    setState(() => _regenerating = true);
+    try {
+      await ref.read(ownerRepositoryProvider).generateInvoice(
+            customerId: invoice.customerId,
+            billingMonth: invoice.billingMonth,
+            send: false,
+          );
+      if (!mounted) return;
+      ref.invalidate(invoiceDetailProvider(widget.invoiceId));
+      final monthParts = invoice.billingMonth.split('-');
+      if (monthParts.length == 2) {
+        final month = DateTime(
+          int.parse(monthParts[0]),
+          int.parse(monthParts[1]),
+        );
+        ref.invalidate(invoicesListProvider(InvoicesQuery(billingMonth: month)));
+      }
+      ActionToast.show(context, AppStrings.recalculateBillSuccess);
+    } on ApiException catch (e) {
+      if (mounted) ActionToast.show(context, e.message);
+    } finally {
+      if (mounted) setState(() => _regenerating = false);
+    }
+  }
+
+  Future<void> _printBill(InvoiceDetailResult data) async {
+    try {
+      final text = await _invoiceDocument(data);
+      await printDocument(text, title: data.invoice.invoiceNumber);
+    } catch (_) {
+      if (mounted) ActionToast.show(context, AppStrings.shareBillFailed);
+    }
+  }
+
+  Future<void> _shareBill(InvoiceDetailResult data) async {
+    try {
+      final text = await _invoiceDocument(data);
+      await Share.share(text, subject: data.invoice.invoiceNumber);
+    } catch (_) {
+      if (mounted) ActionToast.show(context, AppStrings.shareBillFailed);
+    }
+  }
+
   Future<void> _sendBill() async {
     setState(() => _sending = true);
     try {
@@ -77,19 +167,53 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
     }
   }
 
-  String _formatDate(DateTime date) {
-    return DateFormat('d MMM yyyy').format(date);
-  }
-
-  String _billingPeriod(OwnerInvoice invoice) {
-    if (invoice.billingMonth.isNotEmpty) {
-      final parsed = DateTime.tryParse('${invoice.billingMonth}-01');
-      if (parsed != null) {
-        final lastDay = DateTime(parsed.year, parsed.month + 1, 0).day;
-        return '1–$lastDay ${DateFormat('MMMM yyyy').format(parsed)}';
-      }
-    }
-    return invoice.billingMonth;
+  PreferredSizeWidget _buildAppBar(OwnerInvoice invoice) {
+    return AppBar(
+      backgroundColor: CustomerDetailColors.background,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        color: CustomerDetailColors.accent,
+        onPressed: () => context.pop(),
+      ),
+      title: Text(
+        AppStrings.billingDetailTitle,
+        style: AppText.screenTitle.copyWith(
+          fontSize: 19,
+          color: CustomerDetailColors.accent,
+        ),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: _HeaderActionChip(
+            label: AppStrings.recalculateBillButton,
+            icon: LucideIcons.refreshCw,
+            loading: _regenerating,
+            onTap: _regenerating ? null : () => _regenerateBill(invoice),
+          ),
+        ),
+        _HeaderIconButton(
+          icon: LucideIcons.printer,
+          tooltip: AppStrings.printBillButton,
+          onTap: () {
+            final data = ref.read(invoiceDetailProvider(widget.invoiceId)).valueOrNull;
+            if (data != null) _printBill(data);
+          },
+        ),
+        _HeaderIconButton(
+          icon: LucideIcons.share2,
+          tooltip: AppStrings.shareBillButton,
+          onTap: () {
+            final data = ref.read(invoiceDetailProvider(widget.invoiceId)).valueOrNull;
+            if (data != null) _shareBill(data);
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
   }
 
   @override
@@ -98,7 +222,13 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
 
     return Scaffold(
       backgroundColor: CustomerDetailColors.background,
-      appBar: ownerDetailAppBar(title: AppStrings.billingDetailTitle),
+      appBar: detailAsync.maybeWhen(
+        data: (data) => _buildAppBar(data.invoice),
+        orElse: () => ownerDetailAppBar(
+          title: AppStrings.billingDetailTitle,
+          onBack: () => context.pop(),
+        ),
+      ),
       body: detailAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: CustomerDetailColors.accent),
@@ -112,7 +242,9 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
         data: (data) {
           final invoice = data.invoice;
           final statusStyle = _statusStyle(invoice.status);
-          final pendingBills = invoice.balanceDue > 0 ? [invoice] : <OwnerInvoice>[];
+          final dueAmount = _dueAmount(invoice);
+          final pendingBills = dueAmount > 0 ? [invoice] : <OwnerInvoice>[];
+          final linePeriod = _linePeriodShort(invoice.billingMonth);
 
           return Column(
             children: [
@@ -191,7 +323,7 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
                             ],
                           ),
                           const SizedBox(height: 13),
-                          Divider(color: CustomerDetailColors.divider, height: 1),
+                          const Divider(color: CustomerDetailColors.divider, height: 1),
                           const SizedBox(height: 13),
                           Row(
                             children: [
@@ -249,7 +381,7 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
                         Expanded(
                           child: _AmountTile(
                             label: 'DUE',
-                            value: '₹${formatOwnerCurrency(invoice.balanceDue)}',
+                            value: '₹${formatOwnerCurrency(dueAmount)}',
                             valueColor: CustomerDetailColors.danger,
                             highlight: true,
                           ),
@@ -283,7 +415,7 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          data.lines[i].productName,
+                                          '${data.lines[i].productName} — ₹${formatOwnerCurrency(data.lines[i].unitRate)}',
                                           style: AppText.body.copyWith(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
@@ -292,7 +424,7 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          '${data.lines[i].shiftLabel} · ${data.lines[i].deliveryDays} days · ${data.lines[i].totalQuantity} ltr',
+                                          '$linePeriod · ${data.lines[i].totalQuantity.toStringAsFixed(1)} L',
                                           style: AppText.meta.copyWith(
                                             fontSize: 11.5,
                                             fontWeight: FontWeight.w700,
@@ -314,7 +446,7 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
                               ),
                             ),
                             if (i < data.lines.length - 1)
-                              Divider(height: 1, color: CustomerDetailColors.divider),
+                              const Divider(height: 1, color: CustomerDetailColors.divider),
                           ],
                           Container(
                             color: CustomerDetailColors.statBg,
@@ -398,7 +530,7 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        payment.paymentDate,
+                                        _formatPaymentDate(payment.paymentDate),
                                         style: AppText.meta.copyWith(
                                           fontSize: 11.5,
                                           fontWeight: FontWeight.w700,
@@ -435,7 +567,7 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
                     Expanded(
                       flex: 10,
                       child: _BillActionButton(
-                        label: 'Send',
+                        label: AppStrings.billingSendBillShort,
                         icon: LucideIcons.send,
                         background: CustomerDetailColors.accentLight,
                         foreground: CustomerDetailColors.accent,
@@ -476,8 +608,104 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
   }
 }
 
-/// Frame 11 sticky action button — Quicksand 15px, accent-light "Send" and
-/// elevated green "Record payment".
+class _HeaderActionChip extends StatelessWidget {
+  const _HeaderActionChip({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.loading = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: CustomerDetailColors.accentLight,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: CustomerDetailColors.accentBorder),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: CustomerDetailColors.accent,
+                  ),
+                )
+              else
+                Icon(icon, size: 16, color: CustomerDetailColors.accent),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppText.meta.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: CustomerDetailColors.accent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.icon,
+    required this.onTap,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: CustomerDetailColors.accentLight,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: CustomerDetailColors.accentBorder),
+              ),
+              child: Icon(icon, size: 18, color: CustomerDetailColors.accent),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _BillActionButton extends StatelessWidget {
   const _BillActionButton({
     required this.label,

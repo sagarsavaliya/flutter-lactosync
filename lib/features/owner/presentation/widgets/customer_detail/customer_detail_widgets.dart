@@ -889,8 +889,6 @@ class CustomerDetailBillingSummaryChip extends StatelessWidget {
 class CustomerDetailBillingHistorySection extends StatelessWidget {
   const CustomerDetailBillingHistorySection({
     super.key,
-    required this.totalPaidLabel,
-    required this.totalPendingLabel,
     required this.bills,
     required this.visibleBills,
     required this.showAllBills,
@@ -900,8 +898,6 @@ class CustomerDetailBillingHistorySection extends StatelessWidget {
     this.emptyMessage,
   });
 
-  final String totalPaidLabel;
-  final String totalPendingLabel;
   final List<OwnerInvoice> bills;
   final List<OwnerInvoice> visibleBills;
   final bool showAllBills;
@@ -912,6 +908,9 @@ class CustomerDetailBillingHistorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final (aggregatePaid, aggregatePending) = billingHistoryAggregateTotals(bills);
+    final fmt = NumberFormat('#,##0', 'en_IN');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -942,11 +941,11 @@ class CustomerDetailBillingHistorySection extends StatelessWidget {
             runSpacing: 9,
             children: [
               CustomerDetailBillingSummaryChip(
-                label: totalPaidLabel,
+                label: '${AppStrings.billingPaidShort} ₹${fmt.format(aggregatePaid.round())}',
                 isPaid: true,
               ),
               CustomerDetailBillingSummaryChip(
-                label: totalPendingLabel,
+                label: '${AppStrings.billingPendingShort} ₹${fmt.format(aggregatePending.round())}',
                 isPaid: false,
               ),
             ],
@@ -1000,6 +999,31 @@ String billingChipStatusLabel(String status) {
 double billingChipAmount(OwnerInvoice invoice) {
   if (invoice.status == 'paid') return invoice.totalAmount;
   return invoice.balanceDue > 0 ? invoice.balanceDue : invoice.totalAmount;
+}
+
+String normalizeBillingMonth(String value) {
+  final trimmed = value.trim();
+  final fromSuffix = DateTime.tryParse('$trimmed-01');
+  if (fromSuffix != null) {
+    return '${fromSuffix.year.toString().padLeft(4, '0')}-${fromSuffix.month.toString().padLeft(2, '0')}';
+  }
+  final direct = DateTime.tryParse(trimmed);
+  if (direct != null) {
+    return '${direct.year.toString().padLeft(4, '0')}-${direct.month.toString().padLeft(2, '0')}';
+  }
+  return trimmed;
+}
+
+(double paid, double pending) billingHistoryAggregateTotals(List<OwnerInvoice> bills) {
+  var paid = 0.0;
+  var pending = 0.0;
+  for (final bill in bills) {
+    paid += bill.amountPaid;
+    if (bill.status != 'paid') {
+      pending += billingChipAmount(bill);
+    }
+  }
+  return (paid, pending);
 }
 
 class CustomerDetailBillingRow extends StatelessWidget {

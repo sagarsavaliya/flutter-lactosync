@@ -228,11 +228,11 @@ class OwnerCustomer {
 
   factory OwnerCustomer.fromJson(Map<String, dynamic> json) {
     return OwnerCustomer(
-      id: json['id'] as int,
-      fullName: json['full_name'] as String,
+      id: (json['id'] as num).toInt(),
+      fullName: json['full_name'] as String? ?? '',
       shortAddress: json['short_address'] as String? ?? json['address_line'] as String? ?? '',
       displayStatus: _statusFrom(json['display_status'] as String? ?? 'active'),
-      isActive: json['is_active'] as bool? ?? true,
+      isActive: json['is_active'] == true || json['is_active'] == 1,
       subscriptionCount: (json['subscription_count'] as num?)?.toInt() ?? 0,
       updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at'] as String) : null,
       vacationStart: json['vacation_start'] != null
@@ -286,11 +286,18 @@ class CustomersListResult {
   factory CustomersListResult.fromJson(Map<String, dynamic> json) {
     final list = json['customers'] as List<dynamic>? ?? [];
     final summaryMap = Map<String, dynamic>.from(json['summary'] as Map? ?? {});
+    final customers = <OwnerCustomer>[];
+    for (final item in list) {
+      if (item is! Map) continue;
+      try {
+        customers.add(OwnerCustomer.fromJson(Map<String, dynamic>.from(item)));
+      } catch (_) {
+        // Skip malformed rows instead of failing the whole list.
+      }
+    }
     return CustomersListResult(
       summary: CountBreakdown.fromJson(summaryMap),
-      customers: list
-          .map((e) => OwnerCustomer.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList(),
+      customers: customers,
       morning: summaryMap['morning'] != null
           ? ShiftCountBreakdown.fromJson(
               Map<String, dynamic>.from(summaryMap['morning'] as Map),
@@ -377,6 +384,7 @@ class DailyOrder {
     required this.id,
     required this.customerId,
     required this.customerName,
+    this.shortAddress = '',
     required this.productName,
     required this.quantity,
     required this.subscribedQuantity,
@@ -392,6 +400,7 @@ class DailyOrder {
   final int id;
   final int customerId;
   final String customerName;
+  final String shortAddress;
   final String productName;
   final double quantity;
   final double subscribedQuantity;
@@ -408,6 +417,7 @@ class DailyOrder {
       id: json['id'] as int,
       customerId: json['customer_id'] as int,
       customerName: json['customer_name'] as String? ?? '',
+      shortAddress: json['short_address'] as String? ?? '',
       productName: json['product_name'] as String? ?? '',
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0,
       subscribedQuantity: (json['subscribed_quantity'] as num?)?.toDouble() ??

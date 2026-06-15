@@ -11,12 +11,13 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/redesign_colors.dart';
 import '../../../../core/theme/redesign_tokens.dart';
-import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_button.dart'; 
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/customer_form_sections.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 import '../../domain/entities/owner_models.dart';
 import '../providers/owner_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 /// Frame 7 — edit customer full-page form (same DNA as add customer).
 class EditCustomerPage extends ConsumerStatefulWidget {
@@ -46,6 +47,7 @@ class _EditCustomerPageState extends ConsumerState<EditCustomerPage> {
   String _deliveryType = 'home_delivery';
   bool _loading = false;
   bool _importingContact = false;
+  bool _prefillApplied = false;
 
   bool get _isWalkIn => _deliveryType == 'walk_in';
 
@@ -82,6 +84,27 @@ class _EditCustomerPageState extends ConsumerState<EditCustomerPage> {
     _suspendDelivery = !customer.isActive;
     _deliveryType = customer.deliveryType;
     _initialized = true;
+    _applyFarmAddressPrefillIfNeeded();
+  }
+
+  Future<void> _applyFarmAddressPrefillIfNeeded() async {
+    if (_prefillApplied) return;
+    try {
+      final settings = await ref.read(ownerSettingsProvider.future);
+      if (!mounted) return;
+      setState(() {
+        _selectedState = applyFarmAddressPrefill(
+          enabled: settings.farm.prefillCustomerAddress,
+          farmCity: settings.farm.city,
+          farmState: settings.farm.state,
+          farmZip: settings.farm.zip,
+          cityController: _cityController,
+          zipController: _zipController,
+          selectedState: _selectedState,
+        );
+        _prefillApplied = true;
+      });
+    } catch (_) {}
   }
 
   Future<void> _importContact() async {
@@ -90,9 +113,7 @@ class _EditCustomerPageState extends ConsumerState<EditCustomerPage> {
       final granted = await FlutterContacts.requestPermission(readonly: true);
       if (!mounted) return;
       if (!granted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.contactsPermissionDenied)),
-        );
+        AppSnackBar.show(context, AppStrings.contactsPermissionDenied);
         return;
       }
       final contact = await FlutterContacts.openExternalPick();
@@ -103,9 +124,7 @@ class _EditCustomerPageState extends ConsumerState<EditCustomerPage> {
       _lastController.text = full.name.last.trim();
       if (full.phones.isEmpty) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.contactNoPhone)),
-        );
+        AppSnackBar.show(context, AppStrings.contactNoPhone);
         return;
       }
       final phone = full.phones.first;
@@ -115,9 +134,7 @@ class _EditCustomerPageState extends ConsumerState<EditCustomerPage> {
       _contactController.text = last10;
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.contactImportError)),
-      );
+      AppSnackBar.show(context, AppStrings.contactImportError);
     } finally {
       if (mounted) setState(() => _importingContact = false);
     }
@@ -147,13 +164,11 @@ class _EditCustomerPageState extends ConsumerState<EditCustomerPage> {
       if (!mounted) return;
       ref.invalidate(customerDetailProvider(_query));
       ref.invalidate(customersListProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.saveChanges)),
-      );
+      AppSnackBar.show(context, AppStrings.saveChanges);
       context.pop();
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -243,6 +258,31 @@ class _EditCustomerPageState extends ConsumerState<EditCustomerPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                const CustomerFormSectionHeader(icon: LucideIcons.phone, title: 'Contact'),
+                RedesignSurfaceCard(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    children: [
+                      AppTextField(
+                        label: 'PRIMARY CONTACT',
+                        labelTrailing: _whatsappToggle,
+                        prefixText: '+91 ',
+                        controller: _contactController,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
+                        validator: (v) {
+                          final digits = v?.trim() ?? '';
+                          if (digits.length != 10) return 'Enter valid 10-digit number';
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: RedesignTokens.sectionGap),
                 Text(
                   'DELIVERY TYPE',
                   style: RedesignTokens.fieldLabel(context),
@@ -297,7 +337,6 @@ class _EditCustomerPageState extends ConsumerState<EditCustomerPage> {
                         Row(
                           children: [
                             Expanded(
-                              flex: 13,
                               child: AppTextField(
                                 label: 'CITY',
                                 controller: _cityController,
@@ -327,31 +366,6 @@ class _EditCustomerPageState extends ConsumerState<EditCustomerPage> {
                     ),
                   ),
                 ],
-                const SizedBox(height: RedesignTokens.sectionGap),
-                const CustomerFormSectionHeader(icon: LucideIcons.phone, title: 'Contact'),
-                RedesignSurfaceCard(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    children: [
-                      AppTextField(
-                        label: 'PRIMARY CONTACT',
-                        labelTrailing: _whatsappToggle,
-                        prefixText: '+91 ',
-                        controller: _contactController,
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(10),
-                        ],
-                        validator: (v) {
-                          final digits = v?.trim() ?? '';
-                          if (digits.length != 10) return 'Enter valid 10-digit number';
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
                 const SizedBox(height: RedesignTokens.sectionGap),
                 RedesignSurfaceCard(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
