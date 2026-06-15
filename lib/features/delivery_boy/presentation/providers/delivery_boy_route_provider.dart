@@ -91,7 +91,7 @@ final deliveryBoyRouteSheetProvider =
     FutureProvider.autoDispose.family<List<DbRouteEntry>, DbRouteSheetKey>(
         (ref, key) async {
   final dio = ref.watch(deliveryBoyDioProvider);
-  final res = await dio.get('delivery-boy/v1/route-sheet', queryParameters: {
+  final res = await dio.get('/delivery-boy/v1/route-sheet', queryParameters: {
     'date': key.date,
     'shift': key.shift,
   });

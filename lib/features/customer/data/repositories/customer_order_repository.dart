@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/network/dio_provider.dart';
 
 const _customerTokenKey = 'customer_auth_token';
 
@@ -44,12 +45,16 @@ class CustomerOrderRepository {
   ///
   /// Returns the parsed `data` map which contains `month` and `days` array.
   Future<Map<String, dynamic>> fetchOrders(String month) async {
-    final response = await _dio.get<Map<String, dynamic>>(
-      '/customer/v1/orders',
-      queryParameters: {'month': month},
-      options: _authOptions,
-    );
-    return _readData(response.data);
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/customer/v1/orders',
+        queryParameters: {'month': month},
+        options: _authOptions,
+      );
+      return _readData(response.data);
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
   }
 
   /// PUT /api/customer/v1/orders/{date}/qty

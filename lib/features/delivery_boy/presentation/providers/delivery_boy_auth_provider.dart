@@ -75,7 +75,7 @@ class DeliveryBoyAuthRepository {
 
   Future<void> login(String phone, String pin) async {
     final res = await _dio.post<Map<String, dynamic>>(
-      'delivery-boy/v1/auth/login',
+      '/delivery-boy/v1/auth/login',
       data: {'phone': phone.trim(), 'pin': pin.trim()},
     );
     await _saveToken(res.data);
@@ -83,14 +83,14 @@ class DeliveryBoyAuthRepository {
 
   Future<void> sendForgotPinOtp(String phone) async {
     await _dio.post<Map<String, dynamic>>(
-      'delivery-boy/v1/auth/forgot-pin/send-otp',
+      '/delivery-boy/v1/auth/forgot-pin/send-otp',
       data: {'phone': phone.trim()},
     );
   }
 
   Future<String> verifyForgotPinOtp(String phone, String otp) async {
     final res = await _dio.post<Map<String, dynamic>>(
-      'delivery-boy/v1/auth/forgot-pin/verify-otp',
+      '/delivery-boy/v1/auth/forgot-pin/verify-otp',
       data: {'phone': phone.trim(), 'otp': otp.trim()},
     );
     final data = Map<String, dynamic>.from(res.data!['data'] as Map);
@@ -104,7 +104,7 @@ class DeliveryBoyAuthRepository {
     required String pin,
   }) async {
     final res = await _dio.post<Map<String, dynamic>>(
-      'delivery-boy/v1/auth/forgot-pin/reset',
+      '/delivery-boy/v1/auth/forgot-pin/reset',
       data: {
         'phone': phone.trim(),
         'reset_token': resetToken,
@@ -128,7 +128,7 @@ class DeliveryBoyAuthRepository {
   }
 
   Future<void> changePin(String currentPin, String newPin) async {
-    await _dio.post('delivery-boy/v1/auth/change-pin', data: {
+    await _dio.post('/delivery-boy/v1/auth/change-pin', data: {
       'current_pin': currentPin.trim(),
       'new_pin': newPin.trim(),
     });
@@ -136,7 +136,7 @@ class DeliveryBoyAuthRepository {
 
   Future<void> logout() async {
     try {
-      await _dio.post('delivery-boy/v1/auth/logout');
+      await _dio.post('/delivery-boy/v1/auth/logout');
     } finally {
       await _prefs.remove(_kTokenKey);
     }

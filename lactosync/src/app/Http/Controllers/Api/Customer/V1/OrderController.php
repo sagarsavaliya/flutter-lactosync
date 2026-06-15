@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\DailyOrderLog;
 use App\Models\SubscriptionLine;
-use App\Models\SubscriptionLine;
 use App\Support\ApiResponse;
 use App\Services\Billing\ConsumptionAggregator;
 use App\Support\DeliveryLogPresenter;
@@ -125,7 +124,7 @@ class OrderController extends Controller
             'days'  => $days,
             'consumption' => [
                 'billing_month' => $monthStr,
-                'rows' => $consumptionRows,
+                'rows' => $consumptionRows->values()->all(),
                 'grand_total' => round((float) $consumptionRows->sum('line_total'), 2),
             ],
         ]);
@@ -353,7 +352,7 @@ class OrderController extends Controller
     /**
      * Derive the status string for a single calendar day.
      *
-     * Priority: vacation > delivered > skipped > expected (today/future) > no_record (past)
+     * Priority: vacation > delivered > pending > skipped > expected (today/future) > no_record (past)
      */
     private function resolveDayStatus(
         Customer $customer,
@@ -380,6 +379,13 @@ class OrderController extends Controller
         foreach ($logsForDate as $log) {
             if ($log->status === OrderLogStatus::Delivered) {
                 return 'delivered';
+            }
+        }
+
+        foreach ($logsForDate as $log) {
+            if ($log->status === OrderLogStatus::Pending) {
+                // Billable pending logs: today/future → expected; past → delivered (MTD consumption).
+                return $date->gte($today) ? 'expected' : 'delivered';
             }
         }
 
@@ -426,7 +432,7 @@ class OrderController extends Controller
             $editableDate = $today->copy()->addDay()->startOfDay();
 
             // Date must equal tomorrow.
-            if (! $date->startOfDay()->eq($editableDate)) {
+            if (! $date->copy()->startOfDay()->eq($editableDate)) {
                 return true;
             }
 
@@ -443,7 +449,7 @@ class OrderController extends Controller
         // Evening shift.
         $editableDate = $today->copy()->startOfDay();
 
-        if (! $date->startOfDay()->eq($editableDate)) {
+        if (! $date->copy()->startOfDay()->eq($editableDate)) {
             return true;
         }
 

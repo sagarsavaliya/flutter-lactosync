@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
-import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
+import '../widgets/customer_dashboard_styles.dart';
 import '../../../owner/presentation/widgets/dashboard/dashboard_styles.dart';
 
 class CustomerShell extends StatelessWidget {
@@ -30,7 +30,7 @@ class CustomerShell extends StatelessWidget {
     final index = _indexFromLocation(location);
 
     return Scaffold(
-      backgroundColor: CustomerDetailColors.background,
+      backgroundColor: CusDashColors.background,
       body: child,
       bottomNavigationBar: _CusNavBar(
         currentIndex: index,
@@ -56,8 +56,8 @@ class _CusNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
-        color: CustomerDetailColors.surface,
-        border: Border(top: BorderSide(color: CustomerDetailColors.border)),
+        color: CusDashColors.surface,
+        border: Border(top: BorderSide(color: CusDashColors.border)),
       ),
       child: SafeArea(
         top: false,
@@ -97,8 +97,8 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected
-        ? CustomerDetailColors.accent
-        : CustomerDetailColors.onSurfaceVariant.withValues(alpha: 0.72);
+        ? CusDashColors.accent
+        : CusDashColors.inkMuted.withValues(alpha: 0.72);
 
     return InkWell(
       onTap: onTap,

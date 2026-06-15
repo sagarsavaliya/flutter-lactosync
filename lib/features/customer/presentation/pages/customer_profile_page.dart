@@ -8,10 +8,14 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_provider.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../owner/domain/entities/owner_models.dart';
 import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
-import '../../../owner/presentation/widgets/customer_detail/customer_detail_widgets.dart';
 import '../providers/customer_auth_provider.dart';
+import '../providers/customer_dashboard_provider.dart';
 import '../providers/customer_profile_provider.dart';
+import '../widgets/customer_dashboard_styles.dart';
+import '../widgets/customer_profile_widgets.dart';
+import '../widgets/customer_subscription_adapter.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 
 class CustomerProfilePage extends ConsumerWidget {
@@ -23,25 +27,25 @@ class CustomerProfilePage extends ConsumerWidget {
 
     return profileAsync.when(
       loading: () => const Scaffold(
-        backgroundColor: CustomerDetailColors.background,
-        body: Center(child: CircularProgressIndicator(color: CustomerDetailColors.accent)),
+        backgroundColor: CusDashColors.background,
+        body: Center(child: CircularProgressIndicator(color: CusDashColors.accent)),
       ),
       error: (error, _) => Scaffold(
-        backgroundColor: CustomerDetailColors.background,
+        backgroundColor: CusDashColors.background,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(LucideIcons.user, size: 48, color: CustomerDetailColors.iconMuted),
+              Icon(LucideIcons.user, size: 48, color: CusDashColors.inkMuted),
               const SizedBox(height: 12),
               Text(
                 error is ApiException ? error.message : 'Failed to load profile.',
-                style: AppText.body.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+                style: AppText.body.copyWith(color: CusDashColors.inkMuted),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: CustomerDetailColors.accent),
+                style: FilledButton.styleFrom(backgroundColor: CusDashColors.accent),
                 onPressed: () => ref.invalidate(customerProfileProvider),
                 child: const Text('Retry'),
               ),
@@ -99,9 +103,89 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
     final parts = [
       widget.data.profile['address_line'],
       widget.data.profile['area'],
+      widget.data.profile['landmark'],
       widget.data.profile['city'],
+      widget.data.profile['zip'],
     ].whereType<String>().where((s) => s.isNotEmpty).toList();
     return parts.isEmpty ? '' : parts.join(', ');
+  }
+
+  String _formatMobile(String raw) {
+    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length == 10) {
+      return '+91 ${digits.substring(0, 5)} ${digits.substring(5)}';
+    }
+    return raw;
+  }
+
+  String _subscriptionLabel(
+    Map<String, dynamic> sub,
+    List<ConsumptionRow> rows,
+  ) {
+    final name = sub['product_name'] as String? ?? 'Subscription';
+    for (final row in rows) {
+      if (row.productName.toLowerCase().contains(name.toLowerCase().split(' ').first)) {
+        return '${row.productName} – ₹${row.unitRate.round()}';
+      }
+    }
+    if (rows.isNotEmpty) {
+      return '${rows.first.productName} – ₹${rows.first.unitRate.round()}';
+    }
+    return name;
+  }
+
+  void _showManagePlanSheet(String ownerMobile) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Manage your plan',
+              style: AppText.cardTitle.copyWith(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: CusDashColors.ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'To change quantity, shift, or product, contact your dairy owner.',
+              style: AppText.body.copyWith(
+                fontSize: 14,
+                color: CusDashColors.inkMuted,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (ownerMobile.isNotEmpty)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _call(ownerMobile);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: CusDashColors.accent,
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  icon: const Icon(LucideIcons.phone, size: 18),
+                  label: const Text('Call dairy'),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── Notifications toggle ─────────────────────────────────────────────────────
@@ -409,303 +493,110 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
   Widget build(BuildContext context) {
     final farmContact = widget.data.farmContact;
     final ownerMobile = farmContact?['owner_mobile'] as String? ?? '';
+    final dashData = ref.watch(customerDashboardProvider).valueOrNull;
+    final consumption = dashData?['consumption'] as Map<String, dynamic>?;
+    final rows = customerConsumptionRowsFromJson(consumption);
+
+    final subs = (widget.data.profile['active_subscriptions'] as List?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
+    final primarySub = subs.isNotEmpty ? subs.first : null;
+
+    final shift = primarySub?['shift'] as String? ?? 'morning';
+    final shiftLabel = shift.isEmpty
+        ? 'Morning'
+        : '${shift[0].toUpperCase()}${shift.substring(1)}';
 
     return Scaffold(
-      backgroundColor: CustomerDetailColors.background,
+      backgroundColor: CusDashColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            backgroundColor: CustomerDetailColors.background,
-            surfaceTintColor: Colors.transparent,
-            floating: true,
-            snap: true,
-            elevation: 0,
-            titleSpacing: 16,
-            title: Text(
-              'Profile',
-              style: AppText.screenTitle.copyWith(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: CustomerDetailColors.accent,
-              ),
-            ),
-          ),
+          const SliverToBoxAdapter(child: CusProfileHeader()),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: CusDashMetrics.horizontalPad),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                const SizedBox(height: 8),
-
-                // ── Avatar + name ──────────────────────────────────────────
-                Center(
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTap: _openEditSheet,
-                        child: Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 42,
-                              backgroundColor: CustomerDetailColors.avatarBg,
-                              child: Text(
-                                _initials,
-                                style: AppText.screenTitle.copyWith(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w700,
-                                  color: CustomerDetailColors.accent,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: CustomerDetailColors.accent,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0x33000000),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(LucideIcons.pencil, size: 14, color: Colors.white),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _fullName,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: CustomerDetailColors.onSurface,
-                        ),
-                      ),
-                      if (_mobile.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          _mobile,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: CustomerDetailColors.onSurfaceVariant,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                CusProfileUserCard(
+                  initials: _initials,
+                  fullName: _fullName,
+                  mobile: _formatMobile(_mobile),
+                  address: _deliveryAddress,
+                  onEdit: _openEditSheet,
                 ),
-                const SizedBox(height: 28),
-
-                // ── Delivery address ───────────────────────────────────────
-                CustomerDetailSectionLabel(title: 'DELIVERY ADDRESS'),
-                const SizedBox(height: 4),
-                Container(
-                  decoration: BoxDecoration(
-                    color: CustomerDetailColors.surface,
-                    borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
-                    border: Border.all(color: CustomerDetailColors.border),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF283C28).withValues(alpha: 0.1),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                const SizedBox(height: CusDashMetrics.sectionGap),
+                if (primarySub != null) ...[
+                  const CusProfileSectionLabel(title: 'SUBSCRIPTION'),
+                  CusProfileSubscriptionCard(
+                    productLabel: _subscriptionLabel(primarySub, rows),
+                    shiftLabel: shiftLabel,
+                    isMorning: shift == 'morning',
+                    qtyPerDay: (primarySub['qty'] as num?)?.toDouble() ?? 1,
+                    isActive: true,
+                    onManage: () => _showManagePlanSheet(ownerMobile),
                   ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                  const SizedBox(height: CusDashMetrics.sectionGap),
+                ],
+                const CusProfileSectionLabel(title: 'PREFERENCES'),
+                CusProfileSettingsCard(
+                  children: [
+                    CusProfileToggleRow(
+                      icon: LucideIcons.bell,
+                      label: 'Delivery notifications',
+                      value: _notificationsEnabled,
+                      onChanged: _onNotificationsToggle,
+                    ),
+                    const CusProfileDivider(),
+                    CusProfileToggleRow(
+                      icon: LucideIcons.messageCircle,
+                      label: 'WhatsApp updates',
+                      value: _notificationsEnabled,
+                      onChanged: _onNotificationsToggle,
+                      isWhatsApp: true,
+                    ),
+                    const CusProfileDivider(),
+                    CusProfileNavRow(
+                      icon: LucideIcons.globe,
+                      label: 'Language',
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: CustomerDetailColors.accentLight,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(LucideIcons.home, size: 20, color: CustomerDetailColors.accent),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Home',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CustomerDetailColors.onSurface),
+                          Text(
+                            'English',
+                            style: AppText.meta.copyWith(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: CusDashColors.inkMuted,
                             ),
                           ),
-                          TextButton(
-                            onPressed: _openEditSheet,
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: const Text(
-                              'Change',
-                              style: TextStyle(color: CustomerDetailColors.accent, fontWeight: FontWeight.w600, fontSize: 13),
-                            ),
-                          ),
+                          const SizedBox(width: 4),
+                          Icon(LucideIcons.chevronRight, size: 18, color: CusDashColors.labelMuted),
                         ],
                       ),
-                      if (_deliveryAddress.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 52),
-                          child: Text(
-                            _deliveryAddress,
-                            style: const TextStyle(fontSize: 13, color: CustomerDetailColors.onSurfaceVariant, height: 1.5),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // ── Help & support ─────────────────────────────────────────
-                CustomerDetailSectionLabel(title: 'HELP & SUPPORT'),
-                const SizedBox(height: 4),
-                _SettingsGroup(
-                  items: [
-                    _SettingsItem(
-                      icon: LucideIcons.messageCircle,
-                      iconColor: CustomerDetailColors.success,
-                      iconBg: CustomerDetailColors.successBg,
-                      label: 'WhatsApp Dairy Owner',
-                      onTap: ownerMobile.isNotEmpty ? () => _whatsApp(ownerMobile) : null,
+                      onTap: () {},
                     ),
-                    _SettingsItem(
+                  ],
+                ),
+                const SizedBox(height: CusDashMetrics.sectionGap),
+                const CusProfileSectionLabel(title: 'SUPPORT'),
+                CusProfileSettingsCard(
+                  children: [
+                    CusProfileNavRow(
                       icon: LucideIcons.phone,
-                      iconColor: CustomerDetailColors.accent,
-                      iconBg: CustomerDetailColors.accentLight,
-                      label: 'Call Owner',
+                      label: 'Call dairy',
                       onTap: ownerMobile.isNotEmpty ? () => _call(ownerMobile) : null,
                     ),
-                    _SettingsItem(
+                    const CusProfileDivider(),
+                    CusProfileNavRow(
                       icon: LucideIcons.helpCircle,
-                      iconColor: CustomerDetailColors.morningChipInk,
-                      iconBg: CustomerDetailColors.morningChipBg,
-                      label: 'FAQs',
+                      label: 'Help & FAQs',
                       onTap: _showFaqSheet,
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-
-                CustomerDetailSectionLabel(title: 'APP SETTINGS'),
-                const SizedBox(height: 10),
-                Container(
-                  decoration: BoxDecoration(
-                    color: CustomerDetailColors.surface,
-                    borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
-                    border: Border.all(color: CustomerDetailColors.border),
-                  ),
-                  child: Column(
-                    children: [
-                      // Notifications toggle
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: CustomerDetailColors.accentLight.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.notifications_outlined, size: 18, color: CustomerDetailColors.onSurfaceVariant),
-                            ),
-                            const SizedBox(width: 14),
-                            const Expanded(
-                              child: Text(
-                                'Delivery Notifications',
-                                style: TextStyle(fontSize: 15, color: CustomerDetailColors.onSurface),
-                              ),
-                            ),
-                            Switch(
-                              value: _notificationsEnabled,
-                              onChanged: _onNotificationsToggle,
-                              activeTrackColor: CustomerDetailColors.accent,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 16, color: CustomerDetailColors.border),
-                      _SettingsRow(
-                        icon: Icons.language_outlined,
-                        label: 'Language',
-                        trailing: const Text('English',
-                            style: TextStyle(fontSize: 13, color: CustomerDetailColors.onSurfaceVariant)),
-                        onTap: () {},
-                      ),
-                      Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 16, color: CustomerDetailColors.border),
-                      _SettingsRow(
-                        icon: Icons.security_outlined,
-                        label: 'Privacy',
-                        onTap: _showPrivacySheet,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // ── Vacation ────────────────────────────────────────────────
-                _SettingsGroup(
-                  items: [
-                    _SettingsItem(
-                      icon: LucideIcons.plane,
-                      iconColor: const Color(0xFF3D5896),
-                      iconBg: const Color(0xFFE4ECF7),
-                      label: 'Manage Vacation',
-                      onTap: () => context.push('/customer/vacation'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // ── Logout ──────────────────────────────────────────────────
-                GestureDetector(
-                  onTap: _logout,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: CustomerDetailColors.dangerBg,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: CustomerDetailColors.dangerBorder),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(LucideIcons.logOut, size: 18, color: CustomerDetailColors.danger),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Logout',
-                          style: AppText.body.copyWith(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: CustomerDetailColors.danger,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Center(
-                  child: Text(
-                    'Crafted for Quality · LactoSync',
-                    style: TextStyle(fontSize: 11, color: CustomerDetailColors.border),
-                  ),
-                ),
+                const SizedBox(height: CusDashMetrics.sectionGap),
+                CusProfileLogoutButton(onTap: _logout),
+                const SizedBox(height: 16),
+                const CusProfileFooter(),
                 const SizedBox(height: 32),
               ]),
             ),

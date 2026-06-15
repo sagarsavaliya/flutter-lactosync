@@ -377,7 +377,7 @@ class _CustomerRow extends ConsumerWidget {
     if (ok != true || !context.mounted) return;
     final dio = ref.read(deliveryBoyDioProvider);
     try {
-      await dio.post('delivery-boy/v1/skip-delivery', data: {
+      await dio.post('/delivery-boy/v1/skip-delivery', data: {
         'order_id': customer.orderId,
         'date': sheetKey.date,
       });
