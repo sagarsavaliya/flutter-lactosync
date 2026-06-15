@@ -16,7 +16,9 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/customer_form_sections.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../owner/presentation/providers/owner_provider.dart';
 import '../providers/onboarding_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class AddCustomerPage extends ConsumerStatefulWidget {
   const AddCustomerPage({super.key, this.returnToFork = true});
@@ -45,8 +47,37 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
   bool _isActive = true;
   bool _loading = false;
   bool _importingContact = false;
+  bool _prefillApplied = false;
 
   bool get _isWalkIn => _deliveryType == 'walk_in';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadFarmAddressPrefill());
+  }
+
+  Future<void> _loadFarmAddressPrefill() async {
+    if (_prefillApplied) return;
+    try {
+      final settings = await ref.read(ownerSettingsProvider.future);
+      if (!mounted) return;
+      setState(() {
+        _selectedState = applyFarmAddressPrefill(
+          enabled: settings.farm.prefillCustomerAddress,
+          farmCity: settings.farm.city,
+          farmState: settings.farm.state,
+          farmZip: settings.farm.zip,
+          cityController: _cityController,
+          zipController: _zipController,
+          selectedState: _selectedState,
+        );
+        _prefillApplied = true;
+      });
+    } catch (_) {
+      // Settings unavailable during onboarding — skip prefill.
+    }
+  }
 
   @override
   void dispose() {
@@ -68,9 +99,7 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       final granted = await FlutterContacts.requestPermission(readonly: true);
       if (!mounted) return;
       if (!granted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.contactsPermissionDenied)),
-        );
+        AppSnackBar.show(context, AppStrings.contactsPermissionDenied);
         return;
       }
       final contact = await FlutterContacts.openExternalPick();
@@ -81,9 +110,7 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       _lastController.text = full.name.last.trim();
       if (full.phones.isEmpty) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.contactNoPhone)),
-        );
+        AppSnackBar.show(context, AppStrings.contactNoPhone);
         return;
       }
       final phone = full.phones.first;
@@ -93,9 +120,7 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       _contactController.text = last10;
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.contactImportError)),
-      );
+      AppSnackBar.show(context, AppStrings.contactImportError);
     } finally {
       if (mounted) setState(() => _importingContact = false);
     }
@@ -133,9 +158,7 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mapDioError(e).message)),
-      );
+      AppSnackBar.show(context, mapDioError(e).message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -206,6 +229,48 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
               ),
             ),
             const SizedBox(height: 16),
+            const CustomerFormSectionHeader(icon: LucideIcons.phone, title: 'Contact'),
+            RedesignSurfaceCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                children: [
+                  AppTextField(
+                    label: 'PRIMARY CONTACT',
+                    labelTrailing: _whatsappToggle,
+                    prefixText: '+91 ',
+                    controller: _contactController,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    validator: (v) {
+                      if ((v?.trim() ?? '').length != 10) return AppStrings.contactRequired;
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    label: 'SECONDARY CONTACT',
+                    labelTrailing: Text(
+                      'optional',
+                      style: AppText.meta.copyWith(
+                        color: CustomerDetailColors.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    prefixText: '+91 ',
+                    controller: _secondaryController,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: RedesignTokens.sectionGap),
             Text('DELIVERY TYPE', style: RedesignTokens.fieldLabel(context)),
             const SizedBox(height: 8),
             RedesignSurfaceCard(
@@ -257,7 +322,6 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
                     Row(
                       children: [
                         Expanded(
-                          flex: 13,
                           child: AppTextField(
                             label: 'CITY',
                             controller: _cityController,
@@ -294,48 +358,6 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
                 ),
               ),
             ],
-            const SizedBox(height: RedesignTokens.sectionGap),
-            const CustomerFormSectionHeader(icon: LucideIcons.phone, title: 'Contact'),
-            RedesignSurfaceCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                children: [
-                  AppTextField(
-                    label: 'PRIMARY CONTACT',
-                    labelTrailing: _whatsappToggle,
-                    prefixText: '+91 ',
-                    controller: _contactController,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                    validator: (v) {
-                      if ((v?.trim() ?? '').length != 10) return AppStrings.contactRequired;
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  AppTextField(
-                    label: 'SECONDARY CONTACT',
-                    labelTrailing: Text(
-                      'optional',
-                      style: AppText.meta.copyWith(
-                        color: CustomerDetailColors.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    prefixText: '+91 ',
-                    controller: _secondaryController,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: RedesignTokens.sectionGap),
             RedesignSurfaceCard(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),

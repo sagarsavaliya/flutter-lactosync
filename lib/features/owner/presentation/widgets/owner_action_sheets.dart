@@ -19,6 +19,7 @@ import 'owner_design_system.dart';
 import 'owner_form_theme.dart';
 import 'owner_screen_widgets.dart';
 import 'owner_shared_widgets.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class OwnerActionSheets {
   OwnerActionSheets._();
@@ -29,6 +30,7 @@ class OwnerActionSheets {
   }
 
   static Future<void> showGenerateOrders(BuildContext context, WidgetRef ref) async {
+    final hostContext = context;
     var date = DateTime.now();
     var shift = _currentShift();
     var loading = false;
@@ -36,7 +38,7 @@ class OwnerActionSheets {
     await showOwnerBottomSheet<void>(
       context: context,
       child: StatefulBuilder(
-        builder: (context, setModalState) {
+        builder: (sheetContext, setModalState) {
           return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -50,7 +52,7 @@ class OwnerActionSheets {
                     trailing: const Icon(Icons.calendar_today_outlined),
                     onTap: () async {
                       final picked = await showDatePicker(
-                        context: context,
+                        context: sheetContext,
                         initialDate: date,
                         firstDate: DateTime(2020),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
@@ -74,30 +76,31 @@ class OwnerActionSheets {
                         ? null
                         : () async {
                             setModalState(() => loading = true);
+                            var sheetClosed = false;
                             try {
                               final result = await ref.read(ownerRepositoryProvider).generateDailyOrders(
                                     date: date,
                                     shift: shift,
                                   );
+                              if (sheetContext.mounted) {
+                                Navigator.pop(sheetContext);
+                                sheetClosed = true;
+                              }
                               ref.invalidate(dailyOrdersProvider);
-                              if (context.mounted) {
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      '${AppStrings.generateOrdersSuccess} (${result.created})',
-                                    ),
-                                  ),
+                              if (hostContext.mounted) {
+                                AppSnackBar.show(
+                                  hostContext,
+                                  '${AppStrings.generateOrdersSuccess} (${result.created})',
                                 );
                               }
                             } on ApiException catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(e.message)),
-                                );
+                              if (hostContext.mounted) {
+                                AppSnackBar.show(hostContext, e.message);
                               }
                             } finally {
-                              if (context.mounted) setModalState(() => loading = false);
+                              if (!sheetClosed && sheetContext.mounted) {
+                                setModalState(() => loading = false);
+                              }
                             }
                           },
                   ),
@@ -109,6 +112,7 @@ class OwnerActionSheets {
   }
 
   static Future<void> showGenerateBill(BuildContext context, WidgetRef ref) async {
+    final hostContext = context;
     final searchController = TextEditingController();
     var customers = <OwnerCustomer>[];
     OwnerCustomer? selected;
@@ -120,11 +124,12 @@ class OwnerActionSheets {
     await showOwnerBottomSheet<void>(
       context: context,
       child: StatefulBuilder(
-        builder: (context, setModalState) {
+        builder: (sheetContext, setModalState) {
             Future<void> search(String q) async {
               final result = await ref.read(ownerRepositoryProvider).fetchCustomers(
                     CustomersQuery(search: q, sort: CustomerSort.nameAsc),
                   );
+              if (!sheetContext.mounted) return;
               setModalState(() {
                 customers = result.customers.take(20).toList();
                 selected = customers.isNotEmpty ? customers.first : null;
@@ -255,9 +260,10 @@ class OwnerActionSheets {
                         ? null
                         : () async {
                             setModalState(() => loading = true);
+                            var sheetClosed = false;
                             try {
-                              if (sendWhatsApp && context.mounted) {
-                                ActionToast.show(context, AppStrings.billPreparing);
+                              if (sendWhatsApp && hostContext.mounted) {
+                                ActionToast.show(hostContext, AppStrings.billPreparing);
                               }
                               await ref.read(ownerRepositoryProvider).generateInvoice(
                                     customerId: selected!.id,
@@ -265,22 +271,28 @@ class OwnerActionSheets {
                                         '${billingMonth.year.toString().padLeft(4, '0')}-${billingMonth.month.toString().padLeft(2, '0')}',
                                     send: sendWhatsApp,
                                   );
+                              if (sheetContext.mounted) {
+                                Navigator.pop(sheetContext);
+                                sheetClosed = true;
+                              }
                               ref.invalidate(invoicesListProvider(
                                 InvoicesQuery(billingMonth: billingMonth),
                               ));
-                              if (context.mounted) {
-                                Navigator.pop(context);
+                              if (hostContext.mounted) {
                                 ActionToast.show(
-                                  context,
+                                  hostContext,
                                   sendWhatsApp
                                       ? AppStrings.billingSendSuccess
                                       : AppStrings.generateBillSuccess,
+                                  defer: true,
                                 );
                               }
                             } on ApiException catch (e) {
-                              if (context.mounted) ActionToast.show(context, e.message);
+                              if (hostContext.mounted) ActionToast.show(hostContext, e.message);
                             } finally {
-                              if (context.mounted) setModalState(() => loading = false);
+                              if (!sheetClosed && sheetContext.mounted) {
+                                setModalState(() => loading = false);
+                              }
                             }
                           },
                   ),
@@ -300,6 +312,7 @@ class OwnerActionSheets {
     required String customerName,
     DateTime? initialMonth,
   }) async {
+    final hostContext = context;
     var billingMonth = initialMonth ?? DateTime(DateTime.now().year, DateTime.now().month);
     var sendWhatsApp = false;
     var loading = false;
@@ -307,7 +320,7 @@ class OwnerActionSheets {
     await showOwnerBottomSheet<void>(
       context: context,
       child: StatefulBuilder(
-        builder: (context, setModalState) {
+        builder: (sheetContext, setModalState) {
           return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -337,9 +350,10 @@ class OwnerActionSheets {
                     ? null
                     : () async {
                         setModalState(() => loading = true);
+                        var sheetClosed = false;
                         try {
-                          if (sendWhatsApp && context.mounted) {
-                            ActionToast.show(context, AppStrings.billPreparing);
+                          if (sendWhatsApp && hostContext.mounted) {
+                            ActionToast.show(hostContext, AppStrings.billPreparing);
                           }
                           await ref.read(ownerRepositoryProvider).generateInvoice(
                                 customerId: customerId,
@@ -347,6 +361,10 @@ class OwnerActionSheets {
                                     '${billingMonth.year.toString().padLeft(4, '0')}-${billingMonth.month.toString().padLeft(2, '0')}',
                                 send: sendWhatsApp,
                               );
+                          if (sheetContext.mounted) {
+                            Navigator.pop(sheetContext);
+                            sheetClosed = true;
+                          }
                           ref.invalidate(invoicesListProvider(
                             InvoicesQuery(billingMonth: billingMonth),
                           ));
@@ -356,19 +374,21 @@ class OwnerActionSheets {
                               billingMonth: billingMonth,
                             ),
                           ));
-                          if (context.mounted) {
-                            Navigator.pop(context);
+                          if (hostContext.mounted) {
                             ActionToast.show(
-                              context,
+                              hostContext,
                               sendWhatsApp
                                   ? AppStrings.billingSendSuccess
                                   : AppStrings.recalculateBillSuccess,
+                              defer: true,
                             );
                           }
                         } on ApiException catch (e) {
-                          if (context.mounted) ActionToast.show(context, e.message);
+                          if (hostContext.mounted) ActionToast.show(hostContext, e.message);
                         } finally {
-                          if (context.mounted) setModalState(() => loading = false);
+                          if (!sheetClosed && sheetContext.mounted) {
+                            setModalState(() => loading = false);
+                          }
                         }
                       },
               ),
@@ -617,12 +637,6 @@ class OwnerActionSheets {
                             onPressed: () => setModalState(() {
                               amountController.text = '$preset';
                             }),
-                            backgroundColor: CustomerDetailColors.statBg,
-                            side: const BorderSide(color: CustomerDetailColors.border),
-                            labelStyle: AppText.label.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: CustomerDetailColors.onSurface,
-                            ),
                           ),
                         if (selectedBill != null)
                           ActionChip(
@@ -930,9 +944,7 @@ class OwnerActionSheets {
 
     if (vpa.isEmpty) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.upiNotConfigured)),
-        );
+        AppSnackBar.show(context, AppStrings.upiNotConfigured);
       }
       return;
     }

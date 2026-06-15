@@ -13,6 +13,7 @@ import '../widgets/customer_subscription_adapter.dart';
 import '../providers/customer_dashboard_provider.dart';
 import '../providers/customer_order_provider.dart';
 import '../providers/customer_profile_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class CustomerDashboardPage extends ConsumerWidget {
   const CustomerDashboardPage({super.key});
@@ -456,18 +457,11 @@ class _QuickActionsGridState extends ConsumerState<_QuickActionsGrid> {
         '${tomorrow.year}-${tomorrow.month.toString().padLeft(2, '0')}',
       ));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Tomorrow's delivery skipped"),
-            backgroundColor: CustomerDetailColors.accent,
-          ),
-        );
+        AppSnackBar.show(context, "Tomorrow's delivery skipped");
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
-        );
+        AppSnackBar.showError(context, e.toString());
       }
     } finally {
       if (mounted) setState(() => _skipping = false);
@@ -491,9 +485,7 @@ class _QuickActionsGridState extends ConsumerState<_QuickActionsGrid> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open WhatsApp')),
-        );
+        AppSnackBar.show(context, 'Could not open WhatsApp');
       }
     }
   }

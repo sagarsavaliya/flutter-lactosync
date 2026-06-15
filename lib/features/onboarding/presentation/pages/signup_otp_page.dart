@@ -25,6 +25,7 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 
 
@@ -84,11 +85,7 @@ class _SignupOtpPageState extends ConsumerState<SignupOtpPage> {
 
     if (_otpController.text.trim().length != 6) {
 
-      ScaffoldMessenger.of(context).showSnackBar(
-
-        const SnackBar(content: Text(AppStrings.otpInvalid)),
-
-      );
+      AppSnackBar.show(context, AppStrings.otpInvalid);
 
       return;
 
@@ -122,11 +119,7 @@ class _SignupOtpPageState extends ConsumerState<SignupOtpPage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-
-        SnackBar(content: Text(mapDioError(e).message)),
-
-      );
+      AppSnackBar.show(context, mapDioError(e).message);
 
     } finally {
 

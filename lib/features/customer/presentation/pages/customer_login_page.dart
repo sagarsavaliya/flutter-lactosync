@@ -11,6 +11,7 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
 import '../providers/customer_auth_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class CustomerLoginPage extends ConsumerStatefulWidget {
   const CustomerLoginPage({super.key});
@@ -47,12 +48,7 @@ class _CustomerLoginPageState extends ConsumerState<CustomerLoginPage> {
       context.go('/customer/home');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(mapDioError(e).message),
-          backgroundColor: CustomerDetailColors.danger,
-        ),
-      );
+      AppSnackBar.showError(context, mapDioError(e).message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

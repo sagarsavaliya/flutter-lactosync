@@ -16,6 +16,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../features/owner/presentation/providers/owner_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class SubscriptionSuspendedPage extends ConsumerStatefulWidget {
   const SubscriptionSuspendedPage({super.key});
@@ -53,12 +54,9 @@ class _SubscriptionSuspendedPageState
       // If the call is still 403, the interceptor will keep the suspended state.
       // Show feedback to the user.
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Subscription is still suspended. Please contact support.',
-            ),
-          ),
+        AppSnackBar.show(
+          context,
+          'Subscription is still suspended. Please contact support.',
         );
       }
     } finally {
@@ -83,22 +81,15 @@ class _SubscriptionSuspendedPageState
       );
       final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!launched && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open UPI app. Please pay manually.'),
-          ),
-        );
+        AppSnackBar.show(context, 'Could not open UPI app. Please pay manually.');
       }
     } else {
       // No UPI VPA — ask the user to contact support.
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Please contact LactoSync support to clear your dues.',
-            ),
-            duration: Duration(seconds: 5),
-          ),
+        AppSnackBar.show(
+          context,
+          'Please contact LactoSync support to clear your dues.',
+          duration: const Duration(seconds: 5),
         );
       }
     }

@@ -17,6 +17,7 @@ import '../widgets/owner_page_fab.dart';
 import '../widgets/owner_screen_widgets.dart';
 import '../widgets/owner_shared_widgets.dart';
 import '../widgets/owner_widgets.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class DailyOrdersPage extends ConsumerStatefulWidget {
   const DailyOrdersPage({super.key});
@@ -66,7 +67,7 @@ class _DailyOrdersPageState extends ConsumerState<DailyOrdersPage> {
       await _reloadOrders();
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     }
   }
@@ -81,7 +82,7 @@ class _DailyOrdersPageState extends ConsumerState<DailyOrdersPage> {
       await _reloadOrders();
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     }
   }
@@ -96,7 +97,7 @@ class _DailyOrdersPageState extends ConsumerState<DailyOrdersPage> {
       await _reloadOrders();
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     }
   }
@@ -259,7 +260,9 @@ class _DailyOrdersPageState extends ConsumerState<DailyOrdersPage> {
             customerName: order.customerName,
             productName: order.productName,
             shiftLabel: order.shiftLabel,
+            address: order.shortAddress,
             quantity: order.quantity,
+            unitRate: order.unitRate,
             isSkipped: isSkipped,
             onQtyChanged: (qty) => _updateQty(order.id, qty),
             onSkip: () => _skipOrder(order.id),

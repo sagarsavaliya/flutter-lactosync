@@ -21,6 +21,7 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 
 
@@ -82,11 +83,7 @@ class _SetPinPageState extends ConsumerState<SetPinPage> {
 
     if (pin.length != 4) {
 
-      ScaffoldMessenger.of(context).showSnackBar(
-
-        const SnackBar(content: Text(AppStrings.pinInvalid)),
-
-      );
+      AppSnackBar.show(context, AppStrings.pinInvalid);
 
       return;
 
@@ -94,11 +91,7 @@ class _SetPinPageState extends ConsumerState<SetPinPage> {
 
     if (pin != _confirmController.text.trim()) {
 
-      ScaffoldMessenger.of(context).showSnackBar(
-
-        const SnackBar(content: Text(AppStrings.pinMismatch)),
-
-      );
+      AppSnackBar.show(context, AppStrings.pinMismatch);
 
       return;
 
@@ -128,11 +121,7 @@ class _SetPinPageState extends ConsumerState<SetPinPage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-
-        SnackBar(content: Text(mapDioError(e).message)),
-
-      );
+      AppSnackBar.show(context, mapDioError(e).message);
 
     } finally {
 

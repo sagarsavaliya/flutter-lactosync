@@ -183,8 +183,17 @@ ThemeData _build({
     // ── SnackBar ─────────────────────────────────────────────────────────────
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: radius),
-      contentTextStyle: AppText.body,
+      backgroundColor: surface,
+      elevation: 6,
+      insetPadding: const EdgeInsets.all(16),
+      contentTextStyle: AppText.body.copyWith(
+        color: ink,
+        fontWeight: FontWeight.w600,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: border),
+      ),
     ),
 
     // ── Chip ────────────────────────────────────────────────────────────────

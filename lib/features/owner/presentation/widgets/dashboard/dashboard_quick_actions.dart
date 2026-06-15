@@ -96,11 +96,11 @@ class _QuickActionTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: const Color(0xFFECEFE5)),
             boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF283C28).withValues(alpha: 0.18),
+              const BoxShadow(
+                color: Color.fromARGB(255, 255, 255, 255),
                 blurRadius: 14,
                 spreadRadius: -10,
-                offset: const Offset(0, 4),
+                offset: Offset(0, 4)
               ),
             ],
           ),

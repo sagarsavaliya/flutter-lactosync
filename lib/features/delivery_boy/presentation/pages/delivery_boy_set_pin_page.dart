@@ -9,6 +9,7 @@ import '../../../../core/theme/redesign_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 import '../providers/delivery_boy_auth_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class DeliveryBoySetPinPage extends ConsumerStatefulWidget {
   const DeliveryBoySetPinPage({super.key});
@@ -36,9 +37,7 @@ class _DeliveryBoySetPinPageState
   Future<void> _save() async {
     if (_newCtrl.text.trim().length != 4 ||
         _newCtrl.text.trim() != _confirmCtrl.text.trim()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PINs do not match or must be 4 digits')),
-      );
+      AppSnackBar.show(context, 'PINs do not match or must be 4 digits');
       return;
     }
     setState(() => _loading = true);
@@ -48,18 +47,11 @@ class _DeliveryBoySetPinPageState
             _newCtrl.text.trim(),
           );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN changed successfully')),
-      );
+      AppSnackBar.show(context, 'PIN changed successfully');
       context.pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(mapDioError(e).message),
-          backgroundColor: CustomerDetailColors.danger,
-        ),
-      );
+      AppSnackBar.showError(context, mapDioError(e).message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

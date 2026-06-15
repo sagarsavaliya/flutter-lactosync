@@ -12,6 +12,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/redesign_scaffold.dart';
 import 'providers/auth_provider.dart';
+import '../../../core/widgets/app_snackbar.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -55,9 +56,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       context.go('/home');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mapDioError(e).message)),
-      );
+      AppSnackBar.show(context, mapDioError(e).message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

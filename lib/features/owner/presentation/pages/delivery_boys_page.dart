@@ -9,6 +9,7 @@ import '../providers/delivery_provider.dart';
 import '../widgets/customer_detail/customer_detail_styles.dart';
 import '../widgets/owner_design_system.dart';
 import '../widgets/owner_screen_widgets.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class DeliveryBoysPage extends ConsumerStatefulWidget {
   const DeliveryBoysPage({super.key});
@@ -67,9 +68,7 @@ class _DeliveryBoysPageState extends ConsumerState<DeliveryBoysPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to reset PIN: ${e.toString()}')),
-      );
+      AppSnackBar.showError(context, 'Failed to reset PIN: ${e.toString()}');
     }
   }
 
@@ -260,9 +259,7 @@ class _DeliveryBoySheetState extends ConsumerState<_DeliveryBoySheet> {
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        AppSnackBar.show(context, 'Error: ${e.toString()}');
       }
     } finally {
       if (mounted) setState(() => _saving = false);

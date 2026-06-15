@@ -12,6 +12,7 @@ import '../providers/owner_provider.dart';
 import '../widgets/customer_detail/customer_detail_styles.dart';
 import '../widgets/owner_form_theme.dart';
 import '../widgets/owner_screen_widgets.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class ActivityPage extends ConsumerWidget {
   const ActivityPage({super.key});
@@ -29,13 +30,11 @@ class ActivityPage extends ConsumerWidget {
       ref.invalidate(farmActivitiesProvider);
       ref.invalidate(customersListProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.activityRestored)),
-        );
+        AppSnackBar.show(context, AppStrings.activityRestored);
       }
     } on ApiException catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppSnackBar.show(context, e.message);
       }
     }
   }

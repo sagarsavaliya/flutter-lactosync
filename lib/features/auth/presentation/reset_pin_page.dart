@@ -19,6 +19,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/redesign_scaffold.dart';
 
 import 'providers/auth_provider.dart';
+import '../../../core/widgets/app_snackbar.dart';
 
 
 
@@ -100,11 +101,7 @@ class _ResetPinPageState extends ConsumerState<ResetPinPage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-
-        const SnackBar(content: Text(AppStrings.pinResetSuccess)),
-
-      );
+      AppSnackBar.show(context, AppStrings.pinResetSuccess);
 
       context.go('/sign-in');
 
@@ -112,11 +109,7 @@ class _ResetPinPageState extends ConsumerState<ResetPinPage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-
-        SnackBar(content: Text(mapDioError(e).message)),
-
-      );
+      AppSnackBar.show(context, mapDioError(e).message);
 
     } finally {
 

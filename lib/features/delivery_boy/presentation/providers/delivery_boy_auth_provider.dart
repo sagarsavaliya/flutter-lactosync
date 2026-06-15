@@ -74,11 +74,56 @@ class DeliveryBoyAuthRepository {
   final SharedPreferences _prefs;
 
   Future<void> login(String phone, String pin) async {
-    final res = await _dio.post('delivery-boy/v1/auth/login', data: {
-      'phone': phone.trim(),
-      'pin': pin.trim(),
-    });
-    final token = res.data['data']['token'] as String;
+    final res = await _dio.post<Map<String, dynamic>>(
+      'delivery-boy/v1/auth/login',
+      data: {'phone': phone.trim(), 'pin': pin.trim()},
+    );
+    await _saveToken(res.data);
+  }
+
+  Future<void> sendForgotPinOtp(String phone) async {
+    await _dio.post<Map<String, dynamic>>(
+      'delivery-boy/v1/auth/forgot-pin/send-otp',
+      data: {'phone': phone.trim()},
+    );
+  }
+
+  Future<String> verifyForgotPinOtp(String phone, String otp) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      'delivery-boy/v1/auth/forgot-pin/verify-otp',
+      data: {'phone': phone.trim(), 'otp': otp.trim()},
+    );
+    final data = Map<String, dynamic>.from(res.data!['data'] as Map);
+    return data['reset_token'] as String;
+  }
+
+  /// Resets PIN after OTP verification and stores the new session token.
+  Future<void> resetForgotPin({
+    required String phone,
+    required String resetToken,
+    required String pin,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      'delivery-boy/v1/auth/forgot-pin/reset',
+      data: {
+        'phone': phone.trim(),
+        'reset_token': resetToken,
+        'pin': pin.trim(),
+        'pin_confirmation': pin.trim(),
+      },
+    );
+    await _saveToken(res.data);
+  }
+
+  Future<void> _saveToken(Map<String, dynamic>? body) async {
+    if (body == null || body['success'] != true) {
+      throw ApiException('API_ERROR', 'Unexpected server response.');
+    }
+    final data = body['data'] as Map<String, dynamic>?;
+    final token = data?['token'];
+    if (token == null || token is! String || token.isEmpty) {
+      throw ApiException('API_ERROR', 'No token in server response.');
+    }
     await _prefs.setString(_kTokenKey, token);
   }
 

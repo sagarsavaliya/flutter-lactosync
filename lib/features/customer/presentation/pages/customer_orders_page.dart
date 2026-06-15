@@ -12,6 +12,7 @@ import '../widgets/customer_subscription_adapter.dart';
 import '../../data/repositories/customer_order_repository.dart';
 import '../providers/customer_dashboard_provider.dart';
 import '../providers/customer_order_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
@@ -378,9 +379,7 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
       if (mounted) widget.onSaved();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
-        );
+        AppSnackBar.showError(context, e.toString());
       }
     } finally {
       if (mounted) setState(() => _savingTomorrow = false);
@@ -401,9 +400,7 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
       if (mounted) widget.onSaved();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
-        );
+        AppSnackBar.showError(context, e.toString());
       }
     } finally {
       if (mounted) setState(() => _savingToday = false);
@@ -432,15 +429,11 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
       await widget.repository.skipDay(_tomorrowDateStr);
       if (mounted) {
         widget.onSaved();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Tomorrow's delivery skipped.")),
-        );
+        AppSnackBar.show(context, "Tomorrow's delivery skipped.");
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
-        );
+        AppSnackBar.showError(context, e.toString());
       }
     } finally {
       if (mounted) setState(() => _skipping = false);
@@ -1125,9 +1118,7 @@ class _DayEditSheetState extends State<_DayEditSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
-        );
+        AppSnackBar.showError(context, e.toString());
       }
     }
   }
@@ -1139,16 +1130,12 @@ class _DayEditSheetState extends State<_DayEditSheet> {
       if (mounted) {
         Navigator.of(context).pop();
         widget.onSaved();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Day skipped.')),
-        );
+        AppSnackBar.show(context, 'Day skipped.');
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSkipping = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
-        );
+        AppSnackBar.showError(context, e.toString());
       }
     }
   }

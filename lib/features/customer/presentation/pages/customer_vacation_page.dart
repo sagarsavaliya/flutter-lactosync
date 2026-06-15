@@ -9,6 +9,7 @@ import '../../../owner/presentation/widgets/customer_detail/customer_detail_widg
 import '../../../../core/widgets/app_text_field.dart';
 import '../../data/repositories/customer_vacation_repository.dart';
 import '../providers/customer_vacation_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class CustomerVacationPage extends ConsumerStatefulWidget {
   const CustomerVacationPage({super.key});
@@ -96,15 +97,11 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
         _startController.clear();
         _endController.clear();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vacation set. You'll receive a WhatsApp confirmation.")),
-      );
+      AppSnackBar.show(context, "Vacation set. You'll receive a WhatsApp confirmation.");
     } else if (error.contains('vacation_end') || error.toLowerCase().contains('end must be on or after')) {
       setState(() => _endError = error);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: CustomerDetailColors.danger),
-      );
+      AppSnackBar.showError(context, error);
     }
   }
 
@@ -114,13 +111,9 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
     if (!mounted) return;
     setState(() => _isCancelling = false);
     if (error == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vacation cancelled.')),
-      );
+      AppSnackBar.show(context, 'Vacation cancelled.');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: CustomerDetailColors.danger),
-      );
+      AppSnackBar.showError(context, error);
     }
   }
 

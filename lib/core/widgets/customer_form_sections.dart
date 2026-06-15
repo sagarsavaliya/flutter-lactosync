@@ -139,6 +139,29 @@ const kIndianStates = [
   'Puducherry',
 ];
 
+/// Prefills empty city / PIN / state from farm settings when OR-10 toggle is on.
+String? applyFarmAddressPrefill({
+  required bool enabled,
+  String? farmCity,
+  String? farmState,
+  String? farmZip,
+  required TextEditingController cityController,
+  required TextEditingController zipController,
+  String? selectedState,
+}) {
+  if (!enabled) return selectedState;
+  if (cityController.text.trim().isEmpty && (farmCity ?? '').trim().isNotEmpty) {
+    cityController.text = farmCity!.trim();
+  }
+  if (zipController.text.trim().isEmpty && (farmZip ?? '').trim().isNotEmpty) {
+    zipController.text = farmZip!.trim();
+  }
+  if ((selectedState ?? '').trim().isEmpty && (farmState ?? '').trim().isNotEmpty) {
+    return farmState!.trim();
+  }
+  return selectedState;
+}
+
 /// Onboarding progress — frame 7 "Step 1 of 2".
 class CustomerFormStepProgress extends StatelessWidget {
   const CustomerFormStepProgress({super.key, this.step = 1, this.total = 2});

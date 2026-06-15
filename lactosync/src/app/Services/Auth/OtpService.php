@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth;
 
+use App\Models\DeliveryBoy;
 use App\Models\FarmOwner;
 use App\Models\OtpRequest;
 use App\Services\WhatsApp\WhatsAppService;
@@ -13,6 +14,8 @@ use RuntimeException;
 class OtpService
 {
     public const PURPOSE_PIN_RESET = 'pin_reset';
+
+    public const PURPOSE_DELIVERY_BOY_PIN_RESET = 'delivery_boy_pin_reset';
 
     public const PURPOSE_SIGNUP = 'signup';
 
@@ -170,9 +173,68 @@ class OtpService
         $owner->tokens()->delete();
     }
 
+    public function sendDeliveryBoyPinResetOtp(string $phone): void
+    {
+        $boy = DeliveryBoy::query()
+            ->where('phone', $phone)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $boy || $boy->phone === null || $boy->phone === '') {
+            throw new RuntimeException('No delivery account found for this phone number.');
+        }
+
+        $this->sendOtp($phone, self::PURPOSE_DELIVERY_BOY_PIN_RESET);
+    }
+
+    public function verifyDeliveryBoyPinResetOtp(string $phone, string $otp): string
+    {
+        $this->verifyOtp($phone, $otp, self::PURPOSE_DELIVERY_BOY_PIN_RESET);
+
+        $resetToken = Str::random(64);
+        $ttl = config('lactosync.otp.reset_token_ttl_seconds');
+
+        Cache::put(
+            $this->deliveryBoyResetTokenCacheKey($resetToken),
+            $phone,
+            $ttl,
+        );
+
+        return $resetToken;
+    }
+
+    public function resetDeliveryBoyPin(string $phone, string $resetToken, string $pin): DeliveryBoy
+    {
+        $cachedPhone = Cache::get($this->deliveryBoyResetTokenCacheKey($resetToken));
+
+        if ($cachedPhone !== $phone) {
+            throw new RuntimeException('Your reset session expired. Please start again.');
+        }
+
+        $boy = DeliveryBoy::query()
+            ->where('phone', $phone)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $boy) {
+            throw new RuntimeException('No delivery account found for this phone number.');
+        }
+
+        $boy->update(['pin_hash' => Hash::make($pin)]);
+        Cache::forget($this->deliveryBoyResetTokenCacheKey($resetToken));
+        $boy->tokens()->delete();
+
+        return $boy;
+    }
+
     private function resetTokenCacheKey(string $token): string
     {
         return 'otp:reset_token:'.$token;
+    }
+
+    private function deliveryBoyResetTokenCacheKey(string $token): string
+    {
+        return 'otp:delivery_boy_reset_token:'.$token;
     }
 
     private function signupPendingCacheKey(string $mobile): string

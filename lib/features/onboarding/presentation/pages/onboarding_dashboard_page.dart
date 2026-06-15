@@ -7,6 +7,7 @@ import '../../../../core/theme/redesign_colors.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/setup_checklist.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class OnboardingDashboardPage extends ConsumerStatefulWidget {
   const OnboardingDashboardPage({super.key});
@@ -43,9 +44,7 @@ class _OnboardingDashboardPageState extends ConsumerState<OnboardingDashboardPag
       context.go('/dashboard');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mapDioError(e).message)),
-      );
+      AppSnackBar.show(context, mapDioError(e).message);
     } finally {
       if (mounted) setState(() => _skipping = false);
     }

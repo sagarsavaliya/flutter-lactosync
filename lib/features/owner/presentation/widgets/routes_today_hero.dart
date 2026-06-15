@@ -31,7 +31,7 @@ class RoutesTodayHeroCard extends StatelessWidget {
         : '${liters.toStringAsFixed(1)} L';
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 6, 16, 14),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(

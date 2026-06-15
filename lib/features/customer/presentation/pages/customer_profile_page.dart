@@ -12,6 +12,7 @@ import '../../../owner/presentation/widgets/customer_detail/customer_detail_styl
 import '../../../owner/presentation/widgets/customer_detail/customer_detail_widgets.dart';
 import '../providers/customer_auth_provider.dart';
 import '../providers/customer_profile_provider.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class CustomerProfilePage extends ConsumerWidget {
   const CustomerProfilePage({super.key});
@@ -129,9 +130,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open WhatsApp')),
-        );
+        AppSnackBar.show(context, 'Could not open WhatsApp');
       }
     }
   }
@@ -390,12 +389,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
           await ref.read(customerProfileProvider.notifier).saveProfile(fields);
           if (mounted) {
             Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Address updated.'),
-                backgroundColor: CustomerDetailColors.accent,
-              ),
-            );
+            AppSnackBar.show(context, 'Address updated.');
           }
         },
       ),
@@ -954,17 +948,13 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
           setState(() { _saving = false; _addressError = e.message; });
         } else {
           setState(() => _saving = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.message), backgroundColor: CustomerDetailColors.danger),
-          );
+          AppSnackBar.showError(context, e.message);
         }
       }
     } catch (_) {
       if (mounted) {
         setState(() => _saving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save. Please try again.')),
-        );
+        AppSnackBar.show(context, 'Failed to save. Please try again.');
       }
     }
   }

@@ -59,17 +59,21 @@ class OrderListTile extends StatelessWidget {
     required this.productName,
     required this.shiftLabel,
     required this.quantity,
+    required this.unitRate,
     required this.isSkipped,
     required this.onQtyChanged,
     required this.onSkip,
     this.onUndo,
     this.dotColor,
+    this.address,
   });
 
   final String customerName;
   final String productName;
   final String shiftLabel;
+  final String? address;
   final double quantity;
+  final double unitRate;
   final bool isSkipped;
   final ValueChanged<double> onQtyChanged;
   final VoidCallback onSkip;
@@ -78,83 +82,136 @@ class OrderListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dot = dotColor ?? milkTypeDotColor(productName);
+    final accentColor = dotColor ?? milkTypeDotColor(productName);
+    final nameColor = isSkipped ? const Color(0xFFB8BDB6) : CustomerDetailColors.onSurface;
+    final metaColor = isSkipped ? const Color(0xFFC4C9C2) : CustomerDetailColors.labelMuted;
+    final addressColor = isSkipped ? const Color(0xFFC4C9C2) : CustomerDetailColors.iconMuted;
+    final metaLine = unitRate > 0
+        ? '$productName - ₹${formatOwnerCurrency(unitRate)} · $shiftLabel'
+        : '$productName · $shiftLabel';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-        decoration: ownerWhiteCardDecoration(),
-        child: Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    customerName,
-                    style: AppText.cardTitle.copyWith(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                      color: CustomerDetailColors.onSurface,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$productName · $shiftLabel',
-                    style: AppText.meta.copyWith(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: CustomerDetailColors.labelMuted,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            if (isSkipped) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                decoration: BoxDecoration(
-                  color: CustomerListColors.inactiveBadgeBg,
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Text(
-                  AppStrings.ordersSkipped,
-                  style: AppText.meta.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: CustomerListColors.inactiveOrange,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 7),
-              OwnerIconActionButton(
-                icon: LucideIcons.rotateCcw,
-                onTap: onUndo,
-                background: CustomerDetailColors.surface,
-                border: CustomerListColors.searchBorder,
-                iconColor: CustomerDetailColors.accent,
-              ),
-            ] else ...[
-              OwnerQtyStepper(quantity: quantity, onChanged: onQtyChanged),
-              const SizedBox(width: 7),
-              OwnerIconActionButton(
-                icon: LucideIcons.skipForward,
-                onTap: onSkip,
-                iconColor: CustomerDetailColors.labelMuted,
+      child: Material(
+        color: CustomerDetailColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(color: CustomerDetailColors.border),
+            boxShadow: const [
+              BoxShadow(
+                color: Color.fromARGB(51, 255, 255, 255),
+                blurRadius: 14,
+                spreadRadius: -10,
+                offset: Offset(0, 4),
               ),
             ],
-          ],
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (!isSkipped) Container(width: 4, color: accentColor),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                customerName,
+                                style: AppText.cardTitle.copyWith(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: nameColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if ((address ?? '').trim().isNotEmpty) ...[
+                                const SizedBox(height: 3),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      LucideIcons.mapPin,
+                                      size: 11,
+                                      color: addressColor,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        address!.trim(),
+                                        style: AppText.meta.copyWith(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: addressColor,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              const SizedBox(height: 2),
+                              Text(
+                                metaLine,
+                                style: AppText.meta.copyWith(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: metaColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (isSkipped) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFBEAD0),
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                            child: Text(
+                              AppStrings.ordersSkipped,
+                              style: AppText.meta.copyWith(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFFA06A1E),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          OwnerIconActionButton(
+                            icon: LucideIcons.rotateCcw,
+                            onTap: onUndo,
+                            background: CustomerDetailColors.surface,
+                            border: CustomerDetailColors.border,
+                            iconColor: CustomerDetailColors.accent,
+                          ),
+                        ] else ...[
+                          OwnerQtyStepper(quantity: quantity, onChanged: onQtyChanged),
+                          const SizedBox(width: 7),
+                          OwnerIconActionButton(
+                            icon: LucideIcons.skipForward,
+                            onTap: onSkip,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -216,14 +273,14 @@ class InvoiceListTile extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: Container(
+          child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(color: CustomerDetailColors.border),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF283C28).withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  spreadRadius: -10,
+                  color: const Color.fromARGB(255, 255, 255, 255).withValues(alpha: 1),
+                  blurRadius: 10,
+                  spreadRadius: -8,
                   offset: const Offset(0, 3),
                 ),
               ],
@@ -267,7 +324,7 @@ class InvoiceListTile extends StatelessWidget {
                           const SizedBox(height: 5),
                           Row(
                             children: [
-                              Flexible(
+                              Expanded(
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [

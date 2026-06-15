@@ -39,3 +39,13 @@
 ## [2026-05-30] | Customer detail screen — approved & built | Cards A–D with real API data; list tap navigates to detail | CEO
 
 ## [2026-05-30] | Global top bar + customers list v2 — approved & built | Farm name / screen title / profile menu; search+sort, mini toggle, vacation sheet | CEO
+
+## [2026-06-13] | Full owner redesign approved | Align all owner screens to `LactoSync Routes Redesign.dc.html` frames 1–14 | CEO
+
+## [2026-06-13] | Customer + delivery boy inherit owner design DNA | Same palette/cards; no separate HTML frames | CPO
+
+## [2026-06-14] | THIS MONTH consumption = month-to-date | Billable logs (pending + delivered) from 1st through today; e.g. 14 Jun 2L/day @ ₹80 → 28L / ₹2240 | CEO
+
+## [2026-06-14] | Bug-fix plan (8 items) + design fixes approved | Settings time, billing PENDING scope, calendar, route sheet, payments invoice, PDF format, MTD consumption | CEO
+
+## [2026-06-14] | VPS deploy path confirmed | `repo/deploy/hostinger/docker-compose.prod.yml`; rebuild `app` + restart queue/scheduler | Technical

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../providers/delivery_provider.dart';
+import 'customer_detail/customer_detail_styles.dart';
 import 'owner_shared_widgets.dart';
 import 'packing_groups_panel.dart';
 
@@ -25,26 +26,18 @@ class RouteCustomerTile extends StatelessWidget {
   final VoidCallback? onUndo;
   final void Function(int orderId, double qty)? onQtyChanged;
 
-  static const _indexBadgeBg = Color(0xFFEAF3EB);
-  static const _indexBadgeFg = Color(0xFF2E6E45);
-  static const _skippedBg = Color(0xFFFBEAD0);
-  static const _skippedFg = Color(0xFFA06A1E);
-  static const _chipBg = Color(0xFFEFF6EC);
-  static const _chipBorder = Color(0xFFDCEBDC);
-  static const _chipInk = Color(0xFF246B3A);
-  static const _ink = Color(0xFF1E2A1E);
-
   @override
   Widget build(BuildContext context) {
     final c = customer;
     final faded = c.onVacation || c.isSkipped || !c.isDeliverable;
     final showSkipped = c.isSkipped && !c.onVacation;
     final indexLabel = '$index';
+    final address = c.address.trim();
 
     return Opacity(
       opacity: faded ? 0.62 : 1,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -53,15 +46,18 @@ class RouteCustomerTile extends StatelessWidget {
               child: Column(
                 children: [
                   dragHandle ??
-                      const Icon(Icons.drag_indicator,
-                          size: 20, color: Color(0xFFC2CABB)),
+                      const Icon(
+                        LucideIcons.gripVertical,
+                        size: 20,
+                        color: CustomerDetailColors.iconMuted,
+                      ),
                   const SizedBox(height: 8),
                   Container(
                     width: 27,
                     height: 27,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: _indexBadgeBg,
+                      color: CustomerDetailColors.accentLight,
                       borderRadius: BorderRadius.circular(9),
                     ),
                     child: Text(
@@ -69,7 +65,7 @@ class RouteCustomerTile extends StatelessWidget {
                       style: AppText.meta.copyWith(
                         fontSize: indexLabel.length > 1 ? 11 : 13,
                         fontWeight: FontWeight.w800,
-                        color: _indexBadgeFg,
+                        color: CustomerDetailColors.accent,
                         height: 1,
                       ),
                     ),
@@ -86,32 +82,64 @@ class RouteCustomerTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Wrap(
-                          spacing: 7,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              c.name,
-                              style: AppText.cardTitle.copyWith(
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w700,
-                                height: 1.15,
-                                color: faded ? AppColors.inkMuted : _ink,
-                              ),
+                            Wrap(
+                              spacing: 7,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  c.name.toUpperCase(),
+                                  style: AppText.cardTitle.copyWith(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.15,
+                                    color: faded
+                                        ? CustomerDetailColors.labelMuted
+                                        : CustomerDetailColors.accent,
+                                  ),
+                                ),
+                                if (showSkipped)
+                                  const _StatusPill(
+                                    label: 'SKIPPED',
+                                    bg: CustomerDetailColors.morningChipBg,
+                                    fg: CustomerDetailColors.morningChipInk,
+                                  ),
+                                if (c.onVacation)
+                                  const _StatusPill(
+                                    label: 'VACATION',
+                                    bg: CustomerDetailColors.statBg,
+                                    fg: CustomerDetailColors.labelMuted,
+                                  ),
+                              ],
                             ),
-                            if (showSkipped)
-                              const _StatusPill(
-                                label: 'SKIPPED',
-                                bg: _skippedBg,
-                                fg: _skippedFg,
+                            if (address.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    LucideIcons.mapPin,
+                                    size: 11,
+                                    color: CustomerDetailColors.iconMuted,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      address,
+                                      style: AppText.meta.copyWith(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: CustomerDetailColors.iconMuted,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            if (c.onVacation)
-                              const _StatusPill(
-                                label: 'VACATION',
-                                bg: Color(0xFFECEFE5),
-                                fg: AppColors.inkMuted,
-                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -119,14 +147,14 @@ class RouteCustomerTile extends StatelessWidget {
                       if (!c.onVacation && c.isSkipped && onUndo != null)
                         _SkipUndoButton(
                           label: 'Undo',
-                          icon: Icons.replay_rounded,
+                          icon: LucideIcons.rotateCcw,
                           isUndo: true,
                           onTap: onUndo!,
                         )
                       else if (!c.onVacation && !c.isSkipped && onSkip != null)
                         _SkipUndoButton(
                           label: 'Skip',
-                          icon: Icons.skip_next_rounded,
+                          icon: LucideIcons.skipForward,
                           isUndo: false,
                           onTap: onSkip!,
                         ),
@@ -185,13 +213,16 @@ class _ProductStepperChip extends StatelessWidget {
     final parsed = parseRouteProductLabel(line.productName);
     final qtyLabel = disabled ? '0 L' : formatRouteQtyLiters(line.quantity);
     final canStep = !disabled && line.orderId != null && onQtyChanged != null;
+    final productLabel = parsed.rate != null
+        ? '${parsed.animal} - ₹${parsed.rate}'
+        : parsed.animal;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 5, 6, 5),
       decoration: BoxDecoration(
-        color: RouteCustomerTile._chipBg,
+        color: CustomerDetailColors.rateChipBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: RouteCustomerTile._chipBorder),
+        border: Border.all(color: CustomerDetailColors.rateChipBorder),
       ),
       child: Row(
         children: [
@@ -205,27 +236,16 @@ class _ProductStepperChip extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            parsed.animal,
+            productLabel,
             style: AppText.meta.copyWith(
               fontSize: 12.5,
               fontWeight: FontWeight.w800,
-              color: RouteCustomerTile._chipInk,
+              color: CustomerDetailColors.rateChipInk,
             ),
           ),
-          if (parsed.rate != null) ...[
-            const SizedBox(width: 6),
-            Text(
-              '₹${parsed.rate}',
-              style: AppText.meta.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF6E8A72),
-              ),
-            ),
-          ],
           const Spacer(),
           _RoundStepButton(
-            icon: Icons.remove,
+            icon: LucideIcons.minus,
             enabled: canStep && line.quantity > kMilkQtyOptions.first,
             onTap: () => _step(-1),
           ),
@@ -236,12 +256,12 @@ class _ProductStepperChip extends StatelessWidget {
               style: AppText.cardTitle.copyWith(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF1E5233),
+                color: CustomerDetailColors.calHalfInk,
               ),
             ),
           ),
           _RoundStepButton(
-            icon: Icons.add,
+            icon: LucideIcons.plus,
             enabled: canStep && line.quantity < kMilkQtyOptions.last,
             onTap: () => _step(1),
           ),
@@ -274,13 +294,17 @@ class _RoundStepButton extends StatelessWidget {
           color: Colors.white,
           shape: BoxShape.circle,
           border: Border.all(
-            color: enabled ? const Color(0xFFCFE3CF) : const Color(0xFFE4E8DD),
+            color: enabled
+                ? CustomerDetailColors.calHalfBorder
+                : CustomerDetailColors.divider,
           ),
         ),
         child: Icon(
           icon,
           size: 14,
-          color: enabled ? const Color(0xFF2E6E45) : const Color(0xFFC2CABB),
+          color: enabled
+              ? CustomerDetailColors.accent
+              : CustomerDetailColors.iconMuted,
         ),
       ),
     );
@@ -334,9 +358,15 @@ class _SkipUndoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = isUndo ? RouteCustomerTile._skippedBg : Colors.white;
-    final border = isUndo ? const Color(0xFFF1D9AE) : const Color(0xFFE4E8DD);
-    final fg = isUndo ? RouteCustomerTile._skippedFg : const Color(0xFF8C938A);
+    final bg = isUndo
+        ? CustomerDetailColors.morningChipBg
+        : CustomerDetailColors.surface;
+    final border = isUndo
+        ? CustomerDetailColors.morningChipBorder
+        : CustomerDetailColors.border;
+    final fg = isUndo
+        ? CustomerDetailColors.morningChipInk
+        : CustomerDetailColors.onSurfaceVariant;
 
     return GestureDetector(
       onTap: onTap,
@@ -389,9 +419,9 @@ class RouteStatBoxes extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F8F1),
+        color: CustomerDetailColors.statBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFECEFE5)),
+        border: Border.all(color: CustomerDetailColors.border),
       ),
       child: IntrinsicHeight(
         child: Row(
@@ -402,19 +432,19 @@ class RouteStatBoxes extends StatelessWidget {
             const VerticalDivider(
               width: 1,
               thickness: 1,
-              color: Color(0xFFE4E8DD),
+              color: CustomerDetailColors.divider,
             ),
             Expanded(
               child: _RouteStatCell(
                 value: '$litersLabel L',
                 label: 'TO PACK',
-                valueColor: AppColors.primary,
+                valueColor: CustomerDetailColors.accent,
               ),
             ),
             const VerticalDivider(
               width: 1,
               thickness: 1,
-              color: Color(0xFFE4E8DD),
+              color: CustomerDetailColors.divider,
             ),
             Expanded(
               child: _RouteStatCell(
@@ -434,7 +464,7 @@ class _RouteStatCell extends StatelessWidget {
   const _RouteStatCell({
     required this.value,
     required this.label,
-    this.valueColor = const Color(0xFF1E2A1E),
+    this.valueColor = CustomerDetailColors.onSurface,
   });
 
   final String value;
@@ -464,7 +494,7 @@ class _RouteStatCell extends StatelessWidget {
             style: AppText.meta.copyWith(
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF8C938A),
+              color: CustomerDetailColors.onSurfaceVariant,
               letterSpacing: 0.4,
             ),
             textAlign: TextAlign.center,
