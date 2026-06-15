@@ -1,32 +1,29 @@
 # TECHNICAL TASKS — LactoSync
-# Updated: 2026-06-14 | Device-test ready v4.10.15+37
+# Updated: 2026-06-15 | Customer app redesign active
 
 ## Core platform ✅
-- [x] Auth, onboarding, owner module (6 tabs), billing, payments, WhatsApp
-- [x] Customer app APIs + Flutter shell (Sprint CA)
-- [x] Delivery boy module + route sheet
-- [x] Superadmin web live
+- [x] Auth, onboarding, owner module, billing, payments, WhatsApp
+- [x] Customer app APIs + Flutter shell
+- [x] Delivery boy module + forgot-PIN API
+- [x] AppSnackBar global toasts + invoice print/share (web)
 
-## Owner redesign sprint ✅ (2026-06)
-- [x] Frames 1–14 aligned to redesign HTML
-- [x] `RedesignScaffold`, `CustomerDetailColors`, owner design system
-- [x] Route sheet redesign + skip/qty API fixes
-- [x] Settings schedule `H:i` format fix
+## Owner polish ✅ (2026-06-15)
+- [x] Billing history month aggregates
+- [x] Bill generate sheet lifecycle fix
+- [x] Invoice detail regenerate/print/share
+- [x] Add/edit customer form + farm prefill
+- [x] `short_address` on daily orders API
 
-## Bug-fix batch ✅ (CEO approved 2026-06-14)
-- [x] MTD consumption — `DeliveryLogPresenter::logsThroughDate()` + `ConsumptionAggregator`
-- [x] Billing hero PENDING scoped to selected month
-- [x] Calendar line fallback (no subscription-level merge)
-- [x] Route sheet `customer_id` + `quantity` field
-- [x] Payments `invoice_number` on API + Flutter model
-- [x] PDF as default document share format
+## Git ✅
+- [x] Polish commit on `main`
+- [x] Synced with `origin/main`
 
-## Deploy ✅
-- [x] VPS Docker rebuild (`lactosync_flutter_app_api` + queue + scheduler)
-- [x] APK v4.10.15+37 built
+## Customer redesign ⏳
+- [ ] Chrome debug launch config (`.vscode/launch.json` — Flutter dart type)
+- [ ] Screen-by-screen Flutter updates under `lib/features/customer/`
+- [ ] Verify customer API base (`AppConfig.apiBaseUrlCustomer`) on web
+- [ ] Hot-restart test each screen after polish batch
 
-## Next ⏳
-- [ ] Farenidham device test (CEO)
-- [ ] Commit + push WIP when approved
-- [ ] `customer_bills_page` redesign (low — unrouted)
-- [ ] Meta approval: `lacto_sync_monthly_bill` WhatsApp template
+## Deploy 🔲
+- [ ] Rebuild APK after customer redesign batch
+- [ ] VPS deploy only if API changes needed

@@ -1,20 +1,18 @@
 # PROJECT STATUS — LactoSync
-**Last Updated:** 2026-06-15 | **Overall:** 🟢 Device-test ready (v4.11.1+39 + API live)
+**Last Updated:** 2026-06-15 | **Overall:** 🟢 Synced — customer app redesign starting
 
 ---
 
 ### 🏗️ Technical
-- **API:** Live on VPS — delivery boy forgot-PIN (WhatsApp OTP) deployed 2026-06-15
-- **App:** v4.11.1+39; full redesign committed
-- **Git:** Redesign committed `62d3549` (Sprint 11 — full redesign + typography audit, v4.11.0). Uncommitted: `edit_customer_page.dart` + memory files. Untracked: `stitch_dairyease_premium.zip`
+- **API:** Live — https://flutterapi.lactosync.com
+- **App:** v4.11.1+39 · owner polish committed + git synced
+- **Git:** `main` aligned with `origin/main` after merge sync
 
 ### 🎨 Product / Design
-- Owner redesign (HTML frames 1–14): ✅ committed
-- Customer auth + delivery boy shells (owner DNA): ✅ committed
-- Route sheet, register, route detail reorder: ✅
-- Typography audit: ✅ (Sprint 11)
-- ⚠️ Dashboard quick-action cards render puffy on device (shadow uses literal HTML `0.18`; Flutter draws heavier than browser) — Sagar reviewing screen-by-screen
-- `customer_bills_page` / `auth/home_page` (unrouted dead code): 🔲 low priority
+- Owner redesign (frames 1–14): ✅ complete
+- **Customer app redesign:** 🔲 **active** — shell exists; full frame-by-frame polish next
+- Delivery boy shells: ✅ (owner DNA)
+- Reference: `stitch_dairyease_premium.zip` (untracked design export)
 
 ### 💼 Sales / 📣 Marketing — not active
 
@@ -28,22 +26,20 @@
 | API | https://flutterapi.lactosync.com |
 
 ## Consumption rule (CEO confirmed 2026-06-14)
-**THIS MONTH** = billable litres + amount from 1st of month through **today** (pending + delivered). Example: 14 Jun, 2L/day @ ₹80, no off days → **28L / ₹2,240**; increments daily.
+**THIS MONTH** = billable litres + amount from 1st of month through **today** (pending + delivered).
 
 ## Farenidham spot-check
 | Farm | Mobile | PIN |
 |------|--------|-----|
 | Farenidham Gaushala | 9998866008 | 1234 |
 
-Check: THIS MONTH consumption, June billing PENDING, settings schedule save, route sheet skip/qty, long-press calendar edit.
-
 ## ✅ Completed this week
-- Approved bug-fix plan (8 items) + design polish
-- API redeployed (Docker rebuild on VPS)
-- MTD consumption logic end-to-end
+- Owner polish: toasts, billing UX, invoice print/share, customer forms
+- Delivery boy forgot-PIN API + screens
+- Git synced for redesign handoff
 
-## 🔲 Next
-1. Screen-by-screen design polish vs HTML frames (in progress — quick actions first)
-2. Sagar device test → feedback
-3. Commit + push when approved
-4. Legal/compliance before public rollout
+## 🔲 Next — Customer app redesign
+1. Audit customer screens vs design reference (dashboard, orders, payments, profile, vacation)
+2. Apply owner redesign DNA (`CustomerDetailColors`, cards, typography)
+3. Chrome debug via **LactoSync — Chrome (debug)** launch config (not localhost:8080)
+4. Device test after first screen batch

@@ -1,26 +1,24 @@
 # DESIGN TASKS — LactoSync
-# Updated: 2026-06-14 | Owner redesign complete
+# Updated: 2026-06-15 | Customer app redesign active
 
 ## Owner app ✅
 - [x] Frames 1–14 per `LactoSync Routes Redesign.dc.html`
-- [x] Customer detail hero, calendar, consumption, billing cards
-- [x] Route sheet, register, route detail reorder colors
-- [x] Settings farm/milk/container/WhatsApp polish
-- [x] Bottom sheets unified (white, 24px radius, `#ECEFE5` borders)
+- [x] Customer detail, billing, routes, settings polish
+- [x] Toast/snackbar readable light cards app-wide
 
-## Customer + delivery boy ✅
-- [x] Auth screens on `#F4F6EE` + redesign tokens
-- [x] Customer shell tabs styled to owner DNA
-- [x] Delivery boy home + route sheet
+## Customer app redesign 🔲 ACTIVE
+- [ ] Screen audit vs `stitch_dairyease_premium.zip` / owner DNA
+- [ ] Dashboard — hero, quick stats, navigation
+- [ ] Orders — list + calendar consumption parity
+- [ ] Payments — bills list + detail cards
+- [ ] Profile — contact, farm info, PIN/settings
+- [ ] Vacation — pause flow UI
+- [ ] Auth screens — parity with owner signup/OTP styling
 
-## Onboarding + auth ✅
-- [x] Signup, OTP, role picker, PIN, farm setup flows
-
-## Open (low priority) 🔲
-- [ ] `customer_bills_page.dart` — legacy `AppColors` (page not routed; bills on payments)
-- [ ] Typography parity — Quicksand/Nunito vs system (optional)
-- [ ] Lucide icons full pass (partial today)
+## Delivery boy ✅
+- [x] Home + route sheet on owner DNA
+- [x] Forgot/reset PIN flows
 
 ## Reference
 - Gaps doc: `briefs/REDESIGN_GAPS.md`
-- Checkpoint: git `4e603ee`
+- Owner tokens: `CustomerDetailColors`, `ownerWhiteCardDecoration()`
