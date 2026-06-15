@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/app_card.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/redesign_colors.dart';
+import '../../../../core/widgets/app_dialogs.dart';
+import '../../../../core/widgets/redesign_scaffold.dart';
 import '../providers/delivery_provider.dart';
 
 class OwnerRouteSheetPage extends ConsumerStatefulWidget {
   const OwnerRouteSheetPage({super.key});
 
   @override
-  ConsumerState<OwnerRouteSheetPage> createState() =>
-      _OwnerRouteSheetPageState();
+  ConsumerState<OwnerRouteSheetPage> createState() => _OwnerRouteSheetPageState();
 }
 
 class _OwnerRouteSheetPageState extends ConsumerState<OwnerRouteSheetPage>
@@ -50,24 +52,33 @@ class _OwnerRouteSheetPageState extends ConsumerState<OwnerRouteSheetPage>
     final eveningQuery = RouteSheetQuery(date: _dateStr, shift: 'evening');
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: CustomerDetailColors.background,
       appBar: AppBar(
-        title: const Text('Route Sheet'),
-        backgroundColor: AppColors.bg,
-        foregroundColor: AppColors.ink,
+        title: Text(
+          'Route sheet',
+          style: AppText.screenTitle.copyWith(
+            fontSize: 17,
+            color: CustomerDetailColors.accent,
+          ),
+        ),
+        backgroundColor: CustomerDetailColors.surface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         actions: [
           TextButton.icon(
             onPressed: _pickDate,
-            icon: const Icon(Icons.calendar_today_outlined, size: 16),
-            label: Text(DateFormat('d MMM').format(_date)),
+            icon: Icon(LucideIcons.calendar, size: 16, color: CustomerDetailColors.accent),
+            label: Text(
+              DateFormat('d MMM').format(_date),
+              style: AppText.label.copyWith(color: CustomerDetailColors.accent),
+            ),
           ),
         ],
         bottom: TabBar(
           controller: _tabs,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.inkMuted,
-          indicatorColor: AppColors.primary,
+          labelColor: CustomerDetailColors.accent,
+          unselectedLabelColor: CustomerDetailColors.onSurfaceVariant,
+          indicatorColor: CustomerDetailColors.accent,
           tabs: const [
             Tab(text: 'Morning'),
             Tab(text: 'Evening'),
@@ -94,26 +105,33 @@ class _ShiftSheet extends ConsumerWidget {
     final sheetAsync = ref.watch(ownerRouteSheetProvider(query));
 
     return sheetAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: CustomerDetailColors.accent),
+      ),
+      error: (e, _) => Center(
+        child: Text('Could not load route sheet', style: AppText.body),
+      ),
       data: (entries) {
         if (entries.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.route_outlined, size: 64, color: Colors.grey),
-                SizedBox(height: 12),
-                Text('No routes for this shift',
-                    style: TextStyle(color: Colors.grey)),
+                Icon(LucideIcons.map, size: 56, color: CustomerDetailColors.iconMuted),
+                const SizedBox(height: 12),
+                Text(
+                  'No routes for this shift',
+                  style: AppText.body.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+                ),
               ],
             ),
           );
         }
         return RefreshIndicator(
+          color: CustomerDetailColors.accent,
           onRefresh: () async => ref.invalidate(ownerRouteSheetProvider(query)),
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             itemCount: entries.length,
             itemBuilder: (context, i) => _RouteCard(entry: entries[i], ref: ref, query: query),
           ),
@@ -129,34 +147,28 @@ class _RouteCard extends StatelessWidget {
   final WidgetRef ref;
   final RouteSheetQuery query;
 
-  Future<void> _skip(BuildContext context, int? orderId, int assignmentId) async {
-    if (orderId == null) return;
-    final ok = await showDialog<bool>(
+  Future<void> _skip(BuildContext context, RouteSheetCustomer customer) async {
+    if (customer.customerId == 0) return;
+    final ok = await showAppConfirmDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Skip Delivery'),
-        content: const Text('Mark this delivery as skipped for today?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Skip', style: TextStyle(color: Colors.orange)),
-          ),
-        ],
-      ),
+      title: 'Skip delivery',
+      message: 'Mark ${customer.name}\'s delivery as skipped for today?',
+      confirmLabel: 'Skip',
+      cancelLabel: 'Cancel',
     );
     if (ok != true || !context.mounted) return;
     final dio = ref.read(dioProvider);
     try {
       await dio.post('/owner/skip-delivery', data: {
-        'order_id': orderId,
+        'customer_id': customer.customerId,
         'date': query.date,
       });
       ref.invalidate(ownerRouteSheetProvider(query));
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(mapDioError(e).message)),
+        );
       }
     }
   }
@@ -167,109 +179,139 @@ class _RouteCard extends StatelessWidget {
     final activeCount = entry.customers.where((c) => !c.isSkipped).length;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: AppCard(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: RedesignSurfaceCard(
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Route header
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(entry.routeName,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(
+                        entry.routeName,
+                        style: AppText.cardTitle.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: CustomerDetailColors.onSurface,
+                        ),
+                      ),
                       if (entry.deliveryBoyName != null)
                         Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Row(children: [
-                            const Icon(Icons.person_pin_outlined,
-                                size: 14, color: Colors.grey),
-                            const SizedBox(width: 4),
-                            Text(entry.deliveryBoyName!,
-                                style: const TextStyle(
-                                    fontSize: 12, color: Colors.grey)),
-                          ]),
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Row(
+                            children: [
+                              Icon(
+                                LucideIcons.user,
+                                size: 14,
+                                color: CustomerDetailColors.iconMuted,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                entry.deliveryBoyName!,
+                                style: AppText.meta.copyWith(
+                                  color: CustomerDetailColors.iconMuted,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                     ],
                   ),
                 ),
-                // Summary badges
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('${totalQty.toStringAsFixed(1)} L',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary)),
-                    Text('$activeCount customers',
-                        style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    Text(
+                      '${totalQty.toStringAsFixed(1)} L',
+                      style: AppText.cardTitle.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: CustomerDetailColors.accent,
+                      ),
+                    ),
+                    Text(
+                      '$activeCount customers',
+                      style: AppText.meta.copyWith(color: CustomerDetailColors.iconMuted),
+                    ),
                   ],
                 ),
               ],
             ),
-            const Divider(height: 16),
-            // Customer rows
-            ...entry.customers.map((c) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              c.name,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                decoration: c.isSkipped
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                color: c.isSkipped ? Colors.grey : null,
-                              ),
+            const Divider(height: 20, color: CustomerDetailColors.divider),
+            ...entry.customers.map(
+              (c) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            c.name,
+                            style: AppText.cardTitle.copyWith(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              decoration: c.isSkipped ? TextDecoration.lineThrough : null,
+                              color: c.isSkipped
+                                  ? CustomerDetailColors.iconMuted
+                                  : CustomerDetailColors.onSurface,
                             ),
-                            if (c.address.isNotEmpty)
-                              Text(c.address,
-                                  style: const TextStyle(
-                                      fontSize: 11, color: Colors.grey)),
-                          ],
+                          ),
+                          if (c.address.isNotEmpty)
+                            Text(
+                              c.address,
+                              style: AppText.meta.copyWith(color: CustomerDetailColors.iconMuted),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (c.qty != null)
+                      Text(
+                        '${c.qty!.toStringAsFixed(1)} L',
+                        style: AppText.cardTitle.copyWith(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: c.isSkipped
+                              ? CustomerDetailColors.iconMuted
+                              : CustomerDetailColors.accent,
                         ),
                       ),
-                      if (c.qty != null)
-                        Text(
-                          '${c.qty!.toStringAsFixed(1)} L',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: c.isSkipped ? Colors.grey : AppColors.primary,
+                    const SizedBox(width: 8),
+                    if (c.isSkipped)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: CustomerDetailColors.morningChipBg,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: CustomerDetailColors.morningChipBorder),
+                        ),
+                        child: Text(
+                          'Skipped',
+                          style: AppText.meta.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: CustomerDetailColors.morningChipInk,
                           ),
                         ),
-                      const SizedBox(width: 8),
-                      if (c.isSkipped)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text('Skipped',
-                              style: TextStyle(
-                                  fontSize: 10, color: Colors.orange)),
-                        )
-                      else
-                        IconButton(
-                          icon: const Icon(Icons.block_outlined,
-                              size: 18, color: Colors.orange),
-                          tooltip: 'Skip delivery',
-                          onPressed: () =>
-                              _skip(context, c.orderId, c.assignmentId),
+                      )
+                    else
+                      IconButton(
+                        icon: Icon(
+                          LucideIcons.ban,
+                          size: 18,
+                          color: CustomerDetailColors.morningChipInk,
                         ),
-                    ],
-                  ),
-                )),
+                        tooltip: 'Skip delivery',
+                        onPressed: () => _skip(context, c),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

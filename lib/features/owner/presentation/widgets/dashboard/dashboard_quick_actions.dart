@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/theme/app_typography.dart';
@@ -10,7 +11,8 @@ class DashboardQuickActions extends ConsumerWidget {
   const DashboardQuickActions({super.key});
 
   static const _label = Color(0xFF46524A);
-  static const _iconBg = Color(0xFFEAF3EB);
+  static const _iconBg = Color(0xFFF4F6EE);
+  static const _iconBorder = Color(0xFFE7EBE0);
   static const _green = Color(0xFF2E6E45);
 
   @override
@@ -34,7 +36,7 @@ class DashboardQuickActions extends ConsumerWidget {
           children: [
             Expanded(
               child: _QuickActionTile(
-                icon: Icons.person_add_alt_1_outlined,
+                icon: LucideIcons.userPlus,
                 label: AppStrings.dashboardFindCustomer,
                 onTap: () => OwnerActionSheets.showFindCustomer(context, ref),
               ),
@@ -42,7 +44,7 @@ class DashboardQuickActions extends ConsumerWidget {
             const SizedBox(width: 10),
             Expanded(
               child: _QuickActionTile(
-                icon: Icons.receipt_long_outlined,
+                icon: LucideIcons.receipt,
                 label: AppStrings.dashboardGenBill,
                 onTap: () => OwnerActionSheets.showGenerateBill(context, ref),
               ),
@@ -50,7 +52,7 @@ class DashboardQuickActions extends ConsumerWidget {
             const SizedBox(width: 10),
             Expanded(
               child: _QuickActionTile(
-                icon: Icons.payments_outlined,
+                icon: LucideIcons.creditCard,
                 label: AppStrings.dashboardRecordPayment,
                 onTap: () => OwnerActionSheets.showCollectPayment(context, ref),
               ),
@@ -58,7 +60,7 @@ class DashboardQuickActions extends ConsumerWidget {
             const SizedBox(width: 10),
             Expanded(
               child: _QuickActionTile(
-                icon: Icons.qr_code_2_outlined,
+                icon: LucideIcons.qrCode,
                 label: AppStrings.dashboardViewQr,
                 onTap: () => OwnerActionSheets.showFarmUpiQr(context, ref),
               ),
@@ -84,7 +86,7 @@ class _QuickActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: const Color(0xFFFFFFFF),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -95,8 +97,9 @@ class _QuickActionTile extends StatelessWidget {
             border: Border.all(color: const Color(0xFFECEFE5)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF283C28).withValues(alpha: 0.08),
+                color: const Color(0xFF283C28).withValues(alpha: 0.18),
                 blurRadius: 14,
+                spreadRadius: -10,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -112,6 +115,9 @@ class _QuickActionTile extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: DashboardQuickActions._iconBg,
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: DashboardQuickActions._iconBorder,
+                    ),
                   ),
                   child: Icon(
                     icon,

@@ -123,14 +123,15 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:12px; padding-top:2px;">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7A6C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 9.5-9.5a2 2 0 0 0 0-3l-.5-.5a2 2 0 0 0-3 0L4.5 15.5 4 20z"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C25B3A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></svg>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7A6C" stroke-width="2.1" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
                 </div>
               </div>
               <!-- stat strip -->
               <div style="display:flex; align-items:stretch; margin-top:14px; background:#F6F8F1; border:1px solid #ECEFE5; border-radius:14px; overflow:hidden;">
                 <div style="flex:1; padding:10px 6px; text-align:center;">
-                  <div style="font-family:Quicksand; font-weight:700; font-size:16px; color:#1E2A1E;">{{ r.stops }}</div>
-                  <div style="font-weight:700; font-size:10.5px; color:#8C938A; margin-top:1px;">STOPS</div>
+                  <div style="font-family:Quicksand; font-weight:700; font-size:16px; color:#1E2A1E;">{{ r.customers }}</div>
+                  <div style="font-weight:700; font-size:10.5px; color:#8C938A; margin-top:1px;">CUSTOMERS</div>
                 </div>
                 <div style="width:1px; background:#E4E8DD;"></div>
                 <div style="flex:1; padding:10px 6px; text-align:center;">
@@ -139,8 +140,8 @@
                 </div>
                 <div style="width:1px; background:#E4E8DD;"></div>
                 <div style="flex:1; padding:10px 6px; text-align:center;">
-                  <div style="font-family:Quicksand; font-weight:700; font-size:16px; color:#1E2A1E;">{{ r.window }}</div>
-                  <div style="font-weight:700; font-size:10.5px; color:#8C938A; margin-top:1px;">WINDOW</div>
+                  <div style="font-family:Quicksand; font-weight:700; font-size:16px; color:#D98A2B;">{{ r.hold }}</div>
+                  <div style="font-weight:700; font-size:10.5px; color:#8C938A; margin-top:1px;">ON HOLD</div>
                 </div>
               </div>
             </div>
@@ -243,8 +244,7 @@
                       <div style="display:flex; align-items:center; justify-content:space-between;">
                         <div style="display:flex; align-items:center; gap:8px;">
                           <span style="width:9px; height:9px; border-radius:50%; background:{{ p.dot }};"></span>
-                          <span style="font-weight:800; font-size:14px; color:#1E5233;">{{ p.animal }}</span>
-                          <span style="font-weight:700; font-size:13px; color:#7E8A7B;">₹{{ p.price }}</span>
+                          <span style="font-weight:800; font-size:14px; color:#1E5233;">{{ p.pname }}</span>
                         </div>
                         <span style="font-family:Quicksand; font-weight:700; font-size:15px; color:{{ p.totalColor }};">{{ p.total }}</span>
                       </div>
@@ -371,8 +371,7 @@
                   <sc-for list="{{ c.products }}" as="p" hint-placeholder-count="1">
                     <div style="display:flex; align-items:center; gap:8px; background:#EFF6EC; border:1px solid #DCEBDC; border-radius:12px; padding:5px 6px 5px 11px; align-self:flex-start; max-width:100%;">
                       <span style="width:8px; height:8px; border-radius:50%; background:{{ p.dot }}; flex-shrink:0;"></span>
-                      <span style="font-weight:800; font-size:12.5px; color:#246B3A; white-space:nowrap;">{{ p.animal }}</span>
-                      <span style="font-weight:700; font-size:12px; color:#6E8A72; white-space:nowrap;">₹{{ p.price }}</span>
+                      <span style="font-weight:800; font-size:12.5px; color:#246B3A; white-space:nowrap;">{{ p.pname }}</span>
                       <div style="display:flex; align-items:center; gap:8px; margin-left:4px;">
                         <button style="width:23px; height:23px; border-radius:50%; border:1px solid #CFE3CF; background:#FFFFFF; color:#2E6E45; font-weight:800; font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">−</button>
                         <span style="font-family:Quicksand; font-weight:700; font-size:13.5px; color:#1E5233; min-width:38px; text-align:center;">{{ p.vol }}</span>
@@ -492,8 +491,7 @@
                         <div style="display:flex; align-items:center; justify-content:space-between;">
                           <div style="display:flex; align-items:center; gap:8px;">
                             <span style="width:9px; height:9px; border-radius:50%; background:{{ p.dot }};"></span>
-                            <span style="font-weight:800; font-size:14px; color:#1E5233;">{{ p.animal }}</span>
-                            <span style="font-weight:700; font-size:13px; color:#7E8A7B;">₹{{ p.price }}</span>
+                            <span style="font-weight:800; font-size:14px; color:#1E5233;">{{ p.pname }}</span>
                           </div>
                           <span style="font-family:Quicksand; font-weight:700; font-size:15px; color:{{ p.totalColor }};">{{ p.total }}</span>
                         </div>
@@ -521,19 +519,19 @@
             <div style="font-weight:800; font-size:11.5px; letter-spacing:1.2px; color:#8C938A; margin:4px 2px 11px;">QUICK ACTIONS</div>
             <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
               <button style="background:#FFFFFF; border:1px solid #ECEFE5; border-radius:18px; padding:14px 6px 12px; display:flex; flex-direction:column; align-items:center; gap:9px; cursor:pointer; box-shadow:0 4px 14px -10px rgba(40,60,40,0.18);">
-                <span style="width:38px; height:38px; border-radius:12px; background:#EAF3EB; display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.4"/><path d="M3.5 19a6.5 6.5 0 0 1 13 0"/><path d="M18 6v5M15.5 8.5h5"/></svg></span>
+                <span style="width:38px; height:38px; border-radius:12px; background:#F4F6EE; border:1px solid #E7EBE0; display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.4"/><path d="M3.5 19a6.5 6.5 0 0 1 13 0"/><path d="M18 6v5M15.5 8.5h5"/></svg></span>
                 <span style="font-weight:700; font-size:10.5px; color:#46524A; letter-spacing:0.2px;">Customer</span>
               </button>
               <button style="background:#FFFFFF; border:1px solid #ECEFE5; border-radius:18px; padding:14px 6px 12px; display:flex; flex-direction:column; align-items:center; gap:9px; cursor:pointer; box-shadow:0 4px 14px -10px rgba(40,60,40,0.18);">
-                <span style="width:38px; height:38px; border-radius:12px; background:#EAF3EB; display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-3-2-2 2-2-2-2 2-3-2V4a1 1 0 0 1 1-1z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></span>
+                <span style="width:38px; height:38px; border-radius:12px; background:#F4F6EE; border:1px solid #E7EBE0; display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-3-2-2 2-2-2-2 2-3-2V4a1 1 0 0 1 1-1z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></span>
                 <span style="font-weight:700; font-size:10.5px; color:#46524A; letter-spacing:0.2px;">Gen Bill</span>
               </button>
               <button style="background:#FFFFFF; border:1px solid #ECEFE5; border-radius:18px; padding:14px 6px 12px; display:flex; flex-direction:column; align-items:center; gap:9px; cursor:pointer; box-shadow:0 4px 14px -10px rgba(40,60,40,0.18);">
-                <span style="width:38px; height:38px; border-radius:12px; background:#EAF3EB; display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.4"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg></span>
+                <span style="width:38px; height:38px; border-radius:12px; background:#F4F6EE; border:1px solid #E7EBE0; display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.4"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg></span>
                 <span style="font-weight:700; font-size:10.5px; color:#46524A; letter-spacing:0.2px;">Payment</span>
               </button>
               <button style="background:#FFFFFF; border:1px solid #ECEFE5; border-radius:18px; padding:14px 6px 12px; display:flex; flex-direction:column; align-items:center; gap:9px; cursor:pointer; box-shadow:0 4px 14px -10px rgba(40,60,40,0.18);">
-                <span style="width:38px; height:38px; border-radius:12px; background:#EAF3EB; display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><path d="M14 14h3v3M21 14v.01M17 21h4M21 18v3"/></svg></span>
+                <span style="width:38px; height:38px; border-radius:12px; background:#F4F6EE; border:1px solid #E7EBE0; display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><path d="M14 14h3v3M21 14v.01M17 21h4M21 18v3"/></svg></span>
                 <span style="font-weight:700; font-size:10.5px; color:#46524A; letter-spacing:0.2px;">View QR</span>
               </button>
             </div>
@@ -589,12 +587,29 @@
           </button>
         </div>
 
-        <!-- summary strip -->
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:2px 20px 12px;">
-          <span style="font-weight:800; font-size:12.5px; color:#46524A;">116 <span style="color:#8C938A; font-weight:700;">active</span></span>
-          <div style="display:flex; align-items:center; gap:14px;">
-            <span style="display:inline-flex; align-items:center; gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4A66A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.8 22 12 4 4l3 6-3 6 5.5-1.6"/></svg><span style="font-weight:700; font-size:12px; color:#4A66A6;">4 on vacation</span></span>
-            <span style="display:inline-flex; align-items:center; gap:5px;"><span style="width:7px; height:7px; border-radius:50%; background:#D98A2B;"></span><span style="font-weight:700; font-size:12px; color:#A06A1E;">15 inactive</span></span>
+        <!-- shift-wise summary -->
+        <div style="display:flex; gap:10px; padding:2px 16px 12px;">
+          <div style="flex:1; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:14px; padding:10px 12px; box-shadow:0 4px 14px -10px rgba(40,60,40,0.18);">
+            <div style="display:flex; align-items:center; justify-content:center; gap:7px; margin-bottom:8px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E89A2E" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.4" fill="#F2AE43" stroke="none"/><path d="M12 4v2M12 18v2M20 12h-2M6 12H4M17.7 6.3l-1.4 1.4M7.7 16.3 6.3 17.7M17.7 17.7l-1.4-1.4M7.7 7.7 6.3 6.3"/></svg>
+              <span style="font-weight:800; font-size:12px; color:#1E2A1E;">Morning</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:center; gap:12px;">
+              <span style="display:inline-flex; align-items:baseline; gap:4px;"><span style="font-family:Quicksand; font-weight:700; font-size:17px; color:#2E6E45;">100</span><span style="font-weight:700; font-size:11px; color:#8C938A;">active</span></span>
+              <span style="width:1px; height:16px; background:#E4E8DD;"></span>
+              <span style="display:inline-flex; align-items:baseline; gap:4px;"><span style="font-family:Quicksand; font-weight:700; font-size:17px; color:#A06A1E;">10</span><span style="font-weight:700; font-size:11px; color:#8C938A;">inactive</span></span>
+            </div>
+          </div>
+          <div style="flex:1; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:14px; padding:10px 12px; box-shadow:0 4px 14px -10px rgba(40,60,40,0.18);">
+            <div style="display:flex; align-items:center; justify-content:center; gap:7px; margin-bottom:8px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5E78B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A7.5 7.5 0 1 1 9.5 4a6 6 0 0 0 10.5 10.5z" fill="#C7D2EC" stroke="#5E78B0"/></svg>
+              <span style="font-weight:800; font-size:12px; color:#1E2A1E;">Evening</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:center; gap:12px;">
+              <span style="display:inline-flex; align-items:baseline; gap:4px;"><span style="font-family:Quicksand; font-weight:700; font-size:17px; color:#2E6E45;">20</span><span style="font-weight:700; font-size:11px; color:#8C938A;">active</span></span>
+              <span style="width:1px; height:16px; background:#E4E8DD;"></span>
+              <span style="display:inline-flex; align-items:baseline; gap:4px;"><span style="font-family:Quicksand; font-weight:700; font-size:17px; color:#A06A1E;">8</span><span style="font-weight:700; font-size:11px; color:#8C938A;">inactive</span></span>
+            </div>
           </div>
         </div>
 
@@ -743,7 +758,7 @@
             <div style="display:flex; gap:9px; margin-top:14px;">
               <div style="flex:1; background:#F6F8F1; border:1px solid #ECEFE5; border-radius:13px; padding:10px 11px;">
                 <div style="font-weight:700; font-size:10.5px; color:#8C938A; letter-spacing:0.3px;">THIS MONTH</div>
-                <div style="font-family:Quicksand; font-weight:700; font-size:17px; color:#1E2A1E; margin-top:2px;">₹707</div>
+                <div style="font-family:Quicksand; font-weight:700; font-size:17px; color:#1E2A1E; margin-top:2px;">₹704</div>
               </div>
               <div style="flex:1; background:#FBEDE6; border:1px solid #F2DDD1; border-radius:13px; padding:10px 11px;">
                 <div style="font-weight:700; font-size:10.5px; color:#C28A6E; letter-spacing:0.3px;">PENDING</div>
@@ -756,15 +771,8 @@
             </div>
           </div>
 
-          <!-- month selector -->
-          <div style="display:flex; align-items:center; justify-content:space-between; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:15px; padding:8px 8px; margin-top:16px;">
-            <button style="width:34px; height:34px; border-radius:10px; background:#F4F6EE; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-            <span style="font-family:Quicksand; font-weight:700; font-size:16px; color:#1E2A1E;">June 2026</span>
-            <button style="width:34px; height:34px; border-radius:10px; background:#F4F6EE; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
-          </div>
-
           <!-- vacation hold -->
-          <div style="display:flex; align-items:center; gap:13px; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:18px; padding:14px; margin-top:12px; box-shadow:0 4px 14px -10px rgba(40,60,40,0.18);">
+          <div style="display:flex; align-items:center; gap:13px; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:18px; padding:14px; margin-top:16px; box-shadow:0 4px 14px -10px rgba(40,60,40,0.18);">
             <span style="width:44px; height:44px; border-radius:14px; background:#E4F2E6; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2E9E54" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.8 22 12 4 4l3 6-3 6 5.5-1.6z"/></svg></span>
             <div style="flex:1; min-width:0;">
               <div style="display:flex; align-items:center; gap:7px;">
@@ -776,6 +784,13 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E8A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
               <span style="font-weight:800; font-size:12.5px; color:#5C6B5E;">Pause</span>
             </button>
+          </div>
+
+          <!-- month selector -->
+          <div style="display:flex; align-items:center; justify-content:space-between; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:15px; padding:8px 8px; margin-top:12px;">
+            <button style="width:34px; height:34px; border-radius:10px; background:#F4F6EE; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <span style="font-family:Quicksand; font-weight:700; font-size:16px; color:#1E2A1E;">June 2026</span>
+            <button style="width:34px; height:34px; border-radius:10px; background:#F4F6EE; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
           </div>
 
           <!-- subscriptions -->
@@ -794,7 +809,6 @@
                   <span style="font-family:Quicksand; font-weight:700; font-size:17px; color:#1E2A1E;">Buffalo – ₹80</span>
                 </div>
                 <div style="display:flex; gap:7px; margin-top:10px;">
-                  <span style="display:inline-flex; align-items:center; gap:5px; background:#EFF6EC; border:1px solid #DCEBDC; border-radius:9px; padding:5px 10px; font-weight:700; font-size:12px; color:#246B3A;">₹80 / ltr</span>
                   <span style="display:inline-flex; align-items:center; gap:5px; background:#FCF0DC; border:1px solid #F1E2C9; border-radius:9px; padding:5px 10px; font-weight:700; font-size:12px; color:#9A7B3E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E89A2E" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.4" fill="#F2AE43" stroke="none"/><path d="M12 4v2M12 18v2M20 12h-2M6 12H4M17.7 6.3l-1.4 1.4M7.7 16.3 6.3 17.7M17.7 17.7l-1.4-1.4M7.7 7.7 6.3 6.3"/></svg>Morning</span>
                 </div>
               </div>
@@ -816,7 +830,6 @@
                   <span style="font-family:Quicksand; font-weight:700; font-size:17px; color:#1E2A1E;">Cow – ₹63</span>
                 </div>
                 <div style="display:flex; gap:7px; margin-top:10px;">
-                  <span style="display:inline-flex; align-items:center; gap:5px; background:#EFF6EC; border:1px solid #DCEBDC; border-radius:9px; padding:5px 10px; font-weight:700; font-size:12px; color:#246B3A;">₹63 / ltr</span>
                   <span style="display:inline-flex; align-items:center; gap:5px; background:#FCF0DC; border:1px solid #F1E2C9; border-radius:9px; padding:5px 10px; font-weight:700; font-size:12px; color:#9A7B3E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E89A2E" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.4" fill="#F2AE43" stroke="none"/><path d="M12 4v2M12 18v2M20 12h-2M6 12H4M17.7 6.3l-1.4 1.4M7.7 16.3 6.3 17.7M17.7 17.7l-1.4-1.4M7.7 7.7 6.3 6.3"/></svg>Morning</span>
                 </div>
               </div>
@@ -878,7 +891,7 @@
             </sc-for>
             <div style="display:flex; align-items:center; justify-content:space-between; padding:13px 0 4px;">
               <span style="font-family:Quicksand; font-weight:700; font-size:15px; color:#1E2A1E;">Grand total</span>
-              <span style="font-family:Quicksand; font-weight:700; font-size:19px; color:#2E6E45;">₹707</span>
+              <span style="font-family:Quicksand; font-weight:700; font-size:19px; color:#2E6E45;">₹704</span>
             </div>
           </div>
 
@@ -1136,6 +1149,13 @@
           <button style="width:34px; height:34px; border-radius:10px; background:#F4F6EE; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
         </div>
 
+        <!-- shift tabs -->
+        <div style="display:flex; gap:8px; padding:0 16px 11px;">
+          <button onClick="{{ setShiftAll }}" style="flex:1; background:{{ tabAll.bg }}; border:1px solid {{ tabAll.bd }}; border-radius:12px; padding:9px; font-family:Quicksand; font-weight:{{ tabAll.fw }}; font-size:13.5px; color:{{ tabAll.fg }}; cursor:pointer;">All shifts</button>
+          <button onClick="{{ setShiftMorning }}" style="flex:1; background:{{ tabMorning.bg }}; border:1px solid {{ tabMorning.bd }}; border-radius:12px; padding:9px; font-family:Quicksand; font-weight:{{ tabMorning.fw }}; font-size:13.5px; color:{{ tabMorning.fg }}; cursor:pointer;">Morning</button>
+          <button onClick="{{ setShiftEvening }}" style="flex:1; background:{{ tabEvening.bg }}; border:1px solid {{ tabEvening.bd }}; border-radius:12px; padding:9px; font-family:Quicksand; font-weight:{{ tabEvening.fw }}; font-size:13.5px; color:{{ tabEvening.fg }}; cursor:pointer;">Evening</button>
+        </div>
+
         <!-- summary chips -->
         <div style="display:flex; gap:10px; padding:0 16px 11px;">
           <div style="flex:1; background:linear-gradient(135deg,#2E6E45,#3C8557); border-radius:15px; padding:11px 13px; color:#EAF7EC;">
@@ -1161,13 +1181,6 @@
           <button style="width:44px; background:#FFFFFF; border:1px solid #E4E8DD; border-radius:14px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 20l-3-3M7 4l3 3M17 20V4M17 4l-3 3M17 20l3-3"/></svg></button>
         </div>
 
-        <!-- shift tabs -->
-        <div style="display:flex; gap:8px; padding:0 16px 12px;">
-          <button style="flex:1; background:#2E6E45; border:none; border-radius:12px; padding:9px; font-family:Quicksand; font-weight:700; font-size:13.5px; color:#fff; cursor:pointer;">All shifts</button>
-          <button style="flex:1; background:#FFFFFF; border:1px solid #E4E8DD; border-radius:12px; padding:9px; font-family:Quicksand; font-weight:600; font-size:13.5px; color:#8C938A; cursor:pointer;">Morning</button>
-          <button style="flex:1; background:#FFFFFF; border:1px solid #E4E8DD; border-radius:12px; padding:9px; font-family:Quicksand; font-weight:600; font-size:13.5px; color:#8C938A; cursor:pointer;">Evening</button>
-        </div>
-
         <!-- order rows -->
         <div style="padding:0 14px 14px;">
           <sc-for list="{{ orders }}" as="o" hint-placeholder-count="6">
@@ -1179,15 +1192,15 @@
               </div>
               <sc-if value="{{ o.active }}" hint-placeholder-val="{{ true }}">
                 <div style="display:flex; align-items:center; gap:7px; background:#EFF6EC; border:1px solid #DCEBDC; border-radius:11px; padding:4px 5px; flex-shrink:0;">
-                  <button style="width:26px; height:26px; border-radius:50%; border:1px solid #CFE3CF; background:#FFFFFF; color:#2E6E45; font-weight:800; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">−</button>
-                  <span style="font-family:Quicksand; font-weight:700; font-size:13.5px; color:#1E5233; min-width:42px; text-align:center;">{{ o.vol }} L</span>
-                  <button style="width:26px; height:26px; border-radius:50%; border:1px solid #CFE3CF; background:#FFFFFF; color:#2E6E45; font-weight:800; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">+</button>
+                  <button onClick="{{ o.onDec }}" style="width:26px; height:26px; border-radius:50%; border:1px solid #CFE3CF; background:#FFFFFF; color:#2E6E45; font-weight:800; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">−</button>
+                  <span style="font-family:Quicksand; font-weight:700; font-size:13.5px; color:#1E5233; min-width:48px; text-align:center;">{{ o.volLabel }}</span>
+                  <button onClick="{{ o.onInc }}" style="width:26px; height:26px; border-radius:50%; border:1px solid #CFE3CF; background:#FFFFFF; color:#2E6E45; font-weight:800; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">+</button>
                 </div>
-                <button title="Skip today" style="width:38px; height:38px; border-radius:11px; background:#F4F6EE; border:1px solid #E4E8DD; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8C938A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l9 8-9 8zM18 4v16"/></svg></button>
+                <button onClick="{{ o.onSkip }}" title="Skip today" style="width:38px; height:38px; border-radius:11px; background:#F4F6EE; border:1px solid #E4E8DD; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8C938A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l9 8-9 8zM18 4v16"/></svg></button>
               </sc-if>
               <sc-if value="{{ o.skipped }}" hint-placeholder-val="{{ false }}">
                 <span style="display:inline-flex; align-items:center; gap:4px; background:#FBEAD0; color:#A06A1E; font-weight:800; font-size:11px; padding:7px 11px; border-radius:11px; flex-shrink:0;">Skipped</span>
-                <button title="Undo skip" style="width:38px; height:38px; border-radius:11px; background:#FFFFFF; border:1px solid #E4E8DD; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg></button>
+                <button onClick="{{ o.onUndo }}" title="Undo skip — restore subscribed qty" style="width:38px; height:38px; border-radius:11px; background:#FFFFFF; border:1px solid #E4E8DD; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg></button>
               </sc-if>
             </div>
           </sc-for>
@@ -1270,26 +1283,22 @@
         <!-- bill rows -->
         <div style="padding:2px 14px 14px;">
           <sc-for list="{{ bills }}" as="b" hint-placeholder-count="6">
-            <div style="display:flex; align-items:stretch; gap:0; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:16px; overflow:hidden; margin-bottom:10px; box-shadow:0 4px 14px -10px rgba(40,60,40,0.2);">
-              <span style="width:5px; background:{{ b.barColor }}; flex-shrink:0;"></span>
-              <div style="flex:1; min-width:0; padding:13px 14px;">
+            <div style="display:flex; align-items:stretch; gap:0; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:14px; overflow:hidden; margin-bottom:8px; box-shadow:0 3px 12px -10px rgba(40,60,40,0.2);">
+              <span style="width:4px; background:{{ b.barColor }}; flex-shrink:0;"></span>
+              <div style="flex:1; min-width:0; padding:10px 12px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                  <div style="min-width:0;">
-                    <div style="font-family:Quicksand; font-weight:700; font-size:15px; color:#1E2A1E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ b.name }}</div>
-                    <div style="font-weight:700; font-size:11.5px; color:#9AA597; margin-top:2px;">{{ b.inv }}</div>
-                  </div>
-                  <span style="flex-shrink:0; background:{{ b.statusBg }}; color:{{ b.statusFg }}; border:1px solid {{ b.statusBd }}; font-weight:800; font-size:11px; padding:5px 10px; border-radius:9px;">{{ b.status }}</span>
+                  <span style="font-family:Quicksand; font-weight:700; font-size:14.5px; color:#1E2A1E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ b.name }}</span>
+                  <span style="font-family:Quicksand; font-weight:700; font-size:16px; color:#1E2A1E; flex-shrink:0;">₹{{ b.billed }}</span>
                 </div>
-                <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-top:11px;">
-                  <div style="display:flex; align-items:baseline; gap:4px;">
-                    <span style="font-family:Quicksand; font-weight:700; font-size:18px; color:#1E2A1E;">₹{{ b.billed }}</span>
-                    <span style="font-weight:700; font-size:11.5px; color:#9AA597;">billed</span>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:5px;">
+                  <div style="display:flex; align-items:center; gap:7px; min-width:0;">
+                    <span style="flex-shrink:0; background:{{ b.statusBg }}; color:{{ b.statusFg }}; font-weight:800; font-size:10px; padding:2px 7px; border-radius:6px;">{{ b.status }}</span>
+                    <span style="font-weight:700; font-size:11px; color:#9AA597; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ b.inv }}</span>
                   </div>
-                  <span style="font-weight:800; font-size:12.5px; color:{{ b.outColor }};">{{ b.outLabel }}</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:9px; margin-top:9px;">
-                  <span style="flex:1; height:6px; border-radius:3px; background:#EEF2E7; overflow:hidden; display:block;"><span style="display:block; width:{{ b.pct }}; height:100%; background:{{ b.barColor }}; border-radius:3px;"></span></span>
-                  <button style="display:flex; align-items:center; gap:5px; background:#EAF3EB; border:1px solid #D6E7D9; border-radius:9px; padding:5px 10px; color:#2E6E45; font-weight:800; font-size:11px; cursor:pointer; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>Send</button>
+                  <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                    <span style="font-weight:800; font-size:11.5px; color:{{ b.outColor }};">{{ b.outLabel }}</span>
+                    <button title="Send bill" style="width:28px; height:28px; border-radius:8px; background:#EAF3EB; border:1px solid #D6E7D9; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E6E45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1442,7 +1451,7 @@
           <div style="display:flex; gap:10px; margin-top:14px;">
             <div style="flex:1; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:16px; padding:13px;">
               <div style="font-weight:800; font-size:10.5px; color:#8C938A; letter-spacing:0.3px;">BILLED</div>
-              <div style="font-family:Quicksand; font-weight:700; font-size:18px; color:#1E2A1E; margin-top:3px;">₹707</div>
+              <div style="font-family:Quicksand; font-weight:700; font-size:18px; color:#1E2A1E; margin-top:3px;">₹704</div>
             </div>
             <div style="flex:1; background:#FFFFFF; border:1px solid #ECEFE5; border-radius:16px; padding:13px;">
               <div style="font-weight:800; font-size:10.5px; color:#8C938A; letter-spacing:0.3px;">PAID</div>
@@ -1450,7 +1459,7 @@
             </div>
             <div style="flex:1; background:#FBEDE6; border:1px solid #F2DDD1; border-radius:16px; padding:13px;">
               <div style="font-weight:800; font-size:10.5px; color:#C28A6E; letter-spacing:0.3px;">DUE</div>
-              <div style="font-family:Quicksand; font-weight:700; font-size:18px; color:#C25B3A; margin-top:3px;">₹407</div>
+              <div style="font-family:Quicksand; font-weight:700; font-size:18px; color:#C25B3A; margin-top:3px;">₹404</div>
             </div>
           </div>
 
@@ -1468,7 +1477,7 @@
             </sc-for>
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 15px; background:#F7F9F2;">
               <span style="font-family:Quicksand; font-weight:700; font-size:15px; color:#1E2A1E;">Total billed</span>
-              <span style="font-family:Quicksand; font-weight:700; font-size:18px; color:#2E6E45;">₹707</span>
+              <span style="font-family:Quicksand; font-weight:700; font-size:18px; color:#2E6E45;">₹704</span>
             </div>
           </div>
 
@@ -1857,13 +1866,14 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
+  state = { orderQty: {}, orderShift: 'all' };
   renderVals() {
     const COW = '#84C68E';
     const BUF = '#4E8C6E';
 
     const routes = [
-      { name: 'Punitnagar Road', rider: 'Vikram Thakor', stops: 20, litres: '25.5 L', window: 'Morning' },
-      { name: 'Vavdi Route', rider: 'Govind Thakor', stops: 5, litres: '6.5 L', window: 'Morning' },
+      { name: 'Punitnagar Road', rider: 'Vikram Thakor', stops: 20, customers: 20, litres: '25.5 L', hold: 2 },
+      { name: 'Vavdi Route', rider: 'Govind Thakor', stops: 5, customers: 5, litres: '6.5 L', hold: 1 },
     ];
 
     const packing = [
@@ -1879,6 +1889,7 @@ class Component extends DCLogic {
       ]},
     ].map(g => ({ ...g, products: g.products.map(p => ({
       ...p,
+      pname: p.animal + ' – ₹' + p.price,
       empty: p.sizes.length === 0,
       op: p.sizes.length === 0 ? 0.5 : 1,
       totalColor: p.sizes.length === 0 ? '#B3BAAE' : '#2E6E45',
@@ -1908,14 +1919,14 @@ class Component extends DCLogic {
         skipped,
         active: !skipped,
         op: skipped ? 0.62 : 1,
-        products: row[2].map(p => ({ animal: p[0], price: p[1], vol: p[2], dot: p[3] })),
+        products: row[2].map(p => ({ animal: p[0], price: p[1], pname: p[0] + ' – ₹' + p[1], vol: p[2], dot: p[3] })),
       };
     });
 
     // ---- Dashboard (home) deliveries ----
     const mk = (arr) => arr.map(p => {
       const empty = !p.sizes || p.sizes.length === 0;
-      return { ...p, empty, op: empty ? 0.5 : 1, totalColor: empty ? '#B3BAAE' : '#2E6E45' };
+      return { ...p, pname: p.animal + ' – ₹' + p.price, empty, op: empty ? 0.5 : 1, totalColor: empty ? '#B3BAAE' : '#2E6E45' };
     });
 
     const morning = [
@@ -2018,12 +2029,13 @@ class Component extends DCLogic {
       calDays.push({ day: d, bg, border, numColor, qtyLabel, qtyColor });
     }
 
+    // Consumption is derived from the customer's active subscriptions — one line per
+    // subscribed product (Ashaben: Cow – ₹63 and Buffalo – ₹80). qty × rate = amount.
     const consumption = [
-      { name: 'Cow Milk', rate: 63, qty: '2.5', amt: 158, dot: COW },
-      { name: 'Buffalo Regular', rate: 80, qty: '1.5', amt: 120, dot: BUF },
-      { name: 'Buffalo – ₹80', rate: 80, qty: '3.0', amt: 240, dot: BUF },
-      { name: 'Cow – ₹63', rate: 63, qty: '3.0', amt: 189, dot: COW },
+      { name: 'Cow – ₹63', rate: 63, qty: '8.0', amt: 504, dot: COW },
+      { name: 'Buffalo – ₹80', rate: 80, qty: '2.5', amt: 200, dot: BUF },
     ];
+    const consumptionTotal = consumption.reduce((s, c) => s + c.amt, 0); // 704
 
     const billingRaw = [
       { month: 'June 2026', amount: '2,217', pending: true },
@@ -2056,29 +2068,52 @@ class Component extends DCLogic {
       ['BHARTIBEN BHANDERI', 'Cow', 70, '1', 'Evening', false],
       ['Bintuben shilp', 'Buffalo', 80, '1', 'Evening', false],
     ];
-    const orders = ordersRaw.map((o, i) => {
-      const skipped = o[5];
-      return {
-        seq: i + 1,
-        name: o[0],
-        animal: o[1],
-        price: o[2],
-        vol: o[3],
-        shift: o[4],
-        skipped,
-        active: !skipped,
-        dot: o[1] === 'Buffalo' ? BUF : COW,
-        op: skipped ? 0.6 : 1,
-        meta: o[1] + ' · ₹' + o[2] + ' · ' + o[4],
-      };
+    const self = this;
+    const stQty = this.state.orderQty || {};
+    const shiftSel = this.state.orderShift || 'all';
+    const fmt = (q) => q === 0 ? '0' : (q < 1 ? (q * 1000) + ' ml' : q + ' L');
+    const setQ = (id, v) => self.setState(s => ({ orderQty: { ...(s.orderQty || {}), [id]: v } }));
+
+    const ordersBase = ordersRaw.map((o, i) => {
+      const subVol = parseFloat(o[3]);
+      const defQty = o[5] ? 0 : subVol;          // 6th raw row starts skipped
+      const q = stQty[i] === undefined ? defQty : stQty[i];
+      return { id: i, name: o[0], pname: o[1] + ' – ₹' + o[2], shift: o[4], subVol, qty: q, dot: o[1] === 'Buffalo' ? BUF : COW };
     });
-    const ordersSummary = { count: orders.filter(o => !o.skipped).length, litres: '8.0', skipped: orders.filter(o => o.skipped).length };
+
+    const ordersView = ordersBase
+      .filter(b => shiftSel === 'all' || b.shift.toLowerCase() === shiftSel)
+      .map(b => {
+        const skipped = b.qty === 0;
+        return {
+          ...b, skipped, active: !skipped,
+          op: skipped ? 0.6 : 1,
+          volLabel: fmt(b.qty),
+          meta: b.pname + ' · ' + b.shift,
+          onInc: () => setQ(b.id, Math.min(10, Math.round((b.qty + 0.5) * 2) / 2)),
+          onDec: () => setQ(b.id, Math.max(0, Math.round((b.qty - 0.5) * 2) / 2)),
+          onSkip: () => setQ(b.id, 0),
+          onUndo: () => setQ(b.id, b.subVol),
+        };
+      });
+    const orders = ordersView;
+    const activeV = ordersView.filter(o => !o.skipped);
+    const ordersSummary = {
+      litres: activeV.reduce((s, o) => s + o.qty, 0).toFixed(1),
+      count: activeV.length,
+      skipped: ordersView.filter(o => o.skipped).length,
+    };
+    const shiftTab = (k) => ({ bg: shiftSel === k ? '#2E6E45' : '#FFFFFF', fg: shiftSel === k ? '#ffffff' : '#8C938A', bd: shiftSel === k ? '#2E6E45' : '#E4E8DD', fw: shiftSel === k ? '700' : '600' });
+    const tabAll = shiftTab('all'), tabMorning = shiftTab('morning'), tabEvening = shiftTab('evening');
+    const setShiftAll = () => self.setState({ orderShift: 'all' });
+    const setShiftMorning = () => self.setState({ orderShift: 'morning' });
+    const setShiftEvening = () => self.setState({ orderShift: 'evening' });
 
     // ---- Billing list ----
     const billsRaw = [
       ['Adarsh City B 304', 'INV-202606-0006', 163, 0, 'issued'],
       ['AELVISH BALDHA', 'INV-202606-0002', 293, 0, 'issued'],
-      ['Ashaben', 'INV-202606-0008', 707, 300, 'partial'],
+      ['Ashaben', 'INV-202606-0008', 704, 300, 'partial'],
       ['Bhavnaben Bhalala', 'INV-202606-0003', 63, 63, 'paid'],
       ['Bintuben shilp', 'INV-202606-0010', 478, 0, 'issued'],
       ['Jalpesh Kotadiya', 'INV-202606-0009', 1160, 1160, 'paid'],
@@ -2101,14 +2136,16 @@ class Component extends DCLogic {
         outLabel: outstanding > 0 ? ('₹' + outstanding + ' due') : 'Settled',
       };
     });
-    const billsSummary = { billed: '6,535', collected: '1,160', outstanding: '5,375', count: bills.length, pendingCount: bills.filter(b => b.outstanding > 0).length };
+    const billsSummary = { billed: '6,532', collected: '1,160', outstanding: '5,372', count: bills.length, pendingCount: bills.filter(b => b.outstanding > 0).length };
 
-    // ---- Bill detail line items ----
+    // ---- Bill detail ----  one line per subscription, qty = month total, qty × rate = amount
     const billLines = [
-      { day: '01–10 Jun', name: 'Cow – ₹63', qty: '10 × 1 L', amt: 630 },
-      { day: '11–20 Jun', name: 'Cow – ₹63', qty: '8 × 1 L', amt: 504 },
-      { day: '21–30 Jun', name: 'Buffalo – ₹80', qty: '5 × 0.5 L', amt: 200 },
+      { day: '1–30 Jun', name: 'Cow – ₹63', qty: '8.0 L', amt: 504 },
+      { day: '1–30 Jun', name: 'Buffalo – ₹80', qty: '2.5 L', amt: 200 },
     ];
+    const billBilled = billLines.reduce((s, l) => s + l.amt, 0); // 704
+    const billPaid = 300;
+    const billDue = billBilled - billPaid; // 404
     const billPayments = [
       { date: '06 Jun 2026', method: 'Cash', amt: 300 },
     ];
@@ -2149,7 +2186,7 @@ class Component extends DCLogic {
       { name: 'Plastic Bag', sys: true, sizes: ['500 ml','1 L','1.5 L','2 L'] },
     ];
 
-    return { routes, packing, customers, deliveries, directory, alphaRail, dowHeader, calDays, consumption, billingHistory, paymentsLog, orders, ordersSummary, bills, billsSummary, billLines, billPayments, paymentsList, paymentsTotals, settingsProducts, milkTypes, containerTypes };
+    return { routes, packing, customers, deliveries, directory, alphaRail, dowHeader, calDays, consumption, billingHistory, paymentsLog, orders, ordersSummary, tabAll, tabMorning, tabEvening, setShiftAll, setShiftMorning, setShiftEvening, bills, billsSummary, billLines, billPayments, paymentsList, paymentsTotals, settingsProducts, milkTypes, containerTypes };
   }
 }
 </script>

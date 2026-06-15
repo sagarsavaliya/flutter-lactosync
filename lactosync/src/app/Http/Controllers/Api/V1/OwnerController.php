@@ -18,6 +18,7 @@ use App\Models\FarmActivityLog;
 use App\Models\Subscription;
 use App\Models\SubscriptionLine;
 use App\Services\Activity\FarmActivityLogger;
+use App\Services\Billing\ConsumptionAggregator;
 use App\Services\Billing\MonthlyInvoiceGenerator;
 use App\Support\BillingGuard;
 use App\Http\Requests\Onboarding\StoreSubscriptionRequest;
@@ -42,6 +43,7 @@ class OwnerController extends Controller
     public function __construct(
         private readonly MilkPreparationSummaryBuilder $milkPreparationSummary,
         private readonly FarmActivityLogger $activityLogger,
+        private readonly ConsumptionAggregator $consumptionAggregator,
     ) {}
 
     public function dashboard(Request $request): JsonResponse
@@ -179,6 +181,8 @@ class OwnerController extends Controller
                 ->where('vacation_start', '<=', $today)
                 ->where('vacation_end', '>=', $today)
                 ->count(),
+            'morning' => $this->shiftCustomerSummary($farmId, DeliveryShift::Morning, $today),
+            'evening' => $this->shiftCustomerSummary($farmId, DeliveryShift::Evening, $today),
         ];
 
         return ApiResponse::success([
@@ -839,20 +843,9 @@ class OwnerController extends Controller
             ];
         });
 
-        $consumptionRows = $monthLogs
-            ->groupBy(fn (DailyOrderLog $log) => $log->product_name.'|'.$log->unit_rate)
-            ->map(function ($group) {
-                /** @var DailyOrderLog $first */
-                $first = $group->first();
-
-                return [
-                    'product_name' => $first->product_name,
-                    'unit_rate' => (float) $first->unit_rate,
-                    'total_quantity' => round((float) $group->sum('quantity'), 2),
-                    'line_total' => round((float) $group->sum('line_total'), 2),
-                ];
-            })
-            ->values();
+        $through = Carbon::today();
+        $consumptionLogs = DeliveryLogPresenter::logsThroughDate($monthLogs, $billingMonth, $through);
+        $consumptionRows = $this->consumptionAggregator->aggregate($consumptionLogs);
 
         $billingHistory = Invoice::query()
             ->where('customer_id', $customer->id)
@@ -906,10 +899,15 @@ class OwnerController extends Controller
         }
 
         $orders = $query->get();
-        $allForDate = DailyOrderLog::query()
+        $summaryQuery = DailyOrderLog::query()
             ->where('farm_id', $owner->farm_id)
-            ->whereDate('delivery_date', $date)
-            ->get();
+            ->whereDate('delivery_date', $date);
+
+        if ($shift !== 'all') {
+            $summaryQuery->where('shift', $shift);
+        }
+
+        $allForDate = $summaryQuery->get();
 
         return ApiResponse::success([
             'date' => $date,
@@ -918,6 +916,9 @@ class OwnerController extends Controller
                 'pending' => $allForDate->where('status', OrderLogStatus::Pending)->count(),
                 'delivered' => $allForDate->where('status', OrderLogStatus::Delivered)->count(),
                 'skipped' => $allForDate->where('status', OrderLogStatus::Skipped)->count(),
+                'litres_to_deliver' => round((float) $allForDate
+                    ->where('status', '!=', OrderLogStatus::Skipped)
+                    ->sum('quantity'), 2),
             ],
             'orders' => $orders->map(fn (DailyOrderLog $log) => $this->orderPayload($log)),
         ]);
@@ -938,7 +939,17 @@ class OwnerController extends Controller
         ]);
 
         if (isset($validated['status'])) {
+            $wasSkipped = $dailyOrderLog->status === OrderLogStatus::Skipped;
             $dailyOrderLog->status = $validated['status'];
+
+            if ($wasSkipped
+                && $dailyOrderLog->status !== OrderLogStatus::Skipped
+                && (float) $dailyOrderLog->quantity <= 0) {
+                $dailyOrderLog->loadMissing('subscriptionLine');
+                if ($dailyOrderLog->subscriptionLine !== null) {
+                    $dailyOrderLog->quantity = (float) $dailyOrderLog->subscriptionLine->quantity;
+                }
+            }
         }
 
         if (array_key_exists('quantity', $validated)) {
@@ -1098,14 +1109,18 @@ class OwnerController extends Controller
 
     private function orderPayload(DailyOrderLog $log): array
     {
+        $log->loadMissing('subscriptionLine');
+
         return [
             'id' => $log->id,
             'customer_id' => $log->customer_id,
             'customer_name' => $log->customer?->fullName() ?? '',
             'subscription_id' => $log->subscription_id,
+            'subscription_line_id' => $log->subscription_line_id,
             'product_id' => $log->product_id,
             'product_name' => $log->product_name,
             'quantity' => (float) $log->quantity,
+            'subscribed_quantity' => (float) ($log->subscriptionLine?->quantity ?? $log->quantity),
             'unit_rate' => (float) $log->unit_rate,
             'line_total' => (float) $log->line_total,
             'shift' => $log->shift instanceof \BackedEnum ? $log->shift->value : $log->shift,
@@ -1169,5 +1184,33 @@ class OwnerController extends Controller
         }
 
         return $payload;
+    }
+
+    /** @return array{active: int, inactive: int} */
+    private function shiftCustomerSummary(int $farmId, DeliveryShift $shift, string $today): array
+    {
+        $base = Customer::query()
+            ->where('farm_id', $farmId)
+            ->whereHas('subscriptions', function ($q) use ($shift) {
+                $q->where('status', 'active')
+                    ->whereHas('lines', fn ($line) => $line->where('shift', $shift));
+            });
+
+        $active = (clone $base)
+            ->where('is_active', true)
+            ->where(function ($q) use ($today) {
+                $q->whereNull('vacation_start')
+                    ->orWhereNull('vacation_end')
+                    ->orWhere('vacation_end', '<', $today)
+                    ->orWhere('vacation_start', '>', $today);
+            })
+            ->count();
+
+        $inactive = (clone $base)->where('is_active', false)->count();
+
+        return [
+            'active' => $active,
+            'inactive' => $inactive,
+        ];
     }
 }

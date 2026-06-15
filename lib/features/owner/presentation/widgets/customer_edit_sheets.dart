@@ -484,7 +484,7 @@ class _EditSubscriptionSheetState extends ConsumerState<EditSubscriptionSheet> {
                       .map(
                         (p) => DropdownMenuItem(
                           value: p.id,
-                          child: Text('${p.name} · ₹${p.rate.toStringAsFixed(0)}'),
+                          child: Text(p.name),
                         ),
                       )
                       .toList(),
@@ -685,7 +685,7 @@ class _CreateSubscriptionSheetState extends ConsumerState<CreateSubscriptionShee
                   .map(
                     (p) => DropdownMenuItem(
                       value: p.id,
-                      child: Text('${p.name} · ₹${p.rate.toStringAsFixed(0)}'),
+                      child: Text(p.name),
                     ),
                   )
                   .toList(),

@@ -63,21 +63,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
   String _billingMonthParam(DateTime month) =>
       '${month.year.toString().padLeft(4, '0')}-${month.month.toString().padLeft(2, '0')}';
 
-  SubscriptionLineDetail _lineForCalendar(_SubscriptionLineView item) {
-    if (item.line.dailyOrders.isNotEmpty) return item.line;
-    return SubscriptionLineDetail(
-      id: item.line.id,
-      productId: item.line.productId,
-      productName: item.line.productName,
-      unitRate: item.line.unitRate,
-      couponAmount: item.line.couponAmount,
-      effectiveRate: item.line.effectiveRate,
-      shift: item.line.shift,
-      shiftLabel: item.line.shiftLabel,
-      quantity: item.line.quantity,
-      dailyOrders: item.subscription.dailyOrders,
-    );
-  }
+  SubscriptionLineDetail _lineForCalendar(_SubscriptionLineView item) => item.line;
 
   DateTime? _parseVacationDate(String? value) {
     if (value == null || value.isEmpty) return null;
@@ -228,10 +214,11 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
     }
   }
 
-  (double paid, double pending) _billingTotals(List<OwnerInvoice> bills) {
+  (double paid, double pending) _billingTotals(List<OwnerInvoice> bills, String billingMonth) {
     var paid = 0.0;
     var pending = 0.0;
     for (final bill in bills) {
+      if (bill.billingMonth != billingMonth) continue;
       paid += bill.amountPaid;
       pending += bill.balanceDue;
     }
@@ -256,10 +243,7 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
               data: (data) => CustomerDetailHeader(
                 onBack: () => context.pop(),
                 onDelete: () => _deleteCustomer(data.customer.id),
-                onEdit: () async {
-                  await EditCustomerSheet.show(context, data.customer);
-                  if (mounted) ref.invalidate(customerDetailProvider(_query));
-                },
+                onEdit: () => context.push('/owner/customers/${widget.customerId}/edit'),
               ),
               orElse: () => CustomerDetailHeader(onBack: () => context.pop()),
             ),
@@ -280,9 +264,16 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                   final visibleBills = _showAllBills
                       ? data.billingHistory
                       : data.billingHistory.take(3).toList();
-                  final (totalPaid, totalPending) = _billingTotals(data.billingHistory);
+                  final (totalPaid, totalPending) =
+                      _billingTotals(data.billingHistory, _billingMonthParam(_month));
                   final pendingBills =
                       data.billingHistory.where((b) => b.balanceDue > 0).toList();
+                  // Dues card reflects the customer's full outstanding across all
+                  // months (cumulative) — previous unpaid months roll up here.
+                  final cumulativePending = data.billingHistory
+                      .fold<double>(0, (sum, b) => sum + b.balanceDue);
+                  final cumulativePaid = data.billingHistory
+                      .fold<double>(0, (sum, b) => sum + b.amountPaid);
                   final isOnVacation = customer.displayStatus == CustomerDisplayStatus.vacation;
 
                   return RefreshIndicator(
@@ -301,6 +292,11 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                           subscriptionCount: subscriptionLines.length,
                         ),
                         const SizedBox(height: 16),
+                        CustomerDetailVacationCard(
+                          isOnVacation: isOnVacation,
+                          onPauseTap: () => _openVacationSheet(customer),
+                        ),
+                        const SizedBox(height: 12),
                         CustomerDetailMonthNav(
                           month: _month,
                           onPrevious: () => setState(
@@ -309,11 +305,6 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                           onNext: () => setState(
                             () => _month = DateTime(_month.year, _month.month + 1),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        CustomerDetailVacationCard(
-                          isOnVacation: isOnVacation,
-                          onPauseTap: () => _openVacationSheet(customer),
                         ),
                         CustomerDetailSectionLabel(
                           title: AppStrings.subscriptionsTitle.toUpperCase(),
@@ -422,8 +413,8 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                           ),
                         CustomerDetailSectionLabel(title: 'DUES & BILLING'),
                         CustomerDetailDuesCard(
-                          pending: totalPending,
-                          paid: totalPaid,
+                          pending: cumulativePending,
+                          paid: cumulativePaid,
                           onRecordPayment: pendingBills.isEmpty
                               ? null
                               : () async {
@@ -438,8 +429,8 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
                                     },
                                   );
                                 },
-                          onRemind: totalPending > 0
-                              ? () => _remindCustomer(customer, totalPending)
+                          onRemind: cumulativePending > 0
+                              ? () => _remindCustomer(customer, cumulativePending)
                               : null,
                         ),
                         CustomerDetailBillingHistorySection(

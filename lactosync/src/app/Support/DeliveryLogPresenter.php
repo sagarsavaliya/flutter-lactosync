@@ -16,6 +16,41 @@ final class DeliveryLogPresenter
     }
 
     /**
+     * Last calendar day included when viewing a billing month (today for current month, month-end for past).
+     */
+    public static function effectiveThroughDate(string $billingMonth, ?Carbon $reference = null): Carbon
+    {
+        $reference = ($reference ?? Carbon::today())->copy()->startOfDay();
+        $start = Carbon::createFromFormat('Y-m', $billingMonth)->startOfMonth();
+
+        if ($reference->format('Y-m') !== $billingMonth) {
+            return $reference->lt($start)
+                ? $start->copy()
+                : $start->copy()->endOfMonth()->startOfDay();
+        }
+
+        return $reference;
+    }
+
+    /**
+     * Billable logs from month start through the effective "today" for that billing month.
+     *
+     * @param  Collection<int, DailyOrderLog>  $logs
+     * @return Collection<int, DailyOrderLog>
+     */
+    public static function logsThroughDate(
+        Collection $logs,
+        string $billingMonth,
+        ?Carbon $reference = null,
+    ): Collection {
+        $through = self::effectiveThroughDate($billingMonth, $reference);
+
+        return $logs->filter(
+            fn (DailyOrderLog $log) => $log->delivery_date->copy()->startOfDay()->lte($through),
+        );
+    }
+
+    /**
      * @param  Collection<int, DailyOrderLog>  $logs
      * @return list<array{date: string, morning: ?float, evening: ?float}>
      */

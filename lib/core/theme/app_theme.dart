@@ -124,7 +124,7 @@ ThemeData _build({
         foregroundColor: Colors.white,
         disabledBackgroundColor: primary.withValues(alpha: 0.35),
         disabledForegroundColor: Colors.white.withValues(alpha: 0.75),
-        textStyle: AppText.label.copyWith(fontWeight: FontWeight.w600),
+        textStyle: AppText.cardTitle.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -134,7 +134,7 @@ ThemeData _build({
         side: BorderSide(color: border),
         foregroundColor: ink,
         backgroundColor: surface,
-        textStyle: AppText.label.copyWith(fontWeight: FontWeight.w600),
+        textStyle: AppText.cardTitle.copyWith(fontSize: 15, fontWeight: FontWeight.w700),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -142,7 +142,7 @@ ThemeData _build({
         minimumSize: const Size.fromHeight(AppSize.field),
         shape: RoundedRectangleBorder(borderRadius: radius),
         foregroundColor: primary,
-        textStyle: AppText.label.copyWith(fontWeight: FontWeight.w600),
+        textStyle: AppText.cardTitle.copyWith(fontWeight: FontWeight.w600),
       ),
     ),
 

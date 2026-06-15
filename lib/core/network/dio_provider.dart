@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_config.dart';
@@ -113,16 +112,16 @@ ApiException mapDioError(Object error) {
       case DioExceptionType.receiveTimeout:
         return ApiException(
           'TIMEOUT',
-          kReleaseMode
+          AppConfig.usesProductionApi
               ? 'Server is slow to respond. Please try again.'
               : 'Server is slow to respond. Check Docker is running, then try again.',
         );
       case DioExceptionType.connectionError:
         return ApiException(
           'NETWORK_ERROR',
-          kReleaseMode
+          AppConfig.usesProductionApi
               ? 'Cannot reach LactoSync. Check your internet connection and try again.'
-              : 'Cannot reach the API at ${AppConfig.apiBaseUrl}. Is Docker running on port 8080?',
+              : 'Cannot reach the API at ${AppConfig.apiBaseUrl}. Start Docker in lactosync/ or use the live server (default).',
         );
       default:
         break;

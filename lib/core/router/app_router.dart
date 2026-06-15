@@ -30,6 +30,7 @@ import '../../features/onboarding/presentation/pages/subscription_page.dart';
 import '../../features/owner/presentation/pages/activity_page.dart';
 import '../../features/owner/presentation/pages/billing_page.dart';
 import '../../features/owner/presentation/pages/customer_detail_page.dart';
+import '../../features/owner/presentation/pages/edit_customer_page.dart';
 import '../../features/owner/presentation/pages/customers_list_page.dart';
 import '../../features/owner/presentation/pages/daily_orders_page.dart';
 import '../../features/delivery_boy/presentation/pages/delivery_boy_home_page.dart';
@@ -191,6 +192,14 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
         return InvoiceDetailPage(invoiceId: id);
+      },
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/owner/customers/:id/edit',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        return EditCustomerPage(customerId: id);
       },
     ),
     GoRoute(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
+import '../../../owner/presentation/widgets/dashboard/dashboard_styles.dart';
 
 class CustomerShell extends StatelessWidget {
   const CustomerShell({super.key, required this.child});
@@ -9,10 +11,10 @@ class CustomerShell extends StatelessWidget {
   final Widget child;
 
   static const _tabs = [
-    _TabEntry(path: '/customer/home',     icon: Icons.home_rounded,        label: 'Home'),
-    _TabEntry(path: '/customer/orders',   icon: Icons.receipt_long_rounded, label: 'Orders'),
-    _TabEntry(path: '/customer/payments', icon: Icons.payments_rounded,     label: 'Payments'),
-    _TabEntry(path: '/customer/profile',  icon: Icons.person_rounded,       label: 'Profile'),
+    _TabEntry(path: '/customer/home', icon: LucideIcons.home, label: 'Home'),
+    _TabEntry(path: '/customer/orders', icon: LucideIcons.clipboardList, label: 'Orders'),
+    _TabEntry(path: '/customer/payments', icon: LucideIcons.wallet, label: 'Payments'),
+    _TabEntry(path: '/customer/profile', icon: LucideIcons.user, label: 'Profile'),
   ];
 
   int _indexFromLocation(String location) {
@@ -28,7 +30,7 @@ class CustomerShell extends StatelessWidget {
     final index = _indexFromLocation(location);
 
     return Scaffold(
-      backgroundColor: CusColors.surface,
+      backgroundColor: CustomerDetailColors.background,
       body: child,
       bottomNavigationBar: _CusNavBar(
         currentIndex: index,
@@ -38,8 +40,6 @@ class CustomerShell extends StatelessWidget {
     );
   }
 }
-
-// ── Bottom nav bar ────────────────────────────────────────────────────────────
 
 class _CusNavBar extends StatelessWidget {
   const _CusNavBar({
@@ -56,14 +56,13 @@ class _CusNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
-        color: CusColors.surfaceContainer,
-        boxShadow: [BoxShadow(color: Color(0x0A000000), blurRadius: 20, offset: Offset(0, -4))],
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        color: CustomerDetailColors.surface,
+        border: Border(top: BorderSide(color: CustomerDetailColors.border)),
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(
@@ -97,44 +96,33 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final color = selected
+        ? CustomerDetailColors.accent
+        : CustomerDetailColors.onSurfaceVariant.withValues(alpha: 0.72);
+
+    return InkWell(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? CusColors.primaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 22,
-              color: selected ? CusColors.onPrimaryContainer : CusColors.onSurfaceVariant,
-            ),
-            if (selected) ...[
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: CusColors.onPrimaryContainer,
-                  letterSpacing: 0.1,
-                ),
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: DashboardText.navLabel.copyWith(
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+                color: color,
               ),
-            ],
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-// ── Data ──────────────────────────────────────────────────────────────────────
 
 class _TabEntry {
   const _TabEntry({required this.path, required this.icon, required this.label});

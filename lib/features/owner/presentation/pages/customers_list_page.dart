@@ -180,7 +180,7 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
                 child: CustomersSearchSortRow(
                   controller: _searchController,
                   hintText: 'Search name, mobile...',
@@ -230,10 +230,9 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
                               itemCount: entries.length + 1,
                               itemBuilder: (context, index) {
                                 if (index == 0) {
-                                  return CustomersStatusStrip(
-                                    activeCount: data.summary.active,
-                                    inactiveCount: data.summary.inactive,
-                                    vacationCount: data.summary.onVacation,
+                                  return CustomersShiftSummaryCards(
+                                    morning: data.morning,
+                                    evening: data.evening,
                                   );
                                 }
 

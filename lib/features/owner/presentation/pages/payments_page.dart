@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/owner_models.dart';
 import '../providers/owner_provider.dart';
-import '../widgets/customer_list_styles.dart';
+import '../widgets/customer_detail/customer_detail_styles.dart';
+import '../widgets/owner_action_sheets.dart';
 import '../widgets/owner_design_system.dart';
 import '../widgets/owner_form_theme.dart';
+import '../widgets/owner_page_fab.dart';
+import '../widgets/owner_screen_widgets.dart';
 import '../widgets/owner_shared_widgets.dart';
 import '../widgets/owner_widgets.dart';
-import '../widgets/owner_action_sheets.dart';
-import '../widgets/owner_page_fab.dart';
 
 class PaymentsPage extends ConsumerStatefulWidget {
   const PaymentsPage({super.key});
@@ -54,6 +55,19 @@ class _PaymentsPageState extends ConsumerState<PaymentsPage> {
     return list;
   }
 
+  ({double cash, double upi}) _methodTotals(List<OwnerPayment> payments) {
+    var cash = 0.0;
+    var upi = 0.0;
+    for (final payment in payments) {
+      if (payment.paymentMethod == 'cash') {
+        cash += payment.amount;
+      } else if (payment.paymentMethod == 'upi') {
+        upi += payment.amount;
+      }
+    }
+    return (cash: cash, upi: upi);
+  }
+
   void _showSortMenu() {
     showOwnerBottomSheet<void>(
       context: context,
@@ -61,7 +75,7 @@ class _PaymentsPageState extends ConsumerState<PaymentsPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const OwnerSheetTitle(AppStrings.sortLabel),
+          const OwnerSheetHeader(title: AppStrings.sortLabel, icon: LucideIcons.arrowUpDown),
           const SizedBox(height: AppSpace.sm),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -108,9 +122,7 @@ class _PaymentsPageState extends ConsumerState<PaymentsPage> {
   @override
   Widget build(BuildContext context) {
     final paymentsAsync = ref.watch(paymentsListProvider(_query));
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final borderColor = OwnerFormTheme.borderColor;
+    final inkMuted = CustomerDetailColors.labelMuted;
 
     return Stack(
       fit: StackFit.expand,
@@ -119,14 +131,16 @@ class _PaymentsPageState extends ConsumerState<PaymentsPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.md, AppSpace.lg, 0),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Column(
                 children: [
                   Row(
                     children: [
                       Expanded(
+                        flex: 13,
                         child: BorderedMonthNavigator(
                           month: _month,
+                          compact: true,
                           onPrevious: () => setState(
                             () => _month = DateTime(_month.year, _month.month - 1),
                           ),
@@ -135,71 +149,68 @@ class _PaymentsPageState extends ConsumerState<PaymentsPage> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: AppSpace.sm),
-                      BorderedFilterDropdown<PaymentMethodFilter>(
-                        value: _method,
-                        width: 128,
-                        items: const [
-                          DropdownMenuItem(value: PaymentMethodFilter.all, child: Text(AppStrings.paymentsFilterAll)),
-                          DropdownMenuItem(value: PaymentMethodFilter.cash, child: Text(AppStrings.paymentsFilterCash)),
-                          DropdownMenuItem(value: PaymentMethodFilter.upi, child: Text(AppStrings.paymentsFilterUpi)),
-                          DropdownMenuItem(
-                            value: PaymentMethodFilter.bankTransfer,
-                            child: Text(AppStrings.paymentsFilterBank),
-                          ),
-                          DropdownMenuItem(value: PaymentMethodFilter.other, child: Text(AppStrings.paymentsFilterOther)),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) setState(() => _method = value);
-                        },
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 10,
+                        child: BorderedFilterDropdown<PaymentMethodFilter>(
+                          value: _method,
+                          items: const [
+                            DropdownMenuItem(value: PaymentMethodFilter.all, child: Text(AppStrings.paymentsFilterAll)),
+                            DropdownMenuItem(value: PaymentMethodFilter.cash, child: Text(AppStrings.paymentsFilterCash)),
+                            DropdownMenuItem(value: PaymentMethodFilter.upi, child: Text(AppStrings.paymentsFilterUpi)),
+                            DropdownMenuItem(
+                              value: PaymentMethodFilter.bankTransfer,
+                              child: Text(AppStrings.paymentsFilterBank),
+                            ),
+                            DropdownMenuItem(value: PaymentMethodFilter.other, child: Text(AppStrings.paymentsFilterOther)),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) setState(() => _method = value);
+                          },
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpace.sm),
+                  const SizedBox(height: 11),
+                  paymentsAsync.maybeWhen(
+                    data: (data) {
+                      final totals = _methodTotals(data.payments);
+                      return OwnerGreenSummaryCard(
+                        title: AppStrings.paymentsCollected,
+                        amount: '₹${formatOwnerCurrency(data.totalCollected)}',
+                        badge: '${data.payments.length} payments',
+                        footerTiles: [
+                          OwnerSummaryFooterTile(
+                            label: AppStrings.paymentsFilterCash,
+                            value: '₹${formatOwnerCurrency(totals.cash)}',
+                            inline: true,
+                          ),
+                          OwnerSummaryFooterTile(
+                            label: AppStrings.paymentsFilterUpi,
+                            value: '₹${formatOwnerCurrency(totals.upi)}',
+                            inline: true,
+                          ),
+                        ],
+                      );
+                    },
+                    orElse: () => const SizedBox(height: 120),
+                  ),
+                  const SizedBox(height: 11),
                   OwnerSearchSortRow(
                     controller: _searchController,
                     hintText: AppStrings.searchCustomerLabel,
                     onChanged: (v) => setState(() => _search = v.trim()),
                     onSort: _showSortMenu,
                   ),
-                  const SizedBox(height: AppSpace.md),
-                  paymentsAsync.maybeWhen(
-                    data: (data) => DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: borderColor),
-                        color: AppColors.success.withValues(alpha: isDark ? 0.08 : 0.04),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpace.md),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                AppStrings.paymentsCollected,
-                                style: AppText.label.copyWith(color: inkMuted),
-                              ),
-                            ),
-                            Text(
-                              '₹${data.totalCollected.toStringAsFixed(0)}',
-                              style: AppText.cardTitle.copyWith(
-                                color: AppColors.success,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    orElse: () => const SizedBox(height: 56),
-                  ),
                 ],
               ),
             ),
-            const SizedBox(height: AppSpace.sm),
+            const SizedBox(height: 12),
             Expanded(
               child: paymentsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: CustomerDetailColors.accent),
+                ),
                 error: (_, __) => Center(
                   child: TextButton(
                     onPressed: () => ref.invalidate(paymentsListProvider(_query)),
@@ -220,12 +231,13 @@ class _PaymentsPageState extends ConsumerState<PaymentsPage> {
                   }
 
                   return RefreshIndicator(
+                    color: CustomerDetailColors.accent,
                     onRefresh: () async {
                       ref.invalidate(paymentsListProvider(_query));
                       await ref.read(paymentsListProvider(_query).future);
                     },
                     child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(AppSpace.lg, 0, AppSpace.lg, 88),
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 88),
                       itemCount: payments.length,
                       itemBuilder: (context, index) => PaymentListTile(payment: payments[index]),
                     ),
@@ -236,8 +248,8 @@ class _PaymentsPageState extends ConsumerState<PaymentsPage> {
           ],
         ),
         Positioned(
-          right: AppSpace.lg,
-          bottom: AppSpace.lg,
+          right: 16,
+          bottom: 16,
           child: OwnerPageFab(
             onPressed: () => OwnerActionSheets.showCollectPayment(context, ref),
           ),

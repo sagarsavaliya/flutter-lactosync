@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_exception.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/widgets/app_card.dart';
 import '../../domain/entities/owner_models.dart';
 import '../providers/owner_provider.dart';
-import '../widgets/customer_list_styles.dart';
+import '../widgets/customer_detail/customer_detail_styles.dart';
 import '../widgets/owner_form_theme.dart';
+import '../widgets/owner_screen_widgets.dart';
 
 class ActivityPage extends ConsumerWidget {
   const ActivityPage({super.key});
@@ -44,21 +43,30 @@ class ActivityPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activitiesAsync = ref.watch(farmActivitiesProvider);
-    final inkMuted = Theme.of(context).hintColor;
+    final inkMuted = CustomerDetailColors.labelMuted;
 
     return Scaffold(
-      backgroundColor: CustomerListColors.background,
+      backgroundColor: CustomerDetailColors.background,
       appBar: AppBar(
-        backgroundColor: CustomerListColors.background,
+        backgroundColor: CustomerDetailColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: CustomerDetailColors.accent),
           onPressed: () => context.pop(),
         ),
-        title: Text(AppStrings.activityTitle, style: AppText.screenTitle),
+        title: Text(
+          AppStrings.activityTitle,
+          style: AppText.screenTitle.copyWith(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: CustomerDetailColors.accent,
+          ),
+        ),
       ),
       body: activitiesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: CustomerDetailColors.accent),
+        ),
         error: (_, __) => Center(
           child: TextButton(
             onPressed: () => ref.invalidate(farmActivitiesProvider),
@@ -73,60 +81,73 @@ class ActivityPage extends ConsumerWidget {
           }
 
           return RefreshIndicator(
+            color: CustomerDetailColors.accent,
             onRefresh: () async {
               ref.invalidate(farmActivitiesProvider);
               await ref.read(farmActivitiesProvider.future);
             },
             child: ListView.builder(
-              padding: const EdgeInsets.all(AppSpace.lg),
+              padding: const EdgeInsets.all(16),
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final item = items[index];
                 final isDelete = item.action == 'deleted';
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpace.sm),
-                  child: AppCard(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpace.md),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            isDelete ? Icons.delete_outline : Icons.restore,
+                  padding: const EdgeInsets.only(bottom: 9),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: ownerWhiteCardDecoration(),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: isDelete
+                                ? CustomerDetailColors.dangerBg
+                                : CustomerDetailColors.successBg,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            isDelete ? LucideIcons.trash2 : LucideIcons.rotateCcw,
                             size: 18,
-                            color: isDelete ? AppColors.danger : AppColors.success,
+                            color: isDelete ? CustomerDetailColors.danger : CustomerDetailColors.success,
                           ),
-                          const SizedBox(width: AppSpace.sm),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${item.actionLabel} · ${item.entityTypeLabel}',
-                                  style: AppText.cardTitle,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${item.actionLabel} · ${item.entityTypeLabel}',
+                                style: AppText.cardTitle.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: CustomerDetailColors.onSurface,
                                 ),
-                                const SizedBox(height: AppSpace.xs),
-                                Text(item.entityLabel, style: AppText.body),
-                                if (item.createdAt != null) ...[
-                                  const SizedBox(height: AppSpace.xs),
-                                  Text(
-                                    _formatTime(item.createdAt),
-                                    style: AppText.meta.copyWith(color: inkMuted),
-                                  ),
-                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(item.entityLabel, style: AppText.body.copyWith(color: CustomerDetailColors.bodyInk)),
+                              if (item.createdAt != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatTime(item.createdAt),
+                                  style: AppText.meta.copyWith(color: inkMuted),
+                                ),
                               ],
-                            ),
+                            ],
                           ),
-                          if (item.canRestore) ...[
-                            const SizedBox(width: AppSpace.sm),
-                            OwnerOutlineButton(
-                              label: AppStrings.activityRestore,
-                              onPressed: () => _restore(context, ref, item),
-                            ),
-                          ],
+                        ),
+                        if (item.canRestore) ...[
+                          const SizedBox(width: 8),
+                          OwnerOutlineButton(
+                            label: AppStrings.activityRestore,
+                            onPressed: () => _restore(context, ref, item),
+                          ),
                         ],
-                      ),
+                      ],
                     ),
                   ),
                 );

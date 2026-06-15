@@ -2,20 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/redesign_scaffold.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
 import '../providers/customer_auth_provider.dart';
 
 class CustomerSetPinPage extends ConsumerStatefulWidget {
-  const CustomerSetPinPage({
-    super.key,
-    required this.contact,
-  });
+  const CustomerSetPinPage({super.key, required this.contact});
 
   final String contact;
 
@@ -61,9 +59,7 @@ class _CustomerSetPinPageState extends ConsumerState<CustomerSetPinPage> {
 
     setState(() => _loading = true);
     try {
-      await ref
-          .read(customerAuthRepositoryProvider)
-          .setPin(widget.contact, pin);
+      await ref.read(customerAuthRepositoryProvider).setPin(widget.contact, pin);
       if (!mounted) return;
       context.go('/customer/home');
     } catch (e) {
@@ -71,7 +67,7 @@ class _CustomerSetPinPageState extends ConsumerState<CustomerSetPinPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mapDioError(e).message),
-          backgroundColor: AppColors.danger,
+          backgroundColor: CustomerDetailColors.danger,
         ),
       );
     } finally {
@@ -81,93 +77,83 @@ class _CustomerSetPinPageState extends ConsumerState<CustomerSetPinPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final ink = isDark ? AppColors.darkInk : AppColors.ink;
-
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpace.lg),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: AppSpace.xxl),
-                    Center(
-                      child: Icon(
-                        Icons.lock_outline,
-                        size: 56,
-                        color: primary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpace.md),
-                    Text(
-                      'Set your PIN',
-                      textAlign: TextAlign.center,
-                      style: AppText.screenTitle.copyWith(color: ink),
-                    ),
-                    const SizedBox(height: AppSpace.xs),
-                    Text(
-                      "Choose a 4-digit PIN — you'll use this to sign in",
-                      textAlign: TextAlign.center,
-                      style: AppText.body.copyWith(color: inkMuted),
-                    ),
-                    const SizedBox(height: AppSpace.xxl),
-                    AppTextField(
-                      label: 'New PIN',
-                      hint: '4 digits',
-                      controller: _pinController,
-                      obscureText: _obscurePin,
-                      keyboardType: TextInputType.number,
-                      prefixIcon: Icons.pin_outlined,
-                      errorText: _pinError,
-                      suffixIcon: _obscurePin
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                      onSuffixTap: () =>
-                          setState(() => _obscurePin = !_obscurePin),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(4),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.md),
-                    AppTextField(
-                      label: 'Confirm PIN',
-                      hint: '4 digits',
-                      controller: _confirmController,
-                      obscureText: _obscureConfirm,
-                      keyboardType: TextInputType.number,
-                      prefixIcon: Icons.pin_outlined,
-                      errorText: _confirmError,
-                      suffixIcon: _obscureConfirm
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                      onSuffixTap: () =>
-                          setState(() => _obscureConfirm = !_obscureConfirm),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(4),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.lg),
-                    AppButton(
-                      label: 'Save PIN',
-                      loading: _loading,
-                      onPressed: _submit,
-                    ),
-                    const SizedBox(height: AppSpace.lg),
+    return RedesignFormScaffold(
+      scrollable: true,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 16),
+          Center(
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: CustomerDetailColors.accentLight,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: CustomerDetailColors.accentBorder),
+              ),
+              child: Icon(
+                LucideIcons.lock,
+                size: 36,
+                color: CustomerDetailColors.accent,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Set your PIN',
+            textAlign: TextAlign.center,
+            style: AppText.screenTitle.copyWith(color: CustomerDetailColors.onSurface),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Choose a 4-digit PIN — you'll use this to sign in",
+            textAlign: TextAlign.center,
+            style: AppText.body.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 40),
+          RedesignSurfaceCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                AppTextField(
+                  label: 'New PIN',
+                  hint: '4 digits',
+                  controller: _pinController,
+                  obscureText: _obscurePin,
+                  keyboardType: TextInputType.number,
+                  prefixIcon: LucideIcons.keyRound,
+                  errorText: _pinError,
+                  suffixIcon: _obscurePin ? LucideIcons.eye : LucideIcons.eyeOff,
+                  onSuffixTap: () => setState(() => _obscurePin = !_obscurePin),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
                   ],
                 ),
-              ),
-            );
-          },
-        ),
+                const SizedBox(height: 16),
+                AppTextField(
+                  label: 'Confirm PIN',
+                  hint: '4 digits',
+                  controller: _confirmController,
+                  obscureText: _obscureConfirm,
+                  keyboardType: TextInputType.number,
+                  prefixIcon: LucideIcons.keyRound,
+                  errorText: _confirmError,
+                  suffixIcon: _obscureConfirm ? LucideIcons.eye : LucideIcons.eyeOff,
+                  onSuffixTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                AppButton(label: 'Save PIN', loading: _loading, onPressed: _submit),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

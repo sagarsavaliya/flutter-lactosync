@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/redesign_scaffold.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
 import '../providers/customer_auth_provider.dart';
 
 class CustomerLoginPage extends ConsumerStatefulWidget {
@@ -49,7 +50,7 @@ class _CustomerLoginPageState extends ConsumerState<CustomerLoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mapDioError(e).message),
-          backgroundColor: AppColors.danger,
+          backgroundColor: CustomerDetailColors.danger,
         ),
       );
     } finally {
@@ -69,118 +70,104 @@ class _CustomerLoginPageState extends ConsumerState<CustomerLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final ink = isDark ? AppColors.darkInk : AppColors.ink;
-
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpace.lg),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: AppSpace.xxl),
-                      Center(
-                        child: Icon(
-                          Icons.local_drink_outlined,
-                          size: 56,
-                          color: primary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpace.md),
-                      Text(
-                        'Sign in',
-                        textAlign: TextAlign.center,
-                        style: AppText.screenTitle.copyWith(color: ink),
-                      ),
-                      const SizedBox(height: AppSpace.xs),
-                      Text(
-                        'Enter your mobile number and PIN',
-                        textAlign: TextAlign.center,
-                        style: AppText.body.copyWith(color: inkMuted),
-                      ),
-                      const SizedBox(height: AppSpace.xxl),
-                      AppTextField(
-                        label: 'Mobile number',
-                        hint: '10-digit number',
-                        controller: _mobileController,
-                        keyboardType: TextInputType.phone,
-                        prefixIcon: Icons.phone_android_outlined,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(10),
-                        ],
-                        validator: _validateMobile,
-                      ),
-                      const SizedBox(height: AppSpace.sm),
-                      AppTextField(
-                        label: 'PIN',
-                        hint: '4 digits',
-                        controller: _pinController,
-                        obscureText: _obscurePin,
-                        keyboardType: TextInputType.number,
-                        prefixIcon: Icons.lock_outline,
-                        suffixIcon: _obscurePin
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        onSuffixTap: () =>
-                            setState(() => _obscurePin = !_obscurePin),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(4),
-                        ],
-                        validator: _validatePin,
-                      ),
-                      const SizedBox(height: AppSpace.xs),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpace.xs,
-                              vertical: AppSpace.xxs,
-                            ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          onPressed: () => _goToOtp(reason: 'forgot'),
-                          child: Text(
-                            'Forgot PIN?',
-                            style: AppText.label.copyWith(color: primary),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpace.md),
-                      AppButton(
-                        label: 'Sign in',
-                        loading: _loading,
-                        onPressed: _submit,
-                      ),
-                      const SizedBox(height: AppSpace.sm),
-                      Center(
-                        child: TextButton(
-                          onPressed: () => _goToOtp(reason: 'first_time'),
-                          child: Text(
-                            'New here? Send OTP first',
-                            style: AppText.label.copyWith(color: primary),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpace.lg),
-                    ],
-                  ),
+    return RedesignFormScaffold(
+      showBack: false,
+      scrollable: true,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 16),
+            Center(
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: CustomerDetailColors.accentLight,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: CustomerDetailColors.accentBorder),
+                ),
+                child: Icon(
+                  LucideIcons.milk,
+                  size: 36,
+                  color: CustomerDetailColors.accent,
                 ),
               ),
-            );
-          },
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Sign in',
+              textAlign: TextAlign.center,
+              style: AppText.screenTitle.copyWith(color: CustomerDetailColors.onSurface),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Enter your mobile number and PIN',
+              textAlign: TextAlign.center,
+              style: AppText.body.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 40),
+            RedesignSurfaceCard(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  AppTextField(
+                    label: 'Mobile number',
+                    hint: '10-digit number',
+                    controller: _mobileController,
+                    keyboardType: TextInputType.phone,
+                    prefixIcon: LucideIcons.smartphone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    validator: _validateMobile,
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    label: 'PIN',
+                    hint: '4 digits',
+                    controller: _pinController,
+                    obscureText: _obscurePin,
+                    keyboardType: TextInputType.number,
+                    prefixIcon: LucideIcons.lock,
+                    suffixIcon: _obscurePin ? LucideIcons.eye : LucideIcons.eyeOff,
+                    onSuffixTap: () => setState(() => _obscurePin = !_obscurePin),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                    ],
+                    validator: _validatePin,
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => _goToOtp(reason: 'forgot'),
+                      child: Text(
+                        'Forgot PIN?',
+                        style: AppText.label.copyWith(color: CustomerDetailColors.accent),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  AppButton(label: 'Sign in', loading: _loading, onPressed: _submit),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton(
+                onPressed: () => _goToOtp(reason: 'first_time'),
+                child: Text(
+                  'New here? Send OTP first',
+                  style: AppText.label.copyWith(color: CustomerDetailColors.accent),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

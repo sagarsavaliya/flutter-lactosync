@@ -47,7 +47,7 @@ class OwnerHomePage extends ConsumerWidget {
               await ref.read(ownerDashboardProvider.future);
             },
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 120),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(2, 6, 2, 14),

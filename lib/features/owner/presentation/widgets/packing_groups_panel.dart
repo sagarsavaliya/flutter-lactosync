@@ -137,10 +137,14 @@ class PackingProductRow extends StatelessWidget {
       !product.counts.values.any((c) => c > 0);
 
   ({String animal, String? rate}) _parseName() {
-    final rateMatch = RegExp(r'(\d+)\s*/-').firstMatch(product.productName);
+    final name = product.productName.trim();
+    final rateInName = RegExp(r'₹\s*(\d+)').firstMatch(name);
+    if (rateInName != null) {
+      return (animal: name, rate: null);
+    }
+    final rateMatch = RegExp(r'(\d+)\s*/-').firstMatch(name);
     final rate = rateMatch?.group(1);
-    final animal = product.productName.split(' ').first;
-    return (animal: animal, rate: rate);
+    return (animal: name, rate: rate);
   }
 
   Color _dotColor(String animal) {
@@ -178,7 +182,7 @@ class PackingProductRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  parsed.animal,
+                  parsed.rate == null ? parsed.animal : parsed.animal,
                   style: AppText.cardTitle.copyWith(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,

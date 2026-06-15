@@ -253,24 +253,54 @@ class OwnerCustomer {
   }
 }
 
+class ShiftCountBreakdown {
+  const ShiftCountBreakdown({
+    required this.active,
+    required this.inactive,
+  });
+
+  final int active;
+  final int inactive;
+
+  factory ShiftCountBreakdown.fromJson(Map<String, dynamic> json) {
+    return ShiftCountBreakdown(
+      active: (json['active'] as num?)?.toInt() ?? 0,
+      inactive: (json['inactive'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class CustomersListResult {
   const CustomersListResult({
     required this.summary,
     required this.customers,
+    this.morning,
+    this.evening,
   });
 
   final CountBreakdown summary;
   final List<OwnerCustomer> customers;
+  final ShiftCountBreakdown? morning;
+  final ShiftCountBreakdown? evening;
 
   factory CustomersListResult.fromJson(Map<String, dynamic> json) {
     final list = json['customers'] as List<dynamic>? ?? [];
+    final summaryMap = Map<String, dynamic>.from(json['summary'] as Map? ?? {});
     return CustomersListResult(
-      summary: CountBreakdown.fromJson(
-        Map<String, dynamic>.from(json['summary'] as Map? ?? {}),
-      ),
+      summary: CountBreakdown.fromJson(summaryMap),
       customers: list
           .map((e) => OwnerCustomer.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList(),
+      morning: summaryMap['morning'] != null
+          ? ShiftCountBreakdown.fromJson(
+              Map<String, dynamic>.from(summaryMap['morning'] as Map),
+            )
+          : null,
+      evening: summaryMap['evening'] != null
+          ? ShiftCountBreakdown.fromJson(
+              Map<String, dynamic>.from(summaryMap['evening'] as Map),
+            )
+          : null,
     );
   }
 }
@@ -322,12 +352,14 @@ class OrderSummary {
     required this.pending,
     required this.delivered,
     required this.skipped,
+    this.litresToDeliver,
   });
 
   final int total;
   final int pending;
   final int delivered;
   final int skipped;
+  final double? litresToDeliver;
 
   factory OrderSummary.fromJson(Map<String, dynamic> json) {
     return OrderSummary(
@@ -335,6 +367,7 @@ class OrderSummary {
       pending: (json['pending'] as num?)?.toInt() ?? 0,
       delivered: (json['delivered'] as num?)?.toInt() ?? 0,
       skipped: (json['skipped'] as num?)?.toInt() ?? 0,
+      litresToDeliver: (json['litres_to_deliver'] as num?)?.toDouble(),
     );
   }
 }
@@ -346,6 +379,7 @@ class DailyOrder {
     required this.customerName,
     required this.productName,
     required this.quantity,
+    required this.subscribedQuantity,
     required this.unitRate,
     required this.lineTotal,
     required this.shift,
@@ -360,6 +394,7 @@ class DailyOrder {
   final String customerName;
   final String productName;
   final double quantity;
+  final double subscribedQuantity;
   final double unitRate;
   final double lineTotal;
   final String shift;
@@ -375,6 +410,9 @@ class DailyOrder {
       customerName: json['customer_name'] as String? ?? '',
       productName: json['product_name'] as String? ?? '',
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0,
+      subscribedQuantity: (json['subscribed_quantity'] as num?)?.toDouble() ??
+          (json['quantity'] as num?)?.toDouble() ??
+          0,
       unitRate: (json['unit_rate'] as num?)?.toDouble() ?? 0,
       lineTotal: (json['line_total'] as num?)?.toDouble() ?? 0,
       shift: json['shift'] as String? ?? 'morning',

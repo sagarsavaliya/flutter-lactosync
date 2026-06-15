@@ -160,6 +160,7 @@ class RouteSheetCustomer {
   const RouteSheetCustomer({
     required this.assignmentId,
     required this.sortOrder,
+    required this.customerId,
     required this.name,
     required this.address,
     this.orderId,
@@ -169,6 +170,7 @@ class RouteSheetCustomer {
 
   final int assignmentId;
   final int sortOrder;
+  final int customerId;
   final String name;
   final String address;
   final int? orderId;
@@ -180,13 +182,15 @@ class RouteSheetCustomer {
   factory RouteSheetCustomer.fromJson(Map<String, dynamic> j) {
     final c = j['customer'] as Map<String, dynamic>;
     final o = j['order'] as Map<String, dynamic>?;
+    final qty = (o?['quantity'] as num?)?.toDouble() ?? (o?['qty'] as num?)?.toDouble();
     return RouteSheetCustomer(
       assignmentId: j['assignment_id'] as int,
       sortOrder: j['sort_order'] as int? ?? 0,
+      customerId: (j['customer_id'] as num?)?.toInt() ?? (c['id'] as num?)?.toInt() ?? 0,
       name: c['name'] as String,
       address: c['address'] as String? ?? '',
       orderId: o?['id'] as int?,
-      qty: (o?['qty'] as num?)?.toDouble(),
+      qty: qty,
       status: o?['status'] as String?,
     );
   }
@@ -240,6 +244,12 @@ final deliveryRoutesProvider = FutureProvider.autoDispose<List<DeliveryRouteMode
   final list = res.data['data'] as List<dynamic>;
   return list.map((e) => DeliveryRouteModel.fromJson(e as Map<String, dynamic>)).toList();
 });
+
+Future<void> deleteDeliveryRoute(WidgetRef ref, int routeId) async {
+  final dio = ref.read(dioProvider);
+  await dio.delete('/owner/routes/$routeId');
+  ref.invalidate(deliveryRoutesProvider);
+}
 
 final routeAvailableCustomersProvider =
     FutureProvider.autoDispose.family<List<RouteEligibleCustomer>, int>((ref, routeId) async {

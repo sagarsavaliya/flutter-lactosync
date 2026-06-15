@@ -1,8 +1,8 @@
 # STATUS — LactoSync
 
-> **Where we are / what's next:** Customers list (frame 5) + Customer detail (frame 6) redesigned per `LactoSync Routes Redesign.dc.html`. Device-test on Farenidham; commit when approved. No new APK unless requested.
+> **Where we are / what's next:** Full owner redesign + 8 bug fixes shipped. APK v4.10.15+37 + API live on VPS. Device-test Farenidham; commit when CEO approves.
 >
-> _Last updated: 2026-06-13_
+> _Last updated: 2026-06-14_
 
 ---
 
@@ -10,9 +10,9 @@
 
 | Item | Value |
 | ---- | ----- |
-| App version | `4.10.12+34` (local build) |
+| App version | `4.10.15+37` (release APK built) |
 | APK path | `build/app/outputs/flutter-apk/app-release.apk` |
-| API | Deployed on Hostinger VPS — live (routes enrichment deployed) |
+| API | Deployed on Hostinger VPS — live (MTD consumption + route sheet fixes) |
 | Admin Web | https://superadmin.lactosync.com — live |
 | Stack | Flutter 3 · Riverpod · go_router · Dio / Laravel 13 · PHP 8.4 · MySQL 8 · Redis |
 | Live farm accounts | 3 (Shreeji Gir Gaushala · Farenidham Gaushala · Gokul Dairy Farm) |
@@ -62,33 +62,19 @@
 
 | Item | Blocking? |
 | ---- | --------- |
-| `lacto_sync_monthly_bill` under Meta review | No — other 5 templates work |
-| 4 manual WhatsApp verifications (MV-CA-01 to MV-CA-04) | Human action after APK install |
-| **Hotfix VPS PHP deploy** | ⚠️ Required — 11 PHP files changed, run deploy commands below |
-| **Hotfix APK build** | ⚠️ Required — build v4.9.1+15 |
-| **VPS migrations** | ✅ All ran (Steps 1–3 already applied, customers auth migration applied) |
+| Farenidham device test (CEO) | No — APK + API ready |
+| Git commit + push (~80 files WIP) | Awaiting CEO approval after test |
+| `lacto_sync_monthly_bill` under Meta review | No — other templates work |
+| `customer_bills_page` redesign | No — page unrouted |
 
 ---
 
 ## Next actions
 
-1. **Human (DevOps):** Deploy hotfix PHP to VPS:
-   ```bash
-   docker exec lactosync_flutter_app_api cp -r /var/www/app/app/Models/ProductOfferedSize.php /var/www/html/app/Models/
-   # Copy all changed files (see hotfix file list in DECISIONS.md)
-   docker exec lactosync_flutter_app_api php artisan config:clear && php artisan cache:clear && php artisan route:clear
-   ```
-   Or use the full rsync approach: `rsync -avz lactosync/src/app/ vps:/var/www/html/app/`
-
-2. **Human (DevOps):** Run `flutter pub get && flutter build apk --release` from `d:\App_LactoSync` to produce APK v4.9.1+15
-
-3. **Human:** Install APK v4.9.1+15 on all farms — verify: settings loads (not retry), dashboard shows milk prep, customer login works, customer screens load
-
-4. **Human:** Run 4 manual verifications: scheduler clears vacation at 07:00, WhatsApp on vacation set, owner notified on address change, WhatsApp suppressed when toggle off
-
-5. **Human:** Confirm `lacto_sync_monthly_bill` once Meta approves, then test bill send
-
-6. **CEO (after testing):** Legal/compliance pass + public rollout plan
+1. **CEO:** Install APK v4.10.15+37 on Farenidham — spot-check THIS MONTH consumption, billing PENDING, settings schedule, route sheet
+2. **CEO:** Approve commit + push when satisfied
+3. **Human:** Confirm `lacto_sync_monthly_bill` once Meta approves
+4. **CEO (after testing):** Legal/compliance pass + public rollout plan
 
 ---
 

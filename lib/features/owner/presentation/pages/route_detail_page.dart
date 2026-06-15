@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../widgets/customer_detail/customer_detail_styles.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_button.dart';
@@ -438,7 +438,7 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
             Expanded(
               child: customersAsync.when(
                 loading: () => const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary)),
+                    child: CircularProgressIndicator(color: CustomerDetailColors.accent)),
                 error: (e, _) => Center(child: Text('Error: $e')),
                 data: (customers) {
                   if (customers.isEmpty) {
@@ -459,9 +459,9 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
                                   size: 18),
                               label: const Text('Add Customer'),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.primary,
+                                foregroundColor: CustomerDetailColors.accent,
                                 side: BorderSide(
-                                    color: AppColors.primary
+                                    color: CustomerDetailColors.accent
                                         .withValues(alpha: 0.5)),
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 20, vertical: 12),
@@ -661,7 +661,7 @@ class _AddCustomerSheetState extends ConsumerState<_AddCustomerSheet> {
                     child: Text(
                       'No eligible customers.\nAll ${widget.shiftLabel.toLowerCase()} subscribers may already be on routes.',
                       textAlign: TextAlign.center,
-                      style: AppText.body.copyWith(color: AppColors.inkMuted),
+                      style: AppText.body.copyWith(color: CustomerDetailColors.labelMuted),
                     ),
                   );
                 }
@@ -669,7 +669,7 @@ class _AddCustomerSheetState extends ConsumerState<_AddCustomerSheet> {
                   return Center(
                     child: Text(
                       'No matches for "$_searchQuery"',
-                      style: AppText.body.copyWith(color: AppColors.inkMuted),
+                      style: AppText.body.copyWith(color: CustomerDetailColors.labelMuted),
                     ),
                   );
                 }
@@ -685,11 +685,11 @@ class _AddCustomerSheetState extends ConsumerState<_AddCustomerSheet> {
                           style: const TextStyle(fontWeight: FontWeight.w500)),
                       subtitle: c.address.isNotEmpty ? Text(c.address) : null,
                       controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: AppColors.primary,
+                      activeColor: CustomerDetailColors.accent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      tileColor: AppColors.surface,
+                      tileColor: CustomerDetailColors.surface,
                     );
                   },
                 );

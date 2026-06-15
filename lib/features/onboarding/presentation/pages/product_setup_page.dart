@@ -4,12 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/redesign_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dialogs.dart';
-import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/redesign_scaffold.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../owner/domain/entities/settings_models.dart';
 import '../../../owner/presentation/providers/owner_provider.dart';
@@ -204,17 +204,25 @@ class _ProductSetupPageState extends ConsumerState<ProductSetupPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final primary = Theme.of(context).colorScheme.primary;
     final milkTypesAsync = ref.watch(milkTypesProvider);
     final containerTypesAsync = ref.watch(containerTypesProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.productsTitle)),
-      body: SafeArea(
+    return RedesignFormScaffold(
+      title: AppStrings.productsTitle,
+      subtitle: AppStrings.productsSubtitle,
+      scrollable: false,
+      padding: EdgeInsets.zero,
+      bottom: AppButton(
+        label: AppStrings.saveProducts,
+        loading: _loading,
+        onPressed: _save,
+      ),
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.62,
         child: milkTypesAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: CustomerDetailColors.accent),
+          ),
           error: (_, __) => Center(
             child: TextButton(
               onPressed: () => ref.invalidate(milkTypesProvider),
@@ -222,7 +230,9 @@ class _ProductSetupPageState extends ConsumerState<ProductSetupPage> {
             ),
           ),
           data: (milkTypes) => containerTypesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: CustomerDetailColors.accent),
+            ),
             error: (_, __) => Center(
               child: TextButton(
                 onPressed: () => ref.invalidate(containerTypesProvider),
@@ -249,108 +259,98 @@ class _ProductSetupPageState extends ConsumerState<ProductSetupPage> {
                 });
               }
 
-              return Column(
+              return ListView(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
                 children: [
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.all(AppSpace.lg),
+                  RedesignSurfaceCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          AppStrings.productsSubtitle,
-                          style: AppText.body.copyWith(color: inkMuted),
-                        ),
-                        const SizedBox(height: AppSpace.lg),
-                        AppCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                _editingIndex != null
-                                    ? AppStrings.editProduct
-                                    : AppStrings.addProduct,
-                                style: AppText.sectionTitle,
-                              ),
-                              const SizedBox(height: AppSpace.md),
-                              ProductFormFields(
-                                values: _values,
-                                milkTypes: milkTypes,
-                                containerTypes: containerTypes,
-                                nameController: _nameController,
-                                rateController: _rateController,
-                                onChanged: () => setState(() {}),
-                              ),
-                            ],
+                          _editingIndex != null
+                              ? AppStrings.editProduct
+                              : AppStrings.addProduct,
+                          style: AppText.sectionTitle.copyWith(
+                            color: CustomerDetailColors.onSurface,
                           ),
                         ),
                         const SizedBox(height: AppSpace.md),
-                        OutlinedButton(
-                          onPressed: () => _addOrUpdateProduct(milkTypes),
-                          child: Text(
-                            _editingIndex != null
-                                ? AppStrings.confirmLabel
-                                : AppStrings.addProduct,
-                          ),
+                        ProductFormFields(
+                          values: _values,
+                          milkTypes: milkTypes,
+                          containerTypes: containerTypes,
+                          nameController: _nameController,
+                          rateController: _rateController,
+                          onChanged: () => setState(() {}),
                         ),
-                        if (_saved.isNotEmpty) ...[
-                          const SizedBox(height: AppSpace.lg),
-                          ...List.generate(_saved.length, (i) {
-                            final p = _saved[i];
-                            final isEditing = _editingIndex == i;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpace.sm),
-                              child: AppCard(
-                                child: Row(
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpace.md),
+                  OutlinedButton(
+                    onPressed: () => _addOrUpdateProduct(milkTypes),
+                    child: Text(
+                      _editingIndex != null
+                          ? AppStrings.confirmLabel
+                          : AppStrings.addProduct,
+                    ),
+                  ),
+                  if (_saved.isNotEmpty) ...[
+                    const SizedBox(height: AppSpace.lg),
+                    ...List.generate(_saved.length, (i) {
+                      final p = _saved[i];
+                      final isEditing = _editingIndex == i;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpace.sm),
+                        child: RedesignSurfaceCard(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(p.displayName,
-                                              style: AppText.cardTitle),
-                                          const SizedBox(height: AppSpace.xxs),
-                                          Text(
-                                            '₹${p.values.rateText}/ltr',
-                                            style: AppText.meta
-                                                .copyWith(color: inkMuted),
-                                          ),
-                                        ],
+                                    Text(
+                                      p.displayName,
+                                      style: AppText.cardTitle.copyWith(
+                                        color: CustomerDetailColors.onSurface,
                                       ),
                                     ),
-                                    IconButton(
-                                      tooltip: AppStrings.editProduct,
-                                      icon: Icon(
-                                        Icons.edit_outlined,
-                                        size: 20,
-                                        color:
-                                            isEditing ? primary : inkMuted,
+                                    const SizedBox(height: AppSpace.xxs),
+                                    Text(
+                                      '₹${p.values.rateText}/ltr',
+                                      style: AppText.meta.copyWith(
+                                        color: CustomerDetailColors.onSurfaceVariant,
                                       ),
-                                      onPressed: () =>
-                                          _editProduct(i, milkTypes),
-                                    ),
-                                    IconButton(
-                                      tooltip: AppStrings.deleteProductTitle,
-                                      icon: Icon(Icons.delete_outline,
-                                          size: 20, color: inkMuted),
-                                      onPressed: () => _confirmDeleteProduct(i),
                                     ),
                                   ],
                                 ),
                               ),
-                            );
-                          }),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpace.lg),
-                    child: AppButton(
-                      label: AppStrings.saveProducts,
-                      loading: _loading,
-                      onPressed: _save,
-                    ),
-                  ),
+                              IconButton(
+                                tooltip: AppStrings.editProduct,
+                                icon: Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: isEditing
+                                      ? CustomerDetailColors.accent
+                                      : CustomerDetailColors.iconMuted,
+                                ),
+                                onPressed: () => _editProduct(i, milkTypes),
+                              ),
+                              IconButton(
+                                tooltip: AppStrings.deleteProductTitle,
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: CustomerDetailColors.iconMuted,
+                                ),
+                                onPressed: () => _confirmDeleteProduct(i),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
                 ],
               );
             },

@@ -92,7 +92,7 @@ class RouteCustomerTile extends StatelessWidget {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
-                              c.name.toUpperCase(),
+                              c.name,
                               style: AppText.cardTitle.copyWith(
                                 fontSize: 15.5,
                                 fontWeight: FontWeight.w700,
@@ -233,7 +233,7 @@ class _ProductStepperChip extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
               qtyLabel,
-              style: AppText.meta.copyWith(
+              style: AppText.cardTitle.copyWith(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF1E5233),
@@ -374,12 +374,12 @@ class RouteStatBoxes extends StatelessWidget {
     super.key,
     required this.stops,
     required this.liters,
-    required this.windowLabel,
+    required this.offCount,
   });
 
   final int stops;
   final double liters;
-  final String windowLabel;
+  final int offCount;
 
   @override
   Widget build(BuildContext context) {
@@ -397,7 +397,7 @@ class RouteStatBoxes extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: _RouteStatCell(value: '$stops', label: 'STOPS'),
+              child: _RouteStatCell(value: '$stops', label: 'CUSTOMERS'),
             ),
             const VerticalDivider(
               width: 1,
@@ -418,8 +418,9 @@ class RouteStatBoxes extends StatelessWidget {
             ),
             Expanded(
               child: _RouteStatCell(
-                value: windowLabel,
-                label: 'WINDOW',
+                value: '$offCount',
+                label: 'ON HOLD',
+                valueColor: const Color(0xFFD98A2B),
               ),
             ),
           ],

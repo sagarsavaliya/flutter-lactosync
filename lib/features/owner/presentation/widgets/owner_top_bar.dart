@@ -162,7 +162,12 @@ class OwnerTopBar extends ConsumerWidget implements PreferredSizeWidget {
 
                     overflow: TextOverflow.ellipsis,
 
-                    style: AppText.label,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF46524A),
+                      height: 1.1,
+                    ),
 
                   ),
 
@@ -183,8 +188,8 @@ class OwnerTopBar extends ConsumerWidget implements PreferredSizeWidget {
                     overflow: TextOverflow.ellipsis,
 
                     style: AppText.screenTitle.copyWith(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
                       color: titleColor ?? OwnerTheme.primary,
                     ),
 
@@ -312,36 +317,20 @@ class _ProfileAvatar extends StatelessWidget {
 
       },
 
-      child: DecoratedBox(
+      child: CircleAvatar(
 
-        decoration: BoxDecoration(
+        radius: 19,
 
-          shape: BoxShape.circle,
+        backgroundColor: const Color(0xFFA7E0B0),
 
-          border: Border.all(color: DashboardColors.outlineVariant.withValues(alpha: 0.5)),
+        child: Text(
 
-        ),
+          initials,
 
-        child: CircleAvatar(
-
-          radius: 18,
-
-          backgroundColor: dashboardMode
-              ? const Color(0xFFA7E0B0)
-              : DashboardColors.primaryContainer,
-
-          child: Text(
-
-            initials,
-
-            style: AppText.meta.copyWith(
-              fontSize: dashboardMode ? 13 : 10,
-              fontWeight: FontWeight.w800,
-              color: dashboardMode
-                  ? const Color(0xFF1E5233)
-                  : DashboardColors.primary,
-            ),
-
+          style: AppText.meta.copyWith(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF1E5233),
           ),
 
         ),

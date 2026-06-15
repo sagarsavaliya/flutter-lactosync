@@ -558,12 +558,13 @@ class OwnerDeliveryController extends Controller
             ->get()
             ->groupBy('route_id');
 
-        // Batch-load daily orders for these customers on the requested date.
+        // Batch-load daily orders for these customers on the requested date + shift.
         $customerIds = $standingAssignments->flatten()->pluck('customer_id')->unique();
         $dailyOrders = DailyOrderLog::whereIn('customer_id', $customerIds)
             ->whereDate('delivery_date', $date)
+            ->where('shift', $shift)
             ->get()
-            ->keyBy('customer_id');
+            ->groupBy('customer_id');
 
         // Batch-load delivery boy assignments for the date.
         $boyAssignments = DeliveryBoyRouteAssignment::whereIn('route_id', $routeIds)
@@ -575,17 +576,24 @@ class OwnerDeliveryController extends Controller
         $data = $routes->map(function (DeliveryRoute $route) use ($standingAssignments, $dailyOrders, $boyAssignments): array {
             $customers = ($standingAssignments[$route->id] ?? collect())->map(
                 function (RouteCustomerAssignment $a) use ($dailyOrders): array {
-                    $order      = $dailyOrders[$a->customer_id] ?? null;
-                    $customer   = $a->customer;
+                    $ordersForCustomer = $dailyOrders[$a->customer_id] ?? collect();
+                    $customer = $a->customer;
+                    $totalQty = round((float) $ordersForCustomer->sum('quantity'), 2);
+                    $primaryOrder = $ordersForCustomer->sortBy('id')->first();
+                    $allSkipped = $ordersForCustomer->isNotEmpty()
+                        && $ordersForCustomer->every(fn (DailyOrderLog $o) => $o->status === 'skipped');
+
                     return [
                         'assignment_id' => $a->id,
                         'sort_order'    => $a->sort_order,
                         'customer'      => $this->formatCustomerForDelivery($customer),
-                        'order'         => $order ? [
-                            'id'       => $order->id,
-                            'qty'      => $order->qty,
-                            'status'   => $order->status,
-                            'skipped'  => $order->status === 'skipped',
+                        'customer_id'   => $customer->id,
+                        'order'         => $primaryOrder ? [
+                            'id'        => $primaryOrder->id,
+                            'quantity'  => $totalQty,
+                            'qty'       => $totalQty,
+                            'status'    => $allSkipped ? 'skipped' : $primaryOrder->status,
+                            'skipped'   => $allSkipped,
                         ] : null,
                     ];
                 }

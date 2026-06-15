@@ -76,6 +76,7 @@ class BillingController extends Controller
 
         $rows = Payment::query()
             ->where('customer_id', $customer->id)
+            ->with('invoice:id,invoice_number')
             ->orderByDesc('payment_date')
             ->get()
             ->map(fn (Payment $payment) => [
@@ -86,6 +87,7 @@ class BillingController extends Controller
                     ? $payment->payment_method->value
                     : (string) $payment->payment_method,
                 'note'         => $payment->notes,
+                'invoice_number' => $payment->invoice?->invoice_number,
             ]);
 
         return ApiResponse::success(['payments' => $rows]);

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_widgets.dart';
 import '../providers/customer_auth_provider.dart';
 import '../providers/customer_profile_provider.dart';
 
@@ -19,25 +22,25 @@ class CustomerProfilePage extends ConsumerWidget {
 
     return profileAsync.when(
       loading: () => const Scaffold(
-        backgroundColor: CusColors.surface,
-        body: Center(child: CircularProgressIndicator(color: CusColors.primaryContainer)),
+        backgroundColor: CustomerDetailColors.background,
+        body: Center(child: CircularProgressIndicator(color: CustomerDetailColors.accent)),
       ),
       error: (error, _) => Scaffold(
-        backgroundColor: CusColors.surface,
+        backgroundColor: CustomerDetailColors.background,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.person_outline, size: 48, color: CusColors.outlineVariant),
+              Icon(LucideIcons.user, size: 48, color: CustomerDetailColors.iconMuted),
               const SizedBox(height: 12),
               Text(
                 error is ApiException ? error.message : 'Failed to load profile.',
-                style: const TextStyle(color: CusColors.onSurfaceVariant),
+                style: AppText.body.copyWith(color: CustomerDetailColors.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: CusColors.primaryContainer),
+                style: FilledButton.styleFrom(backgroundColor: CustomerDetailColors.accent),
                 onPressed: () => ref.invalidate(customerProfileProvider),
                 child: const Text('Retry'),
               ),
@@ -156,26 +159,26 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
               child: Container(
                 width: 36, height: 4,
                 decoration: BoxDecoration(
-                  color: CusColors.outlineVariant,
+                  color: CustomerDetailColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 20),
             Text(title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: CusColors.onSurface)),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: CustomerDetailColors.onSurface)),
             const SizedBox(height: 8),
             Text(message,
-                style: const TextStyle(fontSize: 14, color: CusColors.onSurfaceVariant, height: 1.5)),
+                style: const TextStyle(fontSize: 14, color: CustomerDetailColors.onSurfaceVariant, height: 1.5)),
             const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: CusColors.outlineVariant),
+                      side: const BorderSide(color: CustomerDetailColors.border),
                       minimumSize: const Size.fromHeight(50),
-                      foregroundColor: CusColors.onSurface,
+                      foregroundColor: CustomerDetailColors.onSurface,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     onPressed: () => Navigator.pop(ctx, false),
@@ -186,7 +189,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                 Expanded(
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: destructive ? CusColors.error : CusColors.primaryContainer,
+                      backgroundColor: destructive ? CustomerDetailColors.danger : CustomerDetailColors.accent,
                       minimumSize: const Size.fromHeight(50),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
@@ -228,7 +231,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
             Center(
               child: Container(
                 width: 36, height: 4,
-                decoration: BoxDecoration(color: CusColors.outlineVariant, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: CustomerDetailColors.border, borderRadius: BorderRadius.circular(2)),
               ),
             ),
             const SizedBox(height: 16),
@@ -236,7 +239,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('FAQs', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: CusColors.onSurface)),
+                child: Text('FAQs', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: CustomerDetailColors.onSurface)),
               ),
             ),
             const SizedBox(height: 8),
@@ -248,19 +251,19 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                 itemCount: faqs.length,
                 itemBuilder: (_, i) => Container(
                   decoration: BoxDecoration(
-                    color: CusColors.surface,
+                    color: CustomerDetailColors.surface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
+                    border: Border.all(color: CustomerDetailColors.border.withValues(alpha: 0.3)),
                   ),
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(faqs[i].$1,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CusColors.onSurface)),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CustomerDetailColors.onSurface)),
                       const SizedBox(height: 6),
                       Text(faqs[i].$2,
-                          style: const TextStyle(fontSize: 13, color: CusColors.onSurfaceVariant, height: 1.5)),
+                          style: const TextStyle(fontSize: 13, color: CustomerDetailColors.onSurfaceVariant, height: 1.5)),
                     ],
                   ),
                 ),
@@ -290,7 +293,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
             Center(
               child: Container(
                 width: 36, height: 4,
-                decoration: BoxDecoration(color: CusColors.outlineVariant, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: CustomerDetailColors.border, borderRadius: BorderRadius.circular(2)),
               ),
             ),
             const SizedBox(height: 16),
@@ -298,7 +301,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Privacy Policy', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: CusColors.onSurface)),
+                child: Text('Privacy Policy', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: CustomerDetailColors.onSurface)),
               ),
             ),
             const SizedBox(height: 8),
@@ -372,7 +375,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
       context: context,
       isScrollControlled: true,
       showDragHandle: false,
-      backgroundColor: CusColors.surfaceContainerLow,
+      backgroundColor: CustomerDetailColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -390,7 +393,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text('Address updated.'),
-                backgroundColor: CusColors.primaryContainer,
+                backgroundColor: CustomerDetailColors.accent,
               ),
             );
           }
@@ -414,23 +417,27 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
     final ownerMobile = farmContact?['owner_mobile'] as String? ?? '';
 
     return Scaffold(
-      backgroundColor: CusColors.surface,
+      backgroundColor: CustomerDetailColors.background,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: CusColors.surface,
+            backgroundColor: CustomerDetailColors.background,
             surfaceTintColor: Colors.transparent,
             floating: true,
             snap: true,
             elevation: 0,
-            titleSpacing: 20,
-            title: const Text(
+            titleSpacing: 16,
+            title: Text(
               'Profile',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: CusColors.primary),
+              style: AppText.screenTitle.copyWith(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: CustomerDetailColors.accent,
+              ),
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 const SizedBox(height: 8),
@@ -445,13 +452,13 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                           children: [
                             CircleAvatar(
                               radius: 42,
-                              backgroundColor: CusColors.secondaryContainer,
+                              backgroundColor: CustomerDetailColors.avatarBg,
                               child: Text(
                                 _initials,
-                                style: const TextStyle(
+                                style: AppText.screenTitle.copyWith(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w700,
-                                  color: CusColors.primaryContainer,
+                                  color: CustomerDetailColors.accent,
                                 ),
                               ),
                             ),
@@ -461,12 +468,17 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                               child: Container(
                                 width: 28,
                                 height: 28,
-                                decoration: const BoxDecoration(
-                                  color: CusColors.primaryContainer,
+                                decoration: BoxDecoration(
+                                  color: CustomerDetailColors.accent,
                                   shape: BoxShape.circle,
-                                  boxShadow: [BoxShadow(color: Color(0x33000000), blurRadius: 4)],
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0x33000000),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
                                 ),
-                                child: const Icon(Icons.edit, size: 14, color: CusColors.onPrimary),
+                                child: Icon(LucideIcons.pencil, size: 14, color: Colors.white),
                               ),
                             ),
                           ],
@@ -478,7 +490,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: CusColors.onSurface,
+                          color: CustomerDetailColors.onSurface,
                         ),
                       ),
                       if (_mobile.isNotEmpty) ...[
@@ -487,7 +499,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                           _mobile,
                           style: const TextStyle(
                             fontSize: 14,
-                            color: CusColors.onSurfaceVariant,
+                            color: CustomerDetailColors.onSurfaceVariant,
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -498,14 +510,20 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                 const SizedBox(height: 28),
 
                 // ── Delivery address ───────────────────────────────────────
-                _SectionLabel(label: 'Delivery Address'),
-                const SizedBox(height: 10),
+                CustomerDetailSectionLabel(title: 'DELIVERY ADDRESS'),
+                const SizedBox(height: 4),
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 4))],
-                    border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
+                    color: CustomerDetailColors.surface,
+                    borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+                    border: Border.all(color: CustomerDetailColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF283C28).withValues(alpha: 0.1),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -517,16 +535,16 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: CusColors.secondaryContainer,
+                              color: CustomerDetailColors.accentLight,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.home_outlined, size: 20, color: CusColors.primaryContainer),
+                            child: Icon(LucideIcons.home, size: 20, color: CustomerDetailColors.accent),
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
                             child: Text(
                               'Home',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CusColors.onSurface),
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CustomerDetailColors.onSurface),
                             ),
                           ),
                           TextButton(
@@ -538,7 +556,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                             ),
                             child: const Text(
                               'Change',
-                              style: TextStyle(color: CusColors.primaryContainer, fontWeight: FontWeight.w600, fontSize: 13),
+                              style: TextStyle(color: CustomerDetailColors.accent, fontWeight: FontWeight.w600, fontSize: 13),
                             ),
                           ),
                         ],
@@ -549,7 +567,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                           padding: const EdgeInsets.only(left: 52),
                           child: Text(
                             _deliveryAddress,
-                            style: const TextStyle(fontSize: 13, color: CusColors.onSurfaceVariant, height: 1.5),
+                            style: const TextStyle(fontSize: 13, color: CustomerDetailColors.onSurfaceVariant, height: 1.5),
                           ),
                         ),
                       ],
@@ -559,28 +577,28 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                 const SizedBox(height: 24),
 
                 // ── Help & support ─────────────────────────────────────────
-                _SectionLabel(label: 'Help & Support'),
-                const SizedBox(height: 10),
+                CustomerDetailSectionLabel(title: 'HELP & SUPPORT'),
+                const SizedBox(height: 4),
                 _SettingsGroup(
                   items: [
                     _SettingsItem(
-                      icon: Icons.chat_outlined,
-                      iconColor: CusColors.successGreen,
-                      iconBg: const Color(0xFFE8F5EE),
+                      icon: LucideIcons.messageCircle,
+                      iconColor: CustomerDetailColors.success,
+                      iconBg: CustomerDetailColors.successBg,
                       label: 'WhatsApp Dairy Owner',
                       onTap: ownerMobile.isNotEmpty ? () => _whatsApp(ownerMobile) : null,
                     ),
                     _SettingsItem(
-                      icon: Icons.call_outlined,
-                      iconColor: CusColors.primaryContainer,
-                      iconBg: CusColors.secondaryContainer,
+                      icon: LucideIcons.phone,
+                      iconColor: CustomerDetailColors.accent,
+                      iconBg: CustomerDetailColors.accentLight,
                       label: 'Call Owner',
                       onTap: ownerMobile.isNotEmpty ? () => _call(ownerMobile) : null,
                     ),
                     _SettingsItem(
-                      icon: Icons.help_outline,
-                      iconColor: const Color(0xFFB9770A),
-                      iconBg: const Color(0xFFFBF1DE),
+                      icon: LucideIcons.helpCircle,
+                      iconColor: CustomerDetailColors.morningChipInk,
+                      iconBg: CustomerDetailColors.morningChipBg,
                       label: 'FAQs',
                       onTap: _showFaqSheet,
                     ),
@@ -588,15 +606,13 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                 ),
                 const SizedBox(height: 24),
 
-                // ── App settings ────────────────────────────────────────────
-                _SectionLabel(label: 'App Settings'),
+                CustomerDetailSectionLabel(title: 'APP SETTINGS'),
                 const SizedBox(height: 10),
                 Container(
                   decoration: BoxDecoration(
-                    color: CusColors.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4))],
-                    border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.4)),
+                    color: CustomerDetailColors.surface,
+                    borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+                    border: Border.all(color: CustomerDetailColors.border),
                   ),
                   child: Column(
                     children: [
@@ -609,35 +625,35 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: CusColors.secondaryContainer.withValues(alpha: 0.5),
+                                color: CustomerDetailColors.accentLight.withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.notifications_outlined, size: 18, color: CusColors.onSurfaceVariant),
+                              child: const Icon(Icons.notifications_outlined, size: 18, color: CustomerDetailColors.onSurfaceVariant),
                             ),
                             const SizedBox(width: 14),
                             const Expanded(
                               child: Text(
                                 'Delivery Notifications',
-                                style: TextStyle(fontSize: 15, color: CusColors.onSurface),
+                                style: TextStyle(fontSize: 15, color: CustomerDetailColors.onSurface),
                               ),
                             ),
                             Switch(
                               value: _notificationsEnabled,
                               onChanged: _onNotificationsToggle,
-                              activeTrackColor: CusColors.primaryContainer,
+                              activeTrackColor: CustomerDetailColors.accent,
                             ),
                           ],
                         ),
                       ),
-                      Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 16, color: CusColors.outlineVariant),
+                      Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 16, color: CustomerDetailColors.border),
                       _SettingsRow(
                         icon: Icons.language_outlined,
                         label: 'Language',
                         trailing: const Text('English',
-                            style: TextStyle(fontSize: 13, color: CusColors.onSurfaceVariant)),
+                            style: TextStyle(fontSize: 13, color: CustomerDetailColors.onSurfaceVariant)),
                         onTap: () {},
                       ),
-                      Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 16, color: CusColors.outlineVariant),
+                      Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 16, color: CustomerDetailColors.border),
                       _SettingsRow(
                         icon: Icons.security_outlined,
                         label: 'Privacy',
@@ -652,9 +668,9 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                 _SettingsGroup(
                   items: [
                     _SettingsItem(
-                      icon: Icons.beach_access_outlined,
-                      iconColor: CusColors.vacationBlue,
-                      iconBg: const Color(0xFFE3EDFC),
+                      icon: LucideIcons.plane,
+                      iconColor: const Color(0xFF3D5896),
+                      iconBg: const Color(0xFFE4ECF7),
                       label: 'Manage Vacation',
                       onTap: () => context.push('/customer/vacation'),
                     ),
@@ -667,22 +683,22 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                   onTap: _logout,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: CusColors.errorContainer,
+                      color: CustomerDetailColors.dangerBg,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: CusColors.error.withValues(alpha: 0.15)),
+                      border: Border.all(color: CustomerDetailColors.dangerBorder),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.logout, size: 18, color: CusColors.error),
-                        SizedBox(width: 8),
+                        Icon(LucideIcons.logOut, size: 18, color: CustomerDetailColors.danger),
+                        const SizedBox(width: 8),
                         Text(
                           'Logout',
-                          style: TextStyle(
+                          style: AppText.body.copyWith(
                             fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: CusColors.error,
+                            fontWeight: FontWeight.w700,
+                            color: CustomerDetailColors.danger,
                           ),
                         ),
                       ],
@@ -693,7 +709,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                 const Center(
                   child: Text(
                     'Crafted for Quality · LactoSync',
-                    style: TextStyle(fontSize: 11, color: CusColors.outlineVariant),
+                    style: TextStyle(fontSize: 11, color: CustomerDetailColors.border),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -702,21 +718,6 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ── Section label ─────────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: CusColors.onSurface),
     );
   }
 }
@@ -731,16 +732,16 @@ class _SettingsGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: CusColors.surfaceContainerLowest,
+        color: CustomerDetailColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4))],
-        border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(color: CustomerDetailColors.border.withValues(alpha: 0.4)),
       ),
       child: Column(
         children: [
           for (int i = 0; i < items.length; i++) ...[
             if (i > 0)
-              Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 16, color: CusColors.outlineVariant),
+              Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 16, color: CustomerDetailColors.border),
             items[i],
           ],
         ],
@@ -783,10 +784,10 @@ class _SettingsItem extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 15, color: CusColors.onSurface),
+                style: const TextStyle(fontSize: 15, color: CustomerDetailColors.onSurface),
               ),
             ),
-            const Icon(Icons.chevron_right, size: 18, color: CusColors.outlineVariant),
+            const Icon(Icons.chevron_right, size: 18, color: CustomerDetailColors.border),
           ],
         ),
       ),
@@ -819,18 +820,18 @@ class _SettingsRow extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: CusColors.secondaryContainer.withValues(alpha: 0.5),
+                color: CustomerDetailColors.accentLight.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 18, color: CusColors.onSurfaceVariant),
+              child: Icon(icon, size: 18, color: CustomerDetailColors.onSurfaceVariant),
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(label, style: const TextStyle(fontSize: 15, color: CusColors.onSurface)),
+              child: Text(label, style: const TextStyle(fontSize: 15, color: CustomerDetailColors.onSurface)),
             ),
             if (trailing != null) trailing!,
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, size: 18, color: CusColors.outlineVariant),
+            const Icon(Icons.chevron_right, size: 18, color: CustomerDetailColors.border),
           ],
         ),
       ),
@@ -954,7 +955,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         } else {
           setState(() => _saving = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.message), backgroundColor: CusColors.error),
+            SnackBar(content: Text(e.message), backgroundColor: CustomerDetailColors.danger),
           );
         }
       }
@@ -982,14 +983,14 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               child: Container(
                 width: 36, height: 4,
                 decoration: BoxDecoration(
-                  color: CusColors.outlineVariant,
+                  color: CustomerDetailColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             const Text('Edit Delivery Address',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: CusColors.onSurface)),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: CustomerDetailColors.onSurface)),
             const SizedBox(height: 20),
             _Field(label: 'Address', ctrl: widget.addressCtrl, enabled: !_saving),
             const SizedBox(height: 14),
@@ -1041,23 +1042,23 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             if (_pincodeError)
               const Padding(
                 padding: EdgeInsets.only(top: 4),
-                child: Text('Pincode not found', style: TextStyle(fontSize: 12, color: CusColors.error)),
+                child: Text('Pincode not found', style: TextStyle(fontSize: 12, color: CustomerDetailColors.danger)),
               ),
             if (_addressError != null)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(_addressError!, style: const TextStyle(fontSize: 12, color: CusColors.error)),
+                child: Text(_addressError!, style: const TextStyle(fontSize: 12, color: CustomerDetailColors.danger)),
               ),
             const SizedBox(height: 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.info_outline, size: 13, color: CusColors.onSurfaceVariant),
+                const Icon(Icons.info_outline, size: 13, color: CustomerDetailColors.onSurfaceVariant),
                 const SizedBox(width: 4),
                 const Expanded(
                   child: Text(
                     'Address can only be updated once every 24 hours.',
-                    style: TextStyle(fontSize: 12, color: CusColors.onSurfaceVariant),
+                    style: TextStyle(fontSize: 12, color: CustomerDetailColors.onSurfaceVariant),
                   ),
                 ),
               ],
@@ -1065,7 +1066,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             const SizedBox(height: 20),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: CusColors.primaryContainer,
+                backgroundColor: CustomerDetailColors.accent,
                 minimumSize: const Size.fromHeight(52),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
@@ -1097,10 +1098,10 @@ class _PrivacySection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CusColors.onSurface)),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CustomerDetailColors.onSurface)),
           const SizedBox(height: 4),
           Text(body,
-              style: const TextStyle(fontSize: 13, color: CusColors.onSurfaceVariant, height: 1.5)),
+              style: const TextStyle(fontSize: 13, color: CustomerDetailColors.onSurfaceVariant, height: 1.5)),
         ],
       ),
     );
@@ -1133,7 +1134,7 @@ class _Field extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: CusColors.onSurfaceVariant)),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: CustomerDetailColors.onSurfaceVariant)),
         const SizedBox(height: 6),
         TextFormField(
           controller: ctrl,
@@ -1141,18 +1142,18 @@ class _Field extends StatelessWidget {
           inputFormatters: inputFormatters,
           readOnly: readOnly,
           enabled: enabled,
-          style: const TextStyle(fontSize: 14, color: CusColors.onSurface),
+          style: const TextStyle(fontSize: 14, color: CustomerDetailColors.onSurface),
           decoration: InputDecoration(
             suffix: suffix,
             filled: true,
-            fillColor: CusColors.surfaceContainerHigh,
+            fillColor: CustomerDetailColors.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: CusColors.primaryContainer, width: 2),
+              borderSide: const BorderSide(color: CustomerDetailColors.accent, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),

@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/widgets/action_toast.dart';
-import '../../../../core/widgets/app_button.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/owner_models.dart';
 import '../providers/owner_provider.dart';
-import '../widgets/customer_list_styles.dart';
+import '../widgets/customer_detail/customer_detail_styles.dart';
+import '../widgets/owner_action_sheets.dart';
 import '../widgets/owner_design_system.dart';
 import '../widgets/owner_form_theme.dart';
+import '../widgets/owner_page_fab.dart';
+import '../widgets/owner_screen_widgets.dart';
 import '../widgets/owner_shared_widgets.dart';
 import '../widgets/owner_widgets.dart';
-import '../widgets/owner_action_sheets.dart';
-import '../widgets/owner_page_fab.dart';
 
 class BillingPage extends ConsumerStatefulWidget {
   const BillingPage({super.key});
@@ -29,6 +29,7 @@ class BillingPage extends ConsumerStatefulWidget {
 class _BillingPageState extends ConsumerState<BillingPage> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
   bool _sendingBulk = false;
+  final _sendingInvoiceIds = <int>{};
   final _searchController = TextEditingController();
   String _search = '';
   CustomerSort _sort = CustomerSort.nameAsc;
@@ -65,7 +66,7 @@ class _BillingPageState extends ConsumerState<BillingPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const OwnerSheetTitle(AppStrings.sortLabel),
+          const OwnerSheetHeader(title: AppStrings.sortLabel, icon: LucideIcons.arrowUpDown),
           const SizedBox(height: AppSpace.sm),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -132,12 +133,33 @@ class _BillingPageState extends ConsumerState<BillingPage> {
     }
   }
 
+  Future<void> _sendBill(OwnerInvoice invoice) async {
+    setState(() => _sendingInvoiceIds.add(invoice.id));
+    try {
+      await ActionToast.run(
+        context,
+        preparing: AppStrings.billPreparing,
+        success: AppStrings.billingSendSuccess,
+        onError: AppStrings.billingSendFailed,
+        task: () => ref.read(ownerRepositoryProvider).sendInvoice(invoice.id),
+      );
+      if (!mounted) return;
+      ref.invalidate(invoicesListProvider(_query));
+    } catch (e) {
+      if (!mounted) return;
+      final message = e is ApiException ? e.message : AppStrings.billingSendFailed;
+      ActionToast.show(context, message);
+    } finally {
+      if (mounted) setState(() => _sendingInvoiceIds.remove(invoice.id));
+    }
+  }
+
+  int _pendingCount(BillingSummary summary) => summary.unpaid + summary.partial;
+
   @override
   Widget build(BuildContext context) {
     final invoicesAsync = ref.watch(invoicesListProvider(_query));
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final borderColor = OwnerFormTheme.borderColor;
+    final inkMuted = CustomerDetailColors.labelMuted;
 
     return Stack(
       fit: StackFit.expand,
@@ -146,7 +168,7 @@ class _BillingPageState extends ConsumerState<BillingPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.md, AppSpace.lg, 0),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Column(
                 children: [
                   BorderedMonthNavigator(
@@ -158,66 +180,50 @@ class _BillingPageState extends ConsumerState<BillingPage> {
                       () => _month = DateTime(_month.year, _month.month + 1),
                     ),
                   ),
-                  const SizedBox(height: AppSpace.sm),
-                  OwnerSearchSortRow(
-                    controller: _searchController,
-                    hintText: AppStrings.searchCustomerLabel,
-                    onChanged: (v) => setState(() => _search = v.trim()),
-                    onSort: _showSortMenu,
-                  ),
-                  const SizedBox(height: AppSpace.md),
+                  const SizedBox(height: 11),
                   invoicesAsync.maybeWhen(
-                    data: (data) => data.invoices.isEmpty
-                        ? const SizedBox.shrink()
-                        : Padding(
-                            padding: const EdgeInsets.only(bottom: AppSpace.sm),
-                            child: AppButton(
-                              label: AppStrings.billingSendAll,
-                              loading: _sendingBulk,
-                              onPressed: _sendingBulk ? null : _sendAllBills,
-                            ),
-                          ),
-                    orElse: () => const SizedBox.shrink(),
-                  ),
-                  invoicesAsync.maybeWhen(
-                    data: (data) => DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(color: borderColor),
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.08 : 0.04),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpace.md),
-                        child: ThreeColumnAmountGrid(
-                          columns: [
-                            AmountGridColumn(
-                              label: AppStrings.billingTotalBilled,
-                              value: data.summary.totalAmount,
-                              valueColor: Theme.of(context).colorScheme.primary,
-                            ),
-                            AmountGridColumn(
-                              label: AppStrings.billingCollected,
-                              value: data.summary.collected,
-                              valueColor: AppColors.success,
-                            ),
-                            AmountGridColumn(
-                              label: AppStrings.billingOutstanding,
-                              value: data.summary.outstanding,
-                              valueColor: AppColors.danger,
-                            ),
-                          ],
+                    data: (data) => OwnerGreenSummaryCard(
+                      title: 'Outstanding this month',
+                      amount: '₹${formatOwnerCurrency(data.summary.outstanding)}',
+                      badge: '${_pendingCount(data.summary)} pending',
+                      footerTiles: [
+                        OwnerSummaryFooterTile(
+                          label: AppStrings.billingTotalBilled,
+                          value: '₹${formatOwnerCurrency(data.summary.totalAmount)}',
                         ),
-                      ),
+                        OwnerSummaryFooterTile(
+                          label: AppStrings.billingCollected,
+                          value: '₹${formatOwnerCurrency(data.summary.collected)}',
+                        ),
+                      ],
                     ),
-                    orElse: () => const SizedBox(height: 88),
+                    orElse: () => const SizedBox(height: 120),
+                  ),
+                  const SizedBox(height: 11),
+                  BillingSearchSendRow(
+                    searchChild: OwnerSearchSortRow(
+                      controller: _searchController,
+                      hintText: AppStrings.searchCustomerLabel,
+                      onChanged: (v) => setState(() => _search = v.trim()),
+                      onSort: _showSortMenu,
+                    ),
+                    sendLabel: 'Send all',
+                    sending: _sendingBulk,
+                    enabled: invoicesAsync.maybeWhen(
+                      data: (data) => data.invoices.isNotEmpty,
+                      orElse: () => false,
+                    ),
+                    onSend: _sendAllBills,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: AppSpace.sm),
+            const SizedBox(height: 12),
             Expanded(
               child: invoicesAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: CustomerDetailColors.accent),
+                ),
                 error: (_, __) => Center(
                   child: TextButton(
                     onPressed: () => ref.invalidate(invoicesListProvider(_query)),
@@ -238,18 +244,21 @@ class _BillingPageState extends ConsumerState<BillingPage> {
                   }
 
                   return RefreshIndicator(
+                    color: CustomerDetailColors.accent,
                     onRefresh: () async {
                       ref.invalidate(invoicesListProvider(_query));
                       await ref.read(invoicesListProvider(_query).future);
                     },
                     child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(AppSpace.lg, 0, AppSpace.lg, 88),
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 88),
                       itemCount: invoices.length,
                       itemBuilder: (context, index) {
                         final invoice = invoices[index];
                         return InvoiceListTile(
                           invoice: invoice,
+                          sending: _sendingInvoiceIds.contains(invoice.id),
                           onTap: () => context.push('/owner/billing/${invoice.id}'),
+                          onSend: () => _sendBill(invoice),
                         );
                       },
                     ),
@@ -260,8 +269,8 @@ class _BillingPageState extends ConsumerState<BillingPage> {
           ],
         ),
         Positioned(
-          right: AppSpace.lg,
-          bottom: AppSpace.lg,
+          right: 16,
+          bottom: 16,
           child: OwnerPageFab(
             onPressed: () => OwnerActionSheets.showGenerateBill(context, ref),
           ),

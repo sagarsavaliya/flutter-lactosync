@@ -8,13 +8,19 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\DailyOrderLog;
 use App\Models\SubscriptionLine;
+use App\Models\SubscriptionLine;
 use App\Support\ApiResponse;
+use App\Services\Billing\ConsumptionAggregator;
+use App\Support\DeliveryLogPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class OrderController extends Controller
 {
+    public function __construct(
+        private readonly ConsumptionAggregator $consumptionAggregator,
+    ) {}
     /**
      * GET /api/customer/v1/orders?month=YYYY-MM
      *
@@ -102,24 +108,17 @@ class OrderController extends Controller
             $cursor->addDay();
         }
 
-        $consumptionRows = DailyOrderLog::query()
-            ->where('customer_id', $customer->id)
-            ->where('billing_month', $monthStr)
-            ->where('status', 'delivered')
-            ->get()
-            ->groupBy(fn (DailyOrderLog $log) => $log->product_name.'|'.$log->unit_rate)
-            ->map(function ($group) {
-                /** @var DailyOrderLog $first */
-                $first = $group->first();
-
-                return [
-                    'product_name'    => $first->product_name,
-                    'unit_rate'       => (float) $first->unit_rate,
-                    'total_quantity'  => round((float) $group->sum('quantity'), 2),
-                    'line_total'      => round((float) $group->sum('line_total'), 2),
-                ];
-            })
-            ->values();
+        $consumptionRows = $this->consumptionAggregator->aggregate(
+            DeliveryLogPresenter::logsThroughDate(
+                DailyOrderLog::query()
+                    ->where('customer_id', $customer->id)
+                    ->where('billing_month', $monthStr)
+                    ->whereIn('status', DeliveryLogPresenter::billableStatuses())
+                    ->get(),
+                $monthStr,
+                Carbon::today(),
+            ),
+        );
 
         return ApiResponse::success([
             'month' => $monthStr,

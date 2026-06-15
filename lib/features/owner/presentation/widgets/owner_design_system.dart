@@ -6,14 +6,16 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import 'customer_detail/customer_detail_styles.dart';
+import 'owner_screen_widgets.dart';
 
 /// LactoSync owner UI tokens — match customer detail mockup.
 abstract final class OwnerTheme {
-  static const Color background = AppColors.bg;
-  static const Color primary = AppColors.primary;
-  static const Color ink = AppColors.ink;
-  static const Color inkMuted = AppColors.inkMuted;
-  static const Color chipFill = AppColors.primaryFaint;
+  static const Color background = CustomerDetailColors.background;
+  static const Color primary = CustomerDetailColors.accent;
+  static const Color ink = CustomerDetailColors.onSurface;
+  static const Color inkMuted = CustomerDetailColors.labelMuted;
+  static const Color chipFill = CustomerDetailColors.accentLight;
 }
 
 Future<T?> showOwnerBottomSheet<T>({
@@ -24,20 +26,28 @@ Future<T?> showOwnerBottomSheet<T>({
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled,
-    showDragHandle: true,
-    backgroundColor: AppColors.surface,
+    showDragHandle: false,
+    backgroundColor: CustomerDetailColors.surface,
+    barrierColor: const Color(0x75141E12),
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(OwnerScreenMetrics.sheetRadius)),
     ),
     builder: (ctx) => SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          AppSpace.lg,
-          0,
-          AppSpace.lg,
-          AppSpace.lg + MediaQuery.viewInsetsOf(ctx).bottom,
+          18,
+          10,
+          18,
+          22 + MediaQuery.viewInsetsOf(ctx).bottom,
         ),
-        child: child,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const OwnerSheetDragHandle(),
+            Flexible(child: child),
+          ],
+        ),
       ),
     ),
   );

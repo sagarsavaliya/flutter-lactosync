@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_dialogs.dart';
-import '../../../../core/widgets/app_form_layout.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/theme/redesign_tokens.dart';
 import '../../domain/entities/settings_models.dart';
+import '../../domain/repositories/owner_repository.dart';
 import '../providers/owner_provider.dart';
+import '../widgets/customer_detail/customer_detail_styles.dart';
 import '../widgets/owner_design_system.dart';
+import '../widgets/owner_screen_widgets.dart';
 
 class OwnerSettingsPage extends ConsumerStatefulWidget {
   const OwnerSettingsPage({super.key});
@@ -33,7 +36,6 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
 
   // Per-sheet loading flags
   bool _savingFarm = false;
-  bool _savingOwner = false;
 
   // Cached settings reference so sheets can read current values
   OwnerSettings? _settings;
@@ -77,7 +79,7 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
             ),
           );
       ref.invalidate(ownerSettingsProvider);
-    } on ApiException catch (e) {
+    } on ApiException catch (_) {
       if (mounted) {
         setState(() => _prefillCustomerAddress = !newValue);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -95,11 +97,10 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
     );
   }
 
-  String _formatTime(TimeOfDay time) {
-    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
-    final minute = time.minute.toString().padLeft(2, '0');
-    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
-    return '$hour:$minute $period';
+  String _formatTimeForApi(TimeOfDay time) {
+    final h = time.hour.toString().padLeft(2, '0');
+    final m = time.minute.toString().padLeft(2, '0');
+    return '$h:$m';
   }
 
   /// 12-hour display e.g. "5:00 AM", "3:00 PM"
@@ -141,8 +142,8 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
                 zip: settings.farm.zip,
                 upiVpa: settings.farm.upiVpa,
                 upiPayeeName: settings.farm.upiPayeeName,
-                morningOrderTime: _formatTime(_morningOrderTime),
-                eveningOrderTime: _formatTime(_eveningOrderTime),
+                morningOrderTime: _formatTimeForApi(_morningOrderTime),
+                eveningOrderTime: _formatTimeForApi(_eveningOrderTime),
                 prefillCustomerAddress: _prefillCustomerAddress,
               ),
             ),
@@ -218,59 +219,6 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Owner edit bottom sheet
-  // ─────────────────────────────────────────────────────────────────────────
-
-  Future<void> _openOwnerEditSheet() async {
-    final settings = _settings;
-    if (settings == null) return;
-
-    final firstName = TextEditingController(text: settings.owner.firstName ?? '');
-    final lastName = TextEditingController(text: settings.owner.lastName ?? '');
-
-    await showOwnerBottomSheet<void>(
-      context: context,
-      child: _OwnerEditSheet(
-        firstName: firstName,
-        lastName: lastName,
-        mobile: settings.owner.mobile,
-        onSave: (fn, ln) async {
-          setState(() => _savingOwner = true);
-          try {
-            await ref.read(ownerRepositoryProvider).updateSettings(
-                  OwnerSettingsUpdate(
-                    owner: SettingsOwner(
-                      firstName: fn,
-                      lastName: ln,
-                      fullName: '',
-                      mobile: '',
-                    ),
-                  ),
-                );
-            ref.invalidate(ownerSettingsProvider);
-            _loaded = false;
-            if (mounted) {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text(AppStrings.settingsSaved)),
-              );
-            }
-          } on ApiException catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-            }
-          } finally {
-            if (mounted) setState(() => _savingOwner = false);
-          }
-        },
-      ),
-    );
-
-    firstName.dispose();
-    lastName.dispose();
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
   // Build
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -278,7 +226,6 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(ownerSettingsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
 
     return settingsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -292,11 +239,22 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
         _load(settings);
 
         return ListView(
-          padding: const EdgeInsets.all(AppSpace.lg),
+          padding: const EdgeInsets.all(16),
           children: [
-            // ── Farm profile card ────────────────────────────────────────
-            OwnerSectionHeader(title: AppStrings.settingsFarmSection),
-            const SizedBox(height: AppSpace.sm),
+            Text(
+              AppStrings.settingsTitle,
+              style: AppText.screenTitle.copyWith(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: CustomerDetailColors.accent,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            OwnerSettingsSectionLabel(
+              label: AppStrings.settingsFarmSection,
+              icon: LucideIcons.home,
+            ),
             _FarmProfileCard(
               // Use local _prefillCustomerAddress for optimistic toggle display.
               farm: SettingsFarm(
@@ -317,45 +275,31 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
               onPrefillToggle: _onPrefillToggle,
             ),
 
-            // ── Daily order schedule ─────────────────────────────────────
-            const SizedBox(height: AppSpace.lg),
-            OwnerSectionHeader(title: AppStrings.settingsOrderScheduleSection),
-            const SizedBox(height: AppSpace.xs),
-            Text(
-              AppStrings.settingsOrderScheduleHint,
-              style: AppText.meta.copyWith(color: inkMuted),
+            OwnerSettingsSectionLabel(
+              label: AppStrings.settingsOrderScheduleSection,
+              icon: LucideIcons.clock3,
             ),
-            const SizedBox(height: AppSpace.sm),
-            AppCard(
+            OwnerSettingsCard(
+              padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(AppStrings.settingsMorningOrderTime, style: AppText.label),
-                    trailing:
-                        Text(_displayTime(_morningOrderTime), style: AppText.body),
+                  _ScheduleTimeRow(
+                    icon: LucideIcons.sun,
+                    iconColor: const Color(0xFFE89A2E),
+                    title: AppStrings.settingsMorningOrderTime,
+                    timeLabel: _displayTime(_morningOrderTime),
                     onTap: () => _pickOrderTime(morning: true),
                   ),
-                  const Divider(height: AppSpace.lg),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(AppStrings.settingsEveningOrderTime, style: AppText.label),
-                    trailing:
-                        Text(_displayTime(_eveningOrderTime), style: AppText.body),
+                  const Divider(height: 1, thickness: 1, color: RedesignTokens.divider),
+                  _ScheduleTimeRow(
+                    icon: LucideIcons.moon,
+                    iconColor: const Color(0xFF5E78B0),
+                    title: AppStrings.settingsEveningOrderTime,
+                    timeLabel: _displayTime(_eveningOrderTime),
                     onTap: () => _pickOrderTime(morning: false),
                   ),
                 ],
               ),
-            ),
-
-            // ── Owner profile card ───────────────────────────────────────
-            const SizedBox(height: AppSpace.lg),
-            OwnerSectionHeader(title: AppStrings.settingsOwnerSection),
-            const SizedBox(height: AppSpace.sm),
-            _OwnerProfileCard(
-              owner: settings.owner,
-              onEdit: _openOwnerEditSheet,
-              isDark: isDark,
             ),
 
             // ── OR-08: Products ──────────────────────────────────────────
@@ -370,43 +314,65 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
             const SizedBox(height: AppSpace.lg),
             const _ContainerTypesSection(),
 
-            // ── WhatsApp sharing ─────────────────────────────────────────
-            const SizedBox(height: AppSpace.lg),
-            OwnerSectionHeader(title: AppStrings.settingsTemplatesSection),
-            const SizedBox(height: AppSpace.xs),
-            Text(
-              AppStrings.settingsWhatsAppImageNote,
-              style: AppText.meta.copyWith(color: inkMuted),
+            OwnerSettingsSectionLabel(
+              label: AppStrings.settingsTemplatesSection,
+              icon: LucideIcons.messageCircle,
             ),
-            const SizedBox(height: AppSpace.sm),
-            AppCard(
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(AppStrings.settingsIncludeFarmHeader, style: AppText.body),
-                value: _includeFarmHeader,
-                onChanged: (v) async {
-                  setState(() => _includeFarmHeader = v);
-                  try {
-                    await ref.read(ownerRepositoryProvider).updateSettings(
-                          OwnerSettingsUpdate(
-                            documentSettings: DocumentTemplateSettings(
-                              milkLogFormat: settings.documentSettings.milkLogFormat,
-                              billingFormat: settings.documentSettings.billingFormat,
-                              paymentReceiptFormat:
-                                  settings.documentSettings.paymentReceiptFormat,
-                              includeFarmHeader: v,
-                            ),
+            OwnerSettingsCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    AppStrings.settingsWhatsAppImageNote,
+                    style: AppText.meta.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: CustomerDetailColors.iconMuted,
+                    ),
+                  ),
+                  const Divider(height: 24, color: CustomerDetailColors.divider),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          AppStrings.settingsIncludeFarmHeader,
+                          style: AppText.cardTitle.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: CustomerDetailColors.onSurface,
                           ),
-                        );
-                    ref.invalidate(ownerSettingsProvider);
-                  } on ApiException catch (e) {
-                    if (mounted) {
-                      setState(() => _includeFarmHeader = !v);
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(content: Text(e.message)));
-                    }
-                  }
-                },
+                        ),
+                      ),
+                      Switch(
+                        value: _includeFarmHeader,
+                        onChanged: (v) async {
+                          setState(() => _includeFarmHeader = v);
+                          try {
+                            await ref.read(ownerRepositoryProvider).updateSettings(
+                                  OwnerSettingsUpdate(
+                                    documentSettings: DocumentTemplateSettings(
+                                      milkLogFormat: settings.documentSettings.milkLogFormat,
+                                      billingFormat: settings.documentSettings.billingFormat,
+                                      paymentReceiptFormat:
+                                          settings.documentSettings.paymentReceiptFormat,
+                                      includeFarmHeader: v,
+                                    ),
+                                  ),
+                                );
+                            ref.invalidate(ownerSettingsProvider);
+                          } on ApiException catch (e) {
+                            if (mounted) {
+                              setState(() => _includeFarmHeader = !v);
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(content: Text(e.message)));
+                            }
+                          }
+                        },
+                        activeTrackColor: RedesignTokens.accent,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpace.lg),
@@ -451,43 +417,60 @@ class _FarmProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final ink = isDark ? AppColors.darkInk : AppColors.ink;
-
-    return AppCard(
+    return OwnerSettingsCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row: name + edit button
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: CustomerDetailColors.avatarBg,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(LucideIcons.home, size: 20, color: CustomerDetailColors.accent),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  farm.name?.isNotEmpty == true ? farm.name! : '—',
-                  style: AppText.cardTitle.copyWith(color: ink),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      farm.name?.isNotEmpty == true ? farm.name! : '—',
+                      style: AppText.cardTitle.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: CustomerDetailColors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _cityStatePinValue,
+                      style: AppText.meta.copyWith(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: CustomerDetailColors.iconMuted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              AppSoftIconButton(
-                icon: Icons.edit_outlined,
-                tooltip: AppStrings.settingsFarmEditTooltip,
-                onPressed: onEdit,
-                size: 32,
+              OwnerIconActionButton(
+                icon: LucideIcons.pencil,
+                size: 34,
+                background: CustomerDetailColors.accentLight,
+                border: CustomerDetailColors.accentBorder,
+                iconColor: CustomerDetailColors.accent,
+                onTap: onEdit,
               ),
             ],
           ),
-          const SizedBox(height: AppSpace.xs),
-          _InfoRow(
-            label: AppStrings.settingsAddressLabel,
-            value: farm.addressLine?.isNotEmpty == true ? farm.addressLine! : '—',
-            isDark: isDark,
-          ),
-          const SizedBox(height: AppSpace.xs),
-          _InfoRow(
-            label: AppStrings.settingsCityStatePinRow,
-            value: _cityStatePinValue,
-            isDark: isDark,
-          ),
-          const SizedBox(height: AppSpace.xs),
+          const SizedBox(height: 13),
+          Divider(color: CustomerDetailColors.divider, height: 1),
+          const SizedBox(height: 13),
           _InfoRow(
             label: AppStrings.settingsUpiVpa,
             value: farm.upiVpa?.isNotEmpty == true ? farm.upiVpa! : '—',
@@ -499,32 +482,42 @@ class _FarmProfileCard extends StatelessWidget {
             value: farm.upiPayeeName?.isNotEmpty == true ? farm.upiPayeeName! : '—',
             isDark: isDark,
           ),
-          // OR-10: prefill toggle
-          const Divider(height: AppSpace.lg),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              AppStrings.settingsPrefillToggleTitle,
-              style: AppText.body,
-            ),
-            value: farm.prefillCustomerAddress,
-            onChanged: onPrefillToggle,
-          ),
-          const SizedBox(height: AppSpace.xs),
+          const Divider(height: 1, color: CustomerDetailColors.divider),
+          const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.info_outline, size: 14, color: AppColors.inkMuted),
-              const SizedBox(width: AppSpace.xs),
               Expanded(
-                child: Text(
-                  AppStrings.settingsPrefillToggleHint,
-                  style: AppText.meta.copyWith(color: AppColors.inkMuted),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppStrings.settingsPrefillToggleTitle,
+                      style: AppText.cardTitle.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: CustomerDetailColors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      AppStrings.settingsPrefillToggleHint,
+                      style: AppText.meta.copyWith(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: CustomerDetailColors.iconMuted,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              Switch(
+                value: farm.prefillCustomerAddress,
+                onChanged: onPrefillToggle,
+                activeTrackColor: RedesignTokens.accent,
               ),
             ],
           ),
-          const SizedBox(height: AppSpace.xs),
         ],
       ),
     );
@@ -534,66 +527,6 @@ class _FarmProfileCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Owner profile read card
 // ─────────────────────────────────────────────────────────────────────────────
-
-class _OwnerProfileCard extends StatelessWidget {
-  const _OwnerProfileCard({
-    required this.owner,
-    required this.onEdit,
-    required this.isDark,
-  });
-
-  final SettingsOwner owner;
-  final VoidCallback onEdit;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final ink = isDark ? AppColors.darkInk : AppColors.ink;
-    final fullName = owner.fullName.isNotEmpty ? owner.fullName : '—';
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  fullName,
-                  style: AppText.cardTitle.copyWith(color: ink),
-                ),
-              ),
-              AppSoftIconButton(
-                icon: Icons.edit_outlined,
-                tooltip: AppStrings.settingsOwnerEditTooltip,
-                onPressed: onEdit,
-                size: 32,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpace.xs),
-          Row(
-            children: [
-              Text(
-                AppStrings.mobileLabel,
-                style: AppText.meta.copyWith(color: inkMuted),
-              ),
-              const SizedBox(width: AppSpace.sm),
-              Expanded(
-                child: Text(
-                  owner.mobile,
-                  style: AppText.body.copyWith(color: inkMuted),
-                  textAlign: TextAlign.end,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reusable info row (label + value)
@@ -657,7 +590,7 @@ class _FarmEditSheet extends StatefulWidget {
   final TextEditingController upiPayeeName;
   final SettingsFarm currentFarm;
   final Future<void> Function(SettingsFarm) onSave;
-  final dynamic repository; // OwnerRepository
+  final OwnerRepository repository;
 
   @override
   State<_FarmEditSheet> createState() => _FarmEditSheetState();
@@ -877,115 +810,12 @@ class _FarmEditSheetState extends State<_FarmEditSheet> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Owner edit sheet
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _OwnerEditSheet extends StatefulWidget {
-  const _OwnerEditSheet({
-    required this.firstName,
-    required this.lastName,
-    required this.mobile,
-    required this.onSave,
-  });
-
-  final TextEditingController firstName;
-  final TextEditingController lastName;
-  final String mobile;
-  final Future<void> Function(String firstName, String lastName) onSave;
-
-  @override
-  State<_OwnerEditSheet> createState() => _OwnerEditSheetState();
-}
-
-class _OwnerEditSheetState extends State<_OwnerEditSheet> {
-  bool _saving = false;
-  String? _firstNameError;
-
-  Future<void> _submit() async {
-    final fn = widget.firstName.text.trim();
-    if (fn.isEmpty) {
-      setState(() => _firstNameError = AppStrings.firstNameRequired);
-      return;
-    }
-    setState(() {
-      _firstNameError = null;
-      _saving = true;
-    });
-    try {
-      await widget.onSave(fn, widget.lastName.text.trim());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        OwnerSheetTitle(AppStrings.settingsEditOwnerTitle),
-        const SizedBox(height: AppSpace.sm),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: AppTextField(
-                controller: widget.firstName,
-                label: AppStrings.firstNameLabel,
-                enabled: !_saving,
-                errorText: _firstNameError,
-              ),
-            ),
-            const SizedBox(width: AppSpace.sm),
-            Expanded(
-              child: AppTextField(
-                controller: widget.lastName,
-                label: AppStrings.lastNameLabel,
-                enabled: !_saving,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpace.sm),
-        // Read-only mobile row
-        Row(
-          children: [
-            Text(
-              AppStrings.mobileLabel,
-              style: AppText.label.copyWith(color: inkMuted),
-            ),
-            const SizedBox(width: AppSpace.sm),
-            Expanded(
-              child: Text(
-                widget.mobile,
-                style: AppText.body.copyWith(color: inkMuted),
-                textAlign: TextAlign.end,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpace.md),
-        OwnerSheetActions(
-          primaryLabel: AppStrings.settingsSave,
-          loading: _saving,
-          onPrimary: _saving ? null : _submit,
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Milk types section (S6-13)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _MilkTypesSection extends ConsumerStatefulWidget {
   const _MilkTypesSection({required this.repository});
-  final dynamic repository; // OwnerRepository
+  final OwnerRepository repository;
 
   @override
   ConsumerState<_MilkTypesSection> createState() => _MilkTypesSectionState();
@@ -1071,26 +901,50 @@ class _MilkTypesSectionState extends ConsumerState<_MilkTypesSection> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final inkFaint = isDark ? AppColors.darkInkFaint : AppColors.inkFaint;
     final milkTypesAsync = ref.watch(milkTypesProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        OwnerSectionHeader(
-          title: AppStrings.settingsMilkTypesSection,
-          trailing: AppSoftIconButton(
-            icon: Icons.add,
-            tooltip: AppStrings.settingsAddMilkType,
-            onPressed: _openAddSheet,
+        OwnerSettingsSectionLabel(
+          label: AppStrings.settingsMilkTypesSection,
+          icon: LucideIcons.list,
+          trailing: Material(
+            color: CustomerDetailColors.accentLight,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              onTap: _openAddSheet,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: CustomerDetailColors.accentBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.plus, size: 14, color: CustomerDetailColors.accent),
+                    const SizedBox(width: 6),
+                    Text(
+                      AppStrings.settingsAddMilkType,
+                      style: AppText.meta.copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        color: CustomerDetailColors.accent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: AppSpace.sm),
         milkTypesAsync.when(
-          loading: () => const AppCard(child: Center(child: CircularProgressIndicator())),
-          error: (_, __) => AppCard(
+          loading: () => const OwnerSettingsCard(
+            child: Center(child: CircularProgressIndicator(color: CustomerDetailColors.accent)),
+          ),
+          error: (_, __) => OwnerSettingsCard(
             child: Center(
               child: TextButton(
                 onPressed: () => ref.invalidate(milkTypesProvider),
@@ -1099,31 +953,26 @@ class _MilkTypesSectionState extends ConsumerState<_MilkTypesSection> {
             ),
           ),
           data: (types) {
-            final visible = types.where((t) => !t.isHidden || t.isSystem).toList();
-            if (visible.isEmpty && types.every((t) => t.isHidden)) {
-              return OwnerDashedEmptyCard(
-                icon: Icons.water_drop_outlined,
-                message: AppStrings.settingsMilkTypesEmpty,
-              );
-            }
             if (types.isEmpty) {
               return OwnerDashedEmptyCard(
-                icon: Icons.water_drop_outlined,
+                icon: LucideIcons.droplets,
                 message: AppStrings.settingsMilkTypesEmpty,
               );
             }
-            return AppCard(
+            return OwnerSettingsCard(
+              padding: EdgeInsets.zero,
               child: Column(
                 children: [
                   for (int i = 0; i < types.length; i++) ...[
                     _MilkTypeRow(
                       item: types[i],
-                      inkMuted: inkMuted,
-                      inkFaint: inkFaint,
+                      inkMuted: CustomerDetailColors.iconMuted,
+                      inkFaint: CustomerDetailColors.labelMuted,
                       onToggle: (visible) => _toggleVisibility(types[i], visible),
                       onDelete: () => _confirmDelete(types[i]),
                     ),
-                    if (i < types.length - 1) const Divider(height: AppSpace.lg),
+                    if (i < types.length - 1)
+                      Divider(height: 1, color: CustomerDetailColors.divider),
                   ],
                 ],
               ),
@@ -1172,8 +1021,15 @@ class _MilkTypeRowState extends State<_MilkTypeRow> {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(widget.item.name, style: AppText.label),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 15),
+      title: Text(
+        widget.item.name,
+        style: AppText.cardTitle.copyWith(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: RedesignTokens.ink,
+        ),
+      ),
       subtitle: widget.item.isSystem
           ? Text(
               AppStrings.settingsSystemDefault,
@@ -1183,17 +1039,13 @@ class _MilkTypeRowState extends State<_MilkTypeRow> {
       trailing: widget.item.isSystem
           ? Semantics(
               label: '${widget.item.name} — ${_visible ? 'visible' : 'hidden'}',
-              child: Transform.scale(
-                scale: 0.72,
-                alignment: Alignment.centerRight,
-                child: Switch(
-                  value: _visible,
-                  onChanged: (v) {
-                    setState(() => _visible = v); // optimistic
-                    widget.onToggle(v);
-                  },
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
+              child: Switch(
+                value: _visible,
+                onChanged: (v) {
+                  setState(() => _visible = v); // optimistic
+                  widget.onToggle(v);
+                },
+                activeTrackColor: RedesignTokens.accent,
               ),
             )
           : Tooltip(
@@ -1348,14 +1200,45 @@ class _ContainerTypesSectionState extends ConsumerState<_ContainerTypesSection> 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        OwnerSectionHeader(
-          title: AppStrings.settingsContainerTypesSection,
+        OwnerSettingsSectionLabel(
+          label: AppStrings.settingsContainerTypesSection,
+          icon: LucideIcons.package,
+          trailing: Material(
+            color: CustomerDetailColors.accentLight,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              onTap: _openAddSheet,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: CustomerDetailColors.accentBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.plus, size: 14, color: CustomerDetailColors.accent),
+                    const SizedBox(width: 6),
+                    Text(
+                      AppStrings.settingsAddContainerType,
+                      style: AppText.meta.copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        color: CustomerDetailColors.accent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
-        const SizedBox(height: AppSpace.sm),
         typesAsync.when(
-          loading: () =>
-              const AppCard(child: Center(child: CircularProgressIndicator())),
-          error: (_, __) => AppCard(
+          loading: () => const OwnerSettingsCard(
+            child: Center(child: CircularProgressIndicator(color: CustomerDetailColors.accent)),
+          ),
+          error: (_, __) => OwnerSettingsCard(
             child: Center(
               child: TextButton(
                 onPressed: () => ref.invalidate(ownerContainerTypesProvider),
@@ -1366,7 +1249,7 @@ class _ContainerTypesSectionState extends ConsumerState<_ContainerTypesSection> 
           data: (types) {
             if (types.isEmpty) {
               return OwnerDashedEmptyCard(
-                icon: Icons.inventory_2_outlined,
+                icon: LucideIcons.package,
                 message: AppStrings.settingsContainerTypesEmpty,
               );
             }
@@ -1383,12 +1266,6 @@ class _ContainerTypesSectionState extends ConsumerState<_ContainerTypesSection> 
               ],
             );
           },
-        ),
-        const SizedBox(height: AppSpace.xs),
-        TextButton.icon(
-          icon: const Icon(Icons.add),
-          label: const Text(AppStrings.settingsAddContainerType),
-          onPressed: _openAddSheet,
         ),
       ],
     );
@@ -1413,9 +1290,8 @@ class _ContainerTypeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = isDark ? AppColors.darkInk : AppColors.ink;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
 
-    return AppCard(
+    return OwnerSettingsCard(
       padding: const EdgeInsets.all(AppSpace.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1497,12 +1373,21 @@ class _SizeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      label: Text(label, style: AppText.meta.copyWith(color: Colors.white)),
-      backgroundColor: AppColors.primary,
-      side: BorderSide.none,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpace.xs, vertical: 2),
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: RedesignTokens.accentLight,
+        borderRadius: BorderRadius.circular(RedesignTokens.chipRadius),
+        border: Border.all(color: RedesignTokens.accentBorder),
+      ),
+      child: Text(
+        label,
+        style: AppText.meta.copyWith(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w800,
+          color: RedesignTokens.accent,
+        ),
+      ),
     );
   }
 }
@@ -1821,12 +1706,45 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        OwnerSectionHeader(title: AppStrings.settingsProductsSection),
-        const SizedBox(height: AppSpace.sm),
+        OwnerSettingsSectionLabel(
+          label: AppStrings.settingsProductsSection,
+          icon: LucideIcons.milk,
+          trailing: Material(
+            color: CustomerDetailColors.accentLight,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              onTap: _openAddSheet,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: CustomerDetailColors.accentBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.plus, size: 14, color: CustomerDetailColors.accent),
+                    const SizedBox(width: 6),
+                    Text(
+                      AppStrings.settingsAddProduct,
+                      style: AppText.meta.copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        color: CustomerDetailColors.accent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
         productsAsync.when(
-          loading: () =>
-              const AppCard(child: Center(child: CircularProgressIndicator())),
-          error: (_, __) => AppCard(
+          loading: () => const OwnerSettingsCard(
+            child: Center(child: CircularProgressIndicator(color: CustomerDetailColors.accent)),
+          ),
+          error: (_, __) => OwnerSettingsCard(
             child: Center(
               child: TextButton(
                 onPressed: () => ref.invalidate(ownerProductsProvider),
@@ -1834,11 +1752,12 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
               ),
             ),
           ),
-          data: (products) => AppCard(
+          data: (products) => OwnerSettingsCard(
+            padding: EdgeInsets.zero,
             child: products.isEmpty
-                ? ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
+                ? Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Text(
                       AppStrings.settingsProductEmpty,
                       style: AppText.body.copyWith(color: inkMuted),
                     ),
@@ -1846,46 +1765,67 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                 : Column(
                     children: [
                       for (int i = 0; i < products.length; i++) ...[
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(products[i].titleLine,
-                              style: AppText.label),
-                          subtitle: Text(
-                            products[i].subtitleLine,
-                            style: AppText.meta.copyWith(color: inkMuted),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          child: Row(
                             children: [
-                              IconButton(
-                                icon: Icon(Icons.edit_outlined,
-                                    size: 20, color: inkMuted),
-                                tooltip: AppStrings.settingsProductEditTooltip,
-                                onPressed: () => _openEditSheet(products[i]),
-                                visualDensity: VisualDensity.compact,
+                              Container(
+                                width: 9,
+                                height: 9,
+                                decoration: BoxDecoration(
+                                  color: milkTypeDotColor(products[i].milkType.name),
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                              IconButton(
-                                icon: Icon(Icons.delete_outline,
-                                    size: 20, color: AppColors.danger),
-                                tooltip: AppStrings.settingsProductRemoveConfirm,
-                                onPressed: () => _confirmDelete(products[i]),
-                                visualDensity: VisualDensity.compact,
+                              const SizedBox(width: 11),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      products[i].titleLine,
+                                      style: AppText.body.copyWith(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: CustomerDetailColors.onSurface,
+                                      ),
+                                    ),
+                                    Text(
+                                      products[i].subtitleLine,
+                                      style: AppText.meta.copyWith(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: CustomerDetailColors.iconMuted,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              OwnerIconActionButton(
+                                icon: LucideIcons.pencil,
+                                size: 30,
+                                onTap: () => _openEditSheet(products[i]),
+                              ),
+                              const SizedBox(width: 6),
+                              OwnerIconActionButton(
+                                icon: LucideIcons.trash2,
+                                size: 30,
+                                background: CustomerDetailColors.deleteBg,
+                                border: CustomerDetailColors.deleteBorder,
+                                iconColor: CustomerDetailColors.danger,
+                                onTap: () => _confirmDelete(products[i]),
                               ),
                             ],
                           ),
                         ),
                         if (i < products.length - 1)
-                          const Divider(height: 1),
+                          Divider(height: 1, color: CustomerDetailColors.divider),
                       ],
                     ],
                   ),
           ),
-        ),
-        const SizedBox(height: AppSpace.xs),
-        TextButton.icon(
-          icon: const Icon(Icons.add),
-          label: const Text(AppStrings.settingsProductAddButton),
-          onPressed: _openAddSheet,
         ),
       ],
     );
@@ -2306,6 +2246,64 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
             onPrimary: _saving ? null : _submit,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ScheduleTimeRow extends StatelessWidget {
+  const _ScheduleTimeRow({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.timeLabel,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String timeLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: iconColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: AppText.label.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: RedesignTokens.ink,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6EC),
+                borderRadius: BorderRadius.circular(RedesignTokens.chipRadius),
+                border: Border.all(color: const Color(0xFFDCEBDC)),
+              ),
+              child: Text(
+                timeLabel,
+                style: AppText.cardTitle.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: RedesignTokens.accent,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

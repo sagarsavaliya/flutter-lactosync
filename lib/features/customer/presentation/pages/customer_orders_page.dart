@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
 import '../../../owner/presentation/widgets/customer_detail/customer_detail_widgets.dart';
@@ -109,9 +109,9 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
     final ordersAsync = ref.watch(customerOrdersProvider(_monthKey));
 
     return Scaffold(
-      backgroundColor: CusColors.surface,
+      backgroundColor: CustomerDetailColors.background,
       body: RefreshIndicator(
-        color: CusColors.primaryContainer,
+        color: CustomerDetailColors.accent,
         onRefresh: () async {
           ref.invalidate(customerOrdersProvider(_monthKey));
           ref.invalidate(customerDashboardProvider);
@@ -122,28 +122,32 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
-              backgroundColor: CusColors.surface,
+              backgroundColor: CustomerDetailColors.background,
               surfaceTintColor: Colors.transparent,
               floating: true,
               snap: true,
               elevation: 0,
-              titleSpacing: 20,
-              title: const Text(
+              titleSpacing: 16,
+              title: Text(
                 'Orders',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: CusColors.primary),
+                style: AppText.screenTitle.copyWith(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: CustomerDetailColors.accent,
+                ),
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.beach_access_outlined, color: CusColors.primaryContainer),
+                  icon: Icon(LucideIcons.plane, color: CustomerDetailColors.accent, size: 22),
                   tooltip: 'Manage Vacation',
                   onPressed: () => context.push('/customer/vacation'),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
               ],
             ),
 
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 4),
@@ -204,7 +208,7 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
                       padding: EdgeInsets.symmetric(vertical: 40),
                       child: Center(
                         child: CircularProgressIndicator(
-                          color: CusColors.primaryContainer,
+                          color: CustomerDetailColors.accent,
                           strokeWidth: 2,
                         ),
                       ),
@@ -256,17 +260,14 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
                             const SizedBox(height: 20),
                           ],
 
-                          // Month navigation
-                          _MonthSelector(
-                            selectedMonth: _selectedMonth,
-                            canGoBack: _canGoBack,
-                            canGoForward: _canGoForward,
-                            onPrevious: _previousMonth,
-                            onNext: _nextMonth,
+                          CustomerDetailMonthNav(
+                            month: _selectedMonth,
+                            onPrevious: _canGoBack ? _previousMonth : () {},
+                            onNext: _canGoForward ? _nextMonth : () {},
                           ),
                           const SizedBox(height: 16),
 
-                          // Order log list
+                          CustomerDetailSectionLabel(title: 'ORDER LOG'),
                           if (listDays.isEmpty)
                             _EmptyOrdersCard()
                           else
@@ -378,7 +379,7 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CusColors.error),
+          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
         );
       }
     } finally {
@@ -401,7 +402,7 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CusColors.error),
+          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
         );
       }
     } finally {
@@ -418,7 +419,7 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: CusColors.error),
+            style: FilledButton.styleFrom(backgroundColor: CustomerDetailColors.danger),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Skip'),
           ),
@@ -438,7 +439,7 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CusColors.error),
+          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
         );
       }
     } finally {
@@ -455,36 +456,38 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CusColors.primaryContainer.withValues(alpha: 0.25)),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 4))],
+        color: CustomerDetailColors.surface,
+        borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+        border: Border.all(color: CustomerDetailColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF283C28).withValues(alpha: 0.1),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            decoration: BoxDecoration(
-              color: CusColors.primaryContainer.withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: const Row(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: Row(
               children: [
-                Icon(Icons.bolt_rounded, size: 18, color: CusColors.primaryContainer),
-                SizedBox(width: 8),
+                Icon(LucideIcons.zap, size: 18, color: CustomerDetailColors.accent),
+                const SizedBox(width: 8),
                 Text(
                   'Quick Actions',
-                  style: TextStyle(
+                  style: AppText.cardTitle.copyWith(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: CusColors.primaryContainer,
+                    color: CustomerDetailColors.accent,
                   ),
                 ),
               ],
             ),
           ),
+          const Divider(height: 1, color: CustomerDetailColors.divider),
 
           // Tomorrow's morning entries
           if (hasTomorrow) ...[
@@ -493,19 +496,24 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF8E1),
-                      borderRadius: BorderRadius.circular(6),
+                      color: CustomerDetailColors.morningChipBg,
+                      border: Border.all(color: CustomerDetailColors.morningChipBorder),
+                      borderRadius: BorderRadius.circular(CustomerDetailMetrics.chipRadius),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.wb_sunny_outlined, size: 13, color: Color(0xFFE65100)),
-                        SizedBox(width: 4),
+                        Icon(LucideIcons.sun, size: 13, color: CustomerDetailColors.morningChipInk),
+                        const SizedBox(width: 4),
                         Text(
                           'Tomorrow — Morning',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFE65100)),
+                          style: AppText.meta.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: CustomerDetailColors.morningChipInk,
+                          ),
                         ),
                       ],
                     ),
@@ -532,7 +540,7 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
                   Expanded(
                     child: FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: CusColors.primaryContainer,
+                        backgroundColor: CustomerDetailColors.accent,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         minimumSize: const Size.fromHeight(40),
                       ),
@@ -548,8 +556,8 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
                   Expanded(
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: CusColors.error,
-                        side: BorderSide(color: CusColors.error.withValues(alpha: 0.5)),
+                        foregroundColor: CustomerDetailColors.danger,
+                        side: BorderSide(color: CustomerDetailColors.dangerBorder),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         minimumSize: const Size.fromHeight(40),
                       ),
@@ -557,7 +565,7 @@ class _QuickActionsCardState extends State<_QuickActionsCard> {
                       child: _skipping
                           ? SizedBox(
                               width: 16, height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: CusColors.error))
+                              child: CircularProgressIndicator(strokeWidth: 2, color: CustomerDetailColors.danger))
                           : const Text('Skip Tomorrow', style: TextStyle(fontSize: 13)),
                     ),
                   ),
@@ -648,12 +656,12 @@ class _InlineStepperRow extends StatelessWidget {
         Expanded(
           child: Text(
             name,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: CusColors.onSurface),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: CustomerDetailColors.onSurface),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: CusColors.surfaceContainerHigh,
+            color: CustomerDetailColors.background,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -664,7 +672,7 @@ class _InlineStepperRow extends StatelessWidget {
                 onPressed: qty > 0 ? () => onChanged(qty - 1) : null,
                 padding: const EdgeInsets.all(6),
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                color: CusColors.primaryContainer,
+                color: CustomerDetailColors.accent,
               ),
               SizedBox(
                 width: 30,
@@ -674,7 +682,7 @@ class _InlineStepperRow extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: CusColors.onSurface,
+                    color: CustomerDetailColors.onSurface,
                   ),
                 ),
               ),
@@ -683,7 +691,7 @@ class _InlineStepperRow extends StatelessWidget {
                 onPressed: () => onChanged(qty + 1),
                 padding: const EdgeInsets.all(6),
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                color: CusColors.primaryContainer,
+                color: CustomerDetailColors.accent,
               ),
             ],
           ),
@@ -705,10 +713,16 @@ class _OrderLogList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 4))],
+        color: CustomerDetailColors.surface,
+        borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+        border: Border.all(color: CustomerDetailColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF283C28).withValues(alpha: 0.1),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -719,7 +733,7 @@ class _OrderLogList extends StatelessWidget {
                 thickness: 0.5,
                 indent: 20,
                 endIndent: 20,
-                color: CusColors.outlineVariant.withValues(alpha: 0.5),
+                color: CustomerDetailColors.border.withValues(alpha: 0.5),
               ),
             _OrderLogRow(day: days[i], onTap: () => onTap(days[i])),
           ],
@@ -753,23 +767,23 @@ class _OrderLogRow extends StatelessWidget {
     final Color statusBg;
     switch (status) {
       case 'delivered':
-        statusColor = CusColors.successGreen;
+        statusColor = CustomerDetailColors.success;
         statusBg = const Color(0xFFE6F4EE);
         statusLabel = 'Delivered';
       case 'skipped':
-        statusColor = CusColors.warningAmber;
+        statusColor = CustomerDetailColors.morningChipInk;
         statusBg = const Color(0xFFFFF3E0);
         statusLabel = 'Skipped';
       case 'vacation':
-        statusColor = CusColors.vacationBlue;
+        statusColor = const Color(0xFF3D5896);
         statusBg = const Color(0xFFE3EDFC);
         statusLabel = 'Vacation';
       case 'expected':
-        statusColor = isLocked ? CusColors.onSurfaceVariant : CusColors.primaryContainer;
-        statusBg = isLocked ? const Color(0xFFF0F0F0) : CusColors.secondaryContainer;
+        statusColor = isLocked ? CustomerDetailColors.onSurfaceVariant : CustomerDetailColors.accent;
+        statusBg = isLocked ? const Color(0xFFF0F0F0) : CustomerDetailColors.accentLight;
         statusLabel = isLocked ? 'Locked' : 'Upcoming';
       default:
-        statusColor = CusColors.onSurfaceVariant;
+        statusColor = CustomerDetailColors.onSurfaceVariant;
         statusBg = const Color(0xFFF0F0F0);
         statusLabel = status;
     }
@@ -800,7 +814,7 @@ class _OrderLogRow extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: CusColors.onSurface,
+                      color: CustomerDetailColors.onSurface,
                     ),
                   ),
                   if (entrySummary.isNotEmpty) ...[
@@ -810,8 +824,8 @@ class _OrderLogRow extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         color: status == 'skipped'
-                            ? CusColors.warningAmber.withValues(alpha: 0.8)
-                            : CusColors.onSurfaceVariant,
+                            ? CustomerDetailColors.morningChipInk.withValues(alpha: 0.8)
+                            : CustomerDetailColors.onSurfaceVariant,
                         decoration: status == 'skipped' ? TextDecoration.lineThrough : null,
                       ),
                     ),
@@ -830,7 +844,7 @@ class _OrderLogRow extends StatelessWidget {
             ),
             if (isEditable) ...[
               const SizedBox(width: 8),
-              Icon(Icons.edit_outlined, size: 16, color: CusColors.primaryContainer),
+              Icon(LucideIcons.pencil, size: 16, color: CustomerDetailColors.accent),
             ],
           ],
         ),
@@ -844,78 +858,17 @@ class _EmptyOrdersCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
+        color: CustomerDetailColors.surface,
+        borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+        border: Border.all(color: CustomerDetailColors.border),
       ),
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
       child: const Center(
         child: Text(
           'No deliveries recorded for this month.',
-          style: TextStyle(fontSize: 14, color: CusColors.onSurfaceVariant),
+          style: TextStyle(fontSize: 14, color: CustomerDetailColors.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
-      ),
-    );
-  }
-}
-
-// ── Month selector ────────────────────────────────────────────────────────────
-
-class _MonthSelector extends StatelessWidget {
-  const _MonthSelector({
-    required this.selectedMonth,
-    required this.canGoBack,
-    required this.canGoForward,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final DateTime selectedMonth;
-  final bool canGoBack;
-  final bool canGoForward;
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    final monthLabel = DateFormat('MMMM yyyy').format(selectedMonth);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(
-              Icons.chevron_left,
-              color: canGoBack ? CusColors.primaryContainer : CusColors.outlineVariant,
-            ),
-            onPressed: canGoBack ? onPrevious : null,
-          ),
-          Expanded(
-            child: Text(
-              monthLabel,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: CusColors.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.chevron_right,
-              color: canGoForward ? CusColors.primaryContainer : CusColors.outlineVariant,
-            ),
-            onPressed: canGoForward ? onNext : null,
-          ),
-        ],
       ),
     );
   }
@@ -953,7 +906,7 @@ class _DayDetailSheet extends StatelessWidget {
             child: Container(
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: CusColors.outlineVariant,
+                color: CustomerDetailColors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -966,7 +919,7 @@ class _DayDetailSheet extends StatelessWidget {
                 child: Text(
                   formattedDate,
                   style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w700, color: CusColors.onSurface,
+                    fontSize: 18, fontWeight: FontWeight.w700, color: CustomerDetailColors.onSurface,
                   ),
                 ),
               ),
@@ -980,7 +933,7 @@ class _DayDetailSheet extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Text(
                 'No delivery data for this day.',
-                style: TextStyle(fontSize: 14, color: CusColors.onSurfaceVariant),
+                style: TextStyle(fontSize: 14, color: CustomerDetailColors.onSurfaceVariant),
               ),
             )
           else
@@ -1024,13 +977,13 @@ class _StatusBadge extends StatelessWidget {
     final String label;
     switch (status) {
       case 'delivered':
-        bg = const Color(0xFFE6F4EE); fg = CusColors.successGreen; label = 'Delivered';
+        bg = const Color(0xFFE6F4EE); fg = CustomerDetailColors.success; label = 'Delivered';
       case 'skipped':
-        bg = const Color(0xFFFFF3E0); fg = CusColors.warningAmber; label = 'Skipped';
+        bg = const Color(0xFFFFF3E0); fg = CustomerDetailColors.morningChipInk; label = 'Skipped';
       case 'vacation':
-        bg = const Color(0xFFE3EDFC); fg = CusColors.vacationBlue; label = 'Vacation';
+        bg = const Color(0xFFE3EDFC); fg = const Color(0xFF3D5896); label = 'Vacation';
       default:
-        bg = const Color(0xFFF0F0F0); fg = CusColors.onSurfaceVariant; label = status;
+        bg = const Color(0xFFF0F0F0); fg = CustomerDetailColors.onSurfaceVariant; label = status;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1057,13 +1010,13 @@ class _DeliveryLine extends StatelessWidget {
     final Color qtyColor;
     if (dayStatus == 'vacation') {
       qtyText = '—';
-      qtyColor = CusColors.vacationBlue;
+      qtyColor = const Color(0xFF3D5896);
     } else if (dayStatus == 'skipped') {
       qtyText = '0';
-      qtyColor = CusColors.warningAmber;
+      qtyColor = CustomerDetailColors.morningChipInk;
     } else {
       qtyText = line.qty.toString();
-      qtyColor = CusColors.successGreen;
+      qtyColor = CustomerDetailColors.success;
     }
 
     return Padding(
@@ -1082,11 +1035,11 @@ class _DeliveryLine extends StatelessWidget {
               children: [
                 Text(
                   line.productName,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CusColors.onSurface),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CustomerDetailColors.onSurface),
                 ),
                 Text(
                   shiftLabel,
-                  style: const TextStyle(fontSize: 12, color: CusColors.onSurfaceVariant),
+                  style: const TextStyle(fontSize: 12, color: CustomerDetailColors.onSurfaceVariant),
                 ),
               ],
             ),
@@ -1173,7 +1126,7 @@ class _DayEditSheetState extends State<_DayEditSheet> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CusColors.error),
+          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
         );
       }
     }
@@ -1194,7 +1147,7 @@ class _DayEditSheetState extends State<_DayEditSheet> {
       if (mounted) {
         setState(() => _isSkipping = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CusColors.error),
+          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
         );
       }
     }
@@ -1214,7 +1167,7 @@ class _DayEditSheetState extends State<_DayEditSheet> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: CusColors.outlineVariant,
+                color: CustomerDetailColors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1225,7 +1178,7 @@ class _DayEditSheetState extends State<_DayEditSheet> {
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: CusColors.onSurface,
+              color: CustomerDetailColors.onSurface,
             ),
           ),
           const SizedBox(height: 20),
@@ -1241,7 +1194,7 @@ class _DayEditSheetState extends State<_DayEditSheet> {
           const SizedBox(height: 16),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: CusColors.primaryContainer,
+              backgroundColor: CustomerDetailColors.accent,
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
@@ -1257,8 +1210,8 @@ class _DayEditSheetState extends State<_DayEditSheet> {
           const SizedBox(height: 10),
           OutlinedButton(
             style: OutlinedButton.styleFrom(
-              foregroundColor: CusColors.error,
-              side: BorderSide(color: CusColors.error.withValues(alpha: 0.5)),
+              foregroundColor: CustomerDetailColors.danger,
+              side: BorderSide(color: CustomerDetailColors.danger.withValues(alpha: 0.5)),
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
@@ -1267,7 +1220,7 @@ class _DayEditSheetState extends State<_DayEditSheet> {
                 ? SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: CusColors.error),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: CustomerDetailColors.danger),
                   )
                 : const Text('Skip This Day', style: TextStyle(fontSize: 15)),
           ),
@@ -1300,13 +1253,13 @@ class _StepperRow extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: CusColors.onSurface,
+                color: CustomerDetailColors.onSurface,
               ),
             ),
           ),
           Container(
             decoration: BoxDecoration(
-              color: CusColors.surfaceContainerHigh,
+              color: CustomerDetailColors.background,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -1317,7 +1270,7 @@ class _StepperRow extends StatelessWidget {
                   onPressed: qty > 0 ? () => onChanged(qty - 1) : null,
                   padding: const EdgeInsets.all(8),
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                  color: CusColors.primaryContainer,
+                  color: CustomerDetailColors.accent,
                 ),
                 SizedBox(
                   width: 32,
@@ -1327,7 +1280,7 @@ class _StepperRow extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: CusColors.onSurface,
+                      color: CustomerDetailColors.onSurface,
                     ),
                   ),
                 ),
@@ -1336,7 +1289,7 @@ class _StepperRow extends StatelessWidget {
                   onPressed: () => onChanged(qty + 1),
                   padding: const EdgeInsets.all(8),
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                  color: CusColors.primaryContainer,
+                  color: CustomerDetailColors.accent,
                 ),
               ],
             ),
@@ -1360,19 +1313,19 @@ class _ErrorCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(color: CustomerDetailColors.border.withValues(alpha: 0.3)),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Text(
             message,
-            style: const TextStyle(color: CusColors.onSurfaceVariant, fontSize: 14),
+            style: const TextStyle(color: CustomerDetailColors.onSurfaceVariant, fontSize: 14),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: CusColors.primaryContainer),
+            style: FilledButton.styleFrom(backgroundColor: CustomerDetailColors.accent),
             onPressed: onRetry,
             child: const Text('Retry'),
           ),

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
 import '../../../owner/presentation/widgets/customer_detail/customer_detail_widgets.dart';
 import '../widgets/customer_subscription_adapter.dart';
 import '../providers/customer_dashboard_provider.dart';
@@ -22,21 +24,24 @@ class CustomerDashboardPage extends ConsumerWidget {
 
     return dashAsync.when(
       loading: () => const Scaffold(
-        backgroundColor: CusColors.surface,
-        body: Center(child: CircularProgressIndicator(color: CusColors.primaryContainer)),
+        backgroundColor: CustomerDetailColors.background,
+        body: Center(child: CircularProgressIndicator(color: CustomerDetailColors.accent)),
       ),
       error: (e, _) => Scaffold(
-        backgroundColor: CusColors.surface,
+        backgroundColor: CustomerDetailColors.background,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.cloud_off_outlined, size: 48, color: CusColors.onSurfaceVariant),
+              Icon(LucideIcons.cloudOff, size: 48, color: CustomerDetailColors.onSurfaceVariant),
               const SizedBox(height: 12),
-              Text('Failed to load', style: TextStyle(color: CusColors.onSurfaceVariant)),
+              Text(
+                'Failed to load',
+                style: AppText.body.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+              ),
               const SizedBox(height: 8),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: CusColors.primaryContainer),
+                style: FilledButton.styleFrom(backgroundColor: CustomerDetailColors.accent),
                 onPressed: () => ref.invalidate(customerDashboardProvider),
                 child: const Text('Retry'),
               ),
@@ -52,8 +57,6 @@ class CustomerDashboardPage extends ConsumerWidget {
     );
   }
 }
-
-// ── Main body ─────────────────────────────────────────────────────────────────
 
 class _DashboardBody extends StatelessWidget {
   const _DashboardBody({
@@ -79,9 +82,9 @@ class _DashboardBody extends StatelessWidget {
     final firstName = profileAsync.valueOrNull?.profile['first_name'] as String? ?? '';
 
     return Scaffold(
-      backgroundColor: CusColors.surface,
+      backgroundColor: CustomerDetailColors.background,
       body: RefreshIndicator(
-        color: CusColors.primaryContainer,
+        color: CustomerDetailColors.accent,
         onRefresh: () async {
           ref.invalidate(customerDashboardProvider);
           ref.invalidate(customerProfileProvider);
@@ -91,16 +94,14 @@ class _DashboardBody extends StatelessWidget {
           slivers: [
             _SliverHeader(firstName: firstName),
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 8),
-
                   if (subs.isNotEmpty) ...[
                     _TodayDeliveryCard(subs: subs),
                     const SizedBox(height: 16),
                   ],
-
                   if (balance > 0) ...[
                     _OutstandingBanner(
                       balance: balance,
@@ -109,10 +110,8 @@ class _DashboardBody extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                   ],
-
                   _QuickActionsGrid(ownerMobile: ownerMobile, ref: ref),
                   const SizedBox(height: 24),
-
                   if (subs.isNotEmpty) ...[
                     CustomerDetailSectionLabel(
                       title: AppStrings.subscriptionsTitle.toUpperCase(),
@@ -144,9 +143,8 @@ class _DashboardBody extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Text(
                             AppStrings.noConsumptionRecorded,
-                            style: TextStyle(
-                              color: CusColors.onSurfaceVariant,
-                              fontSize: 14,
+                            style: AppText.body.copyWith(
+                              color: CustomerDetailColors.onSurfaceVariant,
                             ),
                           ),
                         );
@@ -157,9 +155,7 @@ class _DashboardBody extends StatelessWidget {
                       );
                     },
                   ),
-                  const SizedBox(height: 24),
-
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 32),
                 ]),
               ),
             ),
@@ -170,42 +166,38 @@ class _DashboardBody extends StatelessWidget {
   }
 }
 
-// ── Sliver header ─────────────────────────────────────────────────────────────
-
 class _SliverHeader extends StatelessWidget {
   const _SliverHeader({required this.firstName});
   final String firstName;
 
   @override
   Widget build(BuildContext context) {
-    final greeting = firstName.isNotEmpty ? 'Hello, $firstName 👋' : 'My Dairy';
+    final greeting = firstName.isNotEmpty ? 'Hello, $firstName' : 'My Dairy';
     return SliverAppBar(
-      backgroundColor: CusColors.surface,
+      backgroundColor: CustomerDetailColors.background,
       surfaceTintColor: Colors.transparent,
       floating: true,
       snap: true,
       elevation: 0,
-      titleSpacing: 20,
+      titleSpacing: 16,
       title: Text(
         greeting,
-        style: const TextStyle(
+        style: AppText.screenTitle.copyWith(
           fontSize: 22,
           fontWeight: FontWeight.w700,
-          color: CusColors.primary,
+          color: CustomerDetailColors.accent,
         ),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: CusColors.primary),
+          icon: Icon(LucideIcons.bell, color: CustomerDetailColors.accent, size: 22),
           onPressed: () {},
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
       ],
     );
   }
 }
-
-// ── Today's delivery card ─────────────────────────────────────────────────────
 
 class _TodayDeliveryCard extends StatelessWidget {
   const _TodayDeliveryCard({required this.subs});
@@ -217,44 +209,56 @@ class _TodayDeliveryCard extends StatelessWidget {
     final eveningSubs = subs.where((s) => s['shift'] == 'evening').toList();
 
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 4))],
-      ),
       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: CustomerDetailColors.surface,
+        borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+        border: Border.all(color: CustomerDetailColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF283C28).withValues(alpha: 0.1),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: CusColors.secondaryContainer,
-                  borderRadius: BorderRadius.circular(10),
+                  color: CustomerDetailColors.successBg,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.local_shipping_outlined, size: 20, color: CusColors.primaryContainer),
+                child: Icon(
+                  LucideIcons.truck,
+                  size: 22,
+                  color: CustomerDetailColors.success,
+                ),
               ),
-              const SizedBox(width: 12),
-              const Text(
+              const SizedBox(width: 13),
+              Text(
                 "Today's Delivery",
-                style: TextStyle(
+                style: AppText.cardTitle.copyWith(
                   fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: CusColors.onSurface,
+                  fontWeight: FontWeight.w700,
+                  color: CustomerDetailColors.onSurface,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: CustomerDetailColors.divider),
           const SizedBox(height: 12),
           if (morningSubs.isNotEmpty)
-            _DeliveryShiftRow(shift: 'Morning', icon: Icons.wb_sunny_outlined, subs: morningSubs),
-          if (morningSubs.isNotEmpty && eveningSubs.isNotEmpty) const SizedBox(height: 6),
+            _DeliveryShiftRow(shift: 'Morning', isMorning: true, subs: morningSubs),
+          if (morningSubs.isNotEmpty && eveningSubs.isNotEmpty) const SizedBox(height: 8),
           if (eveningSubs.isNotEmpty)
-            _DeliveryShiftRow(shift: 'Evening', icon: Icons.nightlight_outlined, subs: eveningSubs),
+            _DeliveryShiftRow(shift: 'Evening', isMorning: false, subs: eveningSubs),
         ],
       ),
     );
@@ -262,26 +266,55 @@ class _TodayDeliveryCard extends StatelessWidget {
 }
 
 class _DeliveryShiftRow extends StatelessWidget {
-  const _DeliveryShiftRow({required this.shift, required this.icon, required this.subs});
+  const _DeliveryShiftRow({
+    required this.shift,
+    required this.isMorning,
+    required this.subs,
+  });
   final String shift;
-  final IconData icon;
+  final bool isMorning;
   final List<Map<String, dynamic>> subs;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: CusColors.onSurfaceVariant),
-        const SizedBox(width: 6),
-        Text(
-          shift,
-          style: const TextStyle(fontSize: 12, color: CusColors.onSurfaceVariant, fontWeight: FontWeight.w500),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: CustomerDetailColors.morningChipBg,
+            border: Border.all(color: CustomerDetailColors.morningChipBorder),
+            borderRadius: BorderRadius.circular(CustomerDetailMetrics.chipRadius),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isMorning ? LucideIcons.sun : LucideIcons.moon,
+                size: 13,
+                color: CustomerDetailColors.morningChipInk,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                shift,
+                style: AppText.meta.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: CustomerDetailColors.morningChipInk,
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Expanded(
           child: Text(
             subs.map((s) => '${s['product_name'] ?? ''} ×${s['qty'] ?? ''}').join(', '),
-            style: const TextStyle(fontSize: 13, color: CusColors.onSurface),
+            style: AppText.body.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: CustomerDetailColors.bodyInk,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -289,8 +322,6 @@ class _DeliveryShiftRow extends StatelessWidget {
     );
   }
 }
-
-// ── Outstanding bill banner ───────────────────────────────────────────────────
 
 class _OutstandingBanner extends StatelessWidget {
   const _OutstandingBanner({
@@ -302,9 +333,6 @@ class _OutstandingBanner extends StatelessWidget {
   final double balance;
   final String? upiVpa;
   final String? upiPayeeName;
-
-  String get _formattedBalance =>
-      '₹${NumberFormat('#,##,##0.##', 'en_IN').format(balance)}';
 
   Future<void> _payNow() async {
     if (upiVpa == null || upiVpa!.isEmpty) return;
@@ -320,69 +348,71 @@ class _OutstandingBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,##0', 'en_IN');
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [CusColors.primaryContainer, Color(0xFF1A5C3C)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+          colors: [
+            CustomerDetailColors.duesGradientStart,
+            CustomerDetailColors.duesGradientEnd,
+          ],
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: CusColors.primaryContainer.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: CustomerDetailColors.danger.withValues(alpha: 0.45),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'CURRENT OUTSTANDING',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: CusColors.onPrimaryContainer,
-              letterSpacing: 1.2,
+          Text(
+            'Pending balance',
+            style: AppText.meta.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFF7DBCD),
             ),
           ),
-          const SizedBox(height: 6),
           Text(
-            _formattedBalance,
-            style: const TextStyle(
-              fontSize: 40,
+            '₹${fmt.format(balance.round())}',
+            style: AppText.screenTitle.copyWith(
+              fontSize: 32,
               fontWeight: FontWeight.w700,
-              color: CusColors.onPrimary,
+              color: const Color(0xFFFCEFE8),
               height: 1.1,
             ),
           ),
-          const SizedBox(height: 20),
-          GestureDetector(
-            onTap: _payNow,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Pay Now',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: CusColors.primaryContainer,
+          const SizedBox(height: 15),
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(13),
+            child: InkWell(
+              onTap: _payNow,
+              borderRadius: BorderRadius.circular(13),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(LucideIcons.wallet, size: 17, color: CustomerDetailColors.danger),
+                    const SizedBox(width: 7),
+                    Text(
+                      'Pay Now',
+                      style: AppText.body.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: CustomerDetailColors.danger,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, size: 18, color: CusColors.primaryContainer),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -391,8 +421,6 @@ class _OutstandingBanner extends StatelessWidget {
     );
   }
 }
-
-// ── Quick actions grid (3×2) ──────────────────────────────────────────────────
 
 class _QuickActionsGrid extends ConsumerStatefulWidget {
   const _QuickActionsGrid({required this.ownerMobile, required this.ref});
@@ -431,14 +459,14 @@ class _QuickActionsGridState extends ConsumerState<_QuickActionsGrid> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text("Tomorrow's delivery skipped"),
-            backgroundColor: CusColors.primaryContainer,
+            backgroundColor: CustomerDetailColors.accent,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: CusColors.error),
+          SnackBar(content: Text(e.toString()), backgroundColor: CustomerDetailColors.danger),
         );
       }
     } finally {
@@ -473,21 +501,17 @@ class _QuickActionsGridState extends ConsumerState<_QuickActionsGrid> {
   @override
   Widget build(BuildContext context) {
     final actions = [
-      _ActionItem(icon: Icons.skip_next_outlined, label: 'Skip Tomorrow', loading: _skipping, onTap: _skipTomorrow),
-      _ActionItem(icon: Icons.beach_access_outlined, label: 'Vacation Mode', onTap: () => context.push('/customer/vacation')),
-      _ActionItem(icon: Icons.edit_note_outlined, label: 'Change Sub', onTap: () => context.go('/customer/orders')),
-      _ActionItem(icon: Icons.chat_outlined, label: 'WhatsApp', onTap: _whatsAppOwner),
-      _ActionItem(icon: Icons.phone_outlined, label: 'Call Dairy', onTap: _callOwner),
+      _ActionItem(icon: LucideIcons.skipForward, label: 'Skip Tomorrow', loading: _skipping, onTap: _skipTomorrow),
+      _ActionItem(icon: LucideIcons.plane, label: 'Vacation Mode', onTap: () => context.push('/customer/vacation')),
+      _ActionItem(icon: LucideIcons.clipboardEdit, label: 'Change Sub', onTap: () => context.go('/customer/orders')),
+      _ActionItem(icon: LucideIcons.messageCircle, label: 'WhatsApp', onTap: _whatsAppOwner),
+      _ActionItem(icon: LucideIcons.phone, label: 'Call Dairy', onTap: _callOwner),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Quick Actions',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: CusColors.onSurface),
-        ),
-        const SizedBox(height: 12),
+        CustomerDetailSectionLabel(title: 'QUICK ACTIONS'),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -495,7 +519,7 @@ class _QuickActionsGridState extends ConsumerState<_QuickActionsGrid> {
             crossAxisCount: 3,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 1.15,
+            childAspectRatio: 1.1,
           ),
           itemCount: actions.length,
           itemBuilder: (_, i) => _QuickActionTile(
@@ -538,46 +562,57 @@ class _QuickActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: loading ? null : onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: CusColors.outlineVariant.withValues(alpha: 0.3)),
-          boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2))],
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            loading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: CusColors.primaryContainer),
-                  )
-                : Icon(icon, size: 24, color: CusColors.primaryContainer),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: CusColors.onSurfaceVariant,
-                height: 1.3,
+    return Material(
+      color: CustomerDetailColors.surface,
+      borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+      child: InkWell(
+        onTap: loading ? null : onTap,
+        borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+            border: Border.all(color: CustomerDetailColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF283C28).withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
-            ),
-          ],
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              loading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: CustomerDetailColors.accent,
+                      ),
+                    )
+                  : Icon(icon, size: 22, color: CustomerDetailColors.accent),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: AppText.meta.copyWith(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: CustomerDetailColors.onSurfaceVariant,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
-// ── Confirm bottom sheet ──────────────────────────────────────────────────────
 
 Future<bool?> _showConfirmSheet({
   required BuildContext context,
@@ -589,7 +624,7 @@ Future<bool?> _showConfirmSheet({
   return showModalBottomSheet<bool>(
     context: context,
     showDragHandle: false,
-    backgroundColor: Colors.white,
+    backgroundColor: CustomerDetailColors.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -601,28 +636,40 @@ Future<bool?> _showConfirmSheet({
         children: [
           Center(
             child: Container(
-              width: 36, height: 4,
+              width: 36,
+              height: 4,
               decoration: BoxDecoration(
-                color: CusColors.outlineVariant,
+                color: CustomerDetailColors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
           const SizedBox(height: 20),
-          Text(title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: CusColors.onSurface)),
+          Text(
+            title,
+            style: AppText.cardTitle.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: CustomerDetailColors.onSurface,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(message,
-              style: const TextStyle(fontSize: 14, color: CusColors.onSurfaceVariant, height: 1.5)),
+          Text(
+            message,
+            style: AppText.body.copyWith(
+              color: CustomerDetailColors.onSurfaceVariant,
+              height: 1.5,
+            ),
+          ),
           const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: CusColors.outlineVariant),
+                    side: const BorderSide(color: CustomerDetailColors.border),
                     minimumSize: const Size.fromHeight(50),
-                    foregroundColor: CusColors.onSurface,
+                    foregroundColor: CustomerDetailColors.onSurface,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: () => Navigator.pop(ctx, false),
@@ -633,7 +680,9 @@ Future<bool?> _showConfirmSheet({
               Expanded(
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: destructive ? CusColors.error : CusColors.primaryContainer,
+                    backgroundColor: destructive
+                        ? CustomerDetailColors.danger
+                        : CustomerDetailColors.accent,
                     minimumSize: const Size.fromHeight(50),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),

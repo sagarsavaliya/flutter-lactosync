@@ -11,32 +11,29 @@ class CustomerPayment {
     required this.paymentDate,
     required this.method,
     this.note,
+    this.invoiceNumber,
   });
 
   final int id;
   final double amount;
-
-  /// Raw value from the API, e.g. "2026-06-05".
   final String paymentDate;
-
-  /// One of: "cash", "upi", or any other string (shown as "Other").
   final String method;
-
-  /// Optional note recorded by the farm owner.
   final String? note;
+  final String? invoiceNumber;
 
   factory CustomerPayment.fromJson(Map<String, dynamic> json) {
     return CustomerPayment(
-      id:          (json['id'] as num).toInt(),
-      amount:      (json['amount'] as num).toDouble(),
+      id: (json['id'] as num).toInt(),
+      amount: (json['amount'] as num).toDouble(),
       paymentDate: json['payment_date'] as String? ?? '',
-      method:      json['method'] as String? ?? '',
+      method: json['method'] as String? ?? '',
       note: () {
         final raw = json['note'];
         if (raw == null) return null;
         final s = raw as String;
         return s.isEmpty ? null : s;
       }(),
+      invoiceNumber: json['invoice_number'] as String?,
     );
   }
 }

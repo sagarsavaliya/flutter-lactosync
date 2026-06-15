@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/dio_provider.dart';
+import '../../../../core/theme/redesign_colors.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/setup_checklist.dart';
@@ -53,14 +54,24 @@ class _OnboardingDashboardPageState extends ConsumerState<OnboardingDashboardPag
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: CustomerDetailColors.background,
+        body: Center(
+          child: CircularProgressIndicator(color: CustomerDetailColors.accent),
+        ),
+      );
     }
 
     return FutureBuilder(
       future: ref.read(onboardingRepositoryProvider).fetchStatus(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            backgroundColor: CustomerDetailColors.background,
+            body: Center(
+              child: CircularProgressIndicator(color: CustomerDetailColors.accent),
+            ),
+          );
         }
         final status = snapshot.data!;
         if (status.isCompleted) {

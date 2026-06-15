@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/constants/app_strings.dart';
@@ -12,8 +13,11 @@ import '../../../../core/widgets/action_toast.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../domain/entities/owner_models.dart';
 import '../providers/owner_provider.dart';
+import 'customer_detail/customer_detail_styles.dart';
+import 'customer_list_styles.dart';
 import 'owner_design_system.dart';
 import 'owner_form_theme.dart';
+import 'owner_screen_widgets.dart';
 import 'owner_shared_widgets.dart';
 
 class OwnerActionSheets {
@@ -132,39 +136,84 @@ class OwnerActionSheets {
               WidgetsBinding.instance.addPostFrameCallback((_) => search(''));
             }
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                OwnerSheetTitle(AppStrings.generateBillTitle),
-                const SizedBox(height: AppSpace.sm),
-                BorderedMonthNavigator(
-                  month: billingMonth,
-                  onPrevious: () => setModalState(
-                    () => billingMonth = DateTime(billingMonth.year, billingMonth.month - 1),
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const OwnerSheetHeader(
+                    title: AppStrings.generateBillTitle,
+                    icon: LucideIcons.fileText,
                   ),
-                  onNext: () => setModalState(
-                    () => billingMonth = DateTime(billingMonth.year, billingMonth.month + 1),
+                  const SizedBox(height: AppSpace.md),
+                  const OwnerSheetFieldLabel('Billing month'),
+                  BorderedMonthNavigator(
+                    compact: true,
+                    month: billingMonth,
+                    onPrevious: () => setModalState(
+                      () => billingMonth = DateTime(billingMonth.year, billingMonth.month - 1),
+                    ),
+                    onNext: () => setModalState(
+                      () => billingMonth = DateTime(billingMonth.year, billingMonth.month + 1),
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpace.md),
+                  const SizedBox(height: AppSpace.md),
+                  const OwnerSheetFieldLabel('Customer'),
                   TextField(
                     controller: searchController,
-                    decoration: InputDecoration(
-                      labelText: AppStrings.searchCustomerLabel,
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.search),
-                        onPressed: () => search(searchController.text.trim()),
-                      ),
-                    ),
+                    style: AppText.body.copyWith(fontWeight: FontWeight.w700),
+                    decoration: OwnerFormTheme.searchDecoration(hintText: AppStrings.searchCustomerLabel),
                     onSubmitted: search,
                   ),
-                  if (customers.isEmpty)
+                  if (selected != null) ...[
+                    const SizedBox(height: 9),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: CustomerDetailColors.rateChipBg,
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(color: CustomerDetailColors.rateChipBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: CustomerDetailColors.avatarBg,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              customerInitials(selected!.fullName),
+                              style: AppText.cardTitle.copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: CustomerDetailColors.accent,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 11),
+                          Expanded(
+                            child: Text(
+                              selected!.fullName,
+                              style: AppText.cardTitle.copyWith(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: CustomerDetailColors.onSurface,
+                              ),
+                            ),
+                          ),
+                          const Icon(LucideIcons.check, size: 20, color: CustomerDetailColors.accent),
+                        ],
+                      ),
+                    ),
+                  ] else if (customers.isEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: AppSpace.sm),
                       child: Text(
                         AppStrings.billingEmpty,
-                        style: AppText.meta.copyWith(color: Theme.of(context).hintColor),
+                        style: AppText.meta.copyWith(color: CustomerDetailColors.labelMuted),
                       ),
                     )
                   else ...[
@@ -172,18 +221,31 @@ class OwnerActionSheets {
                     DropdownButtonFormField<OwnerCustomer>(
                       value: selected,
                       isExpanded: true,
-                      decoration: InputDecoration(labelText: AppStrings.selectCustomerLabel),
+                      decoration: InputDecoration(
+                        labelText: AppStrings.selectCustomerLabel,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(13)),
+                      ),
                       items: customers
                           .map((c) => DropdownMenuItem(value: c, child: Text(c.fullName)))
                           .toList(),
                       onChanged: (v) => setModalState(() => selected = v),
                     ),
                   ],
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(AppStrings.sendBillOnWhatsApp, style: AppText.body),
-                    value: sendWhatsApp,
-                    onChanged: (v) => setModalState(() => sendWhatsApp = v),
+                  const SizedBox(height: AppSpace.md),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: CustomerDetailColors.surface,
+                      borderRadius: BorderRadius.circular(13),
+                      border: Border.all(color: CustomerDetailColors.border),
+                    ),
+                    child: SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(AppStrings.sendBillOnWhatsApp, style: AppText.cardTitle.copyWith(fontSize: 14.5, fontWeight: FontWeight.w700)),
+                      value: sendWhatsApp,
+                      activeTrackColor: CustomerDetailColors.accent,
+                      onChanged: (v) => setModalState(() => sendWhatsApp = v),
+                    ),
                   ),
                   const SizedBox(height: AppSpace.lg),
                   AppButton(
@@ -223,7 +285,8 @@ class OwnerActionSheets {
                           },
                   ),
                 ],
-              );
+              ),
+            );
         },
       ),
     );
@@ -362,35 +425,121 @@ class OwnerActionSheets {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  OwnerSheetTitle(AppStrings.collectPaymentTitle),
+                  const OwnerSheetHeader(
+                    title: AppStrings.collectPaymentTitle,
+                    icon: LucideIcons.creditCard,
+                  ),
                   const SizedBox(height: AppSpace.md),
-                    TextField(
-                      controller: searchController,
-                      decoration: InputDecoration(
-                        labelText: AppStrings.searchCustomerLabel,
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.search),
-                          onPressed: () => search(searchController.text.trim()),
-                        ),
+                  const OwnerSheetFieldLabel('Customer'),
+                  TextField(
+                    controller: searchController,
+                    style: AppText.body.copyWith(fontWeight: FontWeight.w700),
+                    decoration: OwnerFormTheme.searchDecoration(hintText: AppStrings.searchCustomerLabel),
+                    onSubmitted: search,
+                  ),
+                  if (selected != null) ...[
+                    const SizedBox(height: 9),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: CustomerDetailColors.rateChipBg,
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(color: CustomerDetailColors.rateChipBorder),
                       ),
-                      onSubmitted: search,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: CustomerDetailColors.avatarBg,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              customerInitials(selected!.fullName),
+                              style: AppText.cardTitle.copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: CustomerDetailColors.accent,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 11),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  selected!.fullName,
+                                  style: AppText.cardTitle.copyWith(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: CustomerDetailColors.onSurface,
+                                  ),
+                                ),
+                                if (selected!.shortAddress.isNotEmpty)
+                                  Text(
+                                    selected!.shortAddress,
+                                    style: AppText.meta.copyWith(color: CustomerDetailColors.bodyInk),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const Icon(LucideIcons.chevronDown, size: 20, color: CustomerDetailColors.iconMuted),
+                        ],
+                      ),
                     ),
-                    if (customers.isNotEmpty) ...[
-                      const SizedBox(height: AppSpace.sm),
-                      DropdownButtonFormField<OwnerCustomer>(
-                        value: selected,
-                        isExpanded: true,
-                        decoration: InputDecoration(labelText: AppStrings.selectCustomerLabel),
-                        items: customers
-                            .map((c) => DropdownMenuItem(value: c, child: Text(c.fullName)))
-                            .toList(),
-                        onChanged: (v) async {
-                          setModalState(() => selected = v);
-                          if (v != null) await loadPending(v);
-                        },
+                  ] else if (customers.isNotEmpty) ...[
+                    const SizedBox(height: AppSpace.sm),
+                    DropdownButtonFormField<OwnerCustomer>(
+                      value: selected,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: AppStrings.selectCustomerLabel,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(13)),
                       ),
-                    ],
-                    if (pending.isNotEmpty) ...[
+                      items: customers
+                          .map((c) => DropdownMenuItem(value: c, child: Text(c.fullName)))
+                          .toList(),
+                      onChanged: (v) async {
+                        setModalState(() => selected = v);
+                        if (v != null) await loadPending(v);
+                      },
+                    ),
+                  ],
+                  if (pending.isNotEmpty) ...[
+                    const SizedBox(height: AppSpace.md),
+                    const OwnerSheetFieldLabel('Pending bill'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: CustomerDetailColors.statBg,
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(color: CustomerListColors.searchBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(LucideIcons.fileText, size: 18, color: CustomerDetailColors.danger),
+                          const SizedBox(width: 9),
+                          Expanded(
+                            child: Text(
+                              selectedBill?.billingMonth ?? '',
+                              style: AppText.body.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          Text(
+                            '₹${formatOwnerCurrency(selectedBill?.balanceDue ?? 0)} due',
+                            style: AppText.cardTitle.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: CustomerDetailColors.danger,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (pending.length > 1) ...[
                       const SizedBox(height: AppSpace.sm),
                       DropdownButtonFormField<OwnerInvoice>(
                         value: selectedBill,
@@ -413,30 +562,126 @@ class OwnerActionSheets {
                           });
                         },
                       ),
-                      const SizedBox(height: AppSpace.sm),
-                      TextField(
-                        controller: amountController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(labelText: AppStrings.paymentAmountLabel),
-                      ),
-                      DropdownButtonFormField<String>(
-                        value: method,
-                        decoration: InputDecoration(labelText: AppStrings.paymentMethodLabel),
-                        items: const [
-                          DropdownMenuItem(value: 'cash', child: Text(AppStrings.paymentsFilterCash)),
-                          DropdownMenuItem(value: 'upi', child: Text(AppStrings.paymentsFilterUpi)),
-                          DropdownMenuItem(value: 'bank_transfer', child: Text(AppStrings.paymentsFilterBank)),
-                        ],
-                        onChanged: (v) => setModalState(() => method = v ?? method),
-                      ),
                     ],
-                    const SizedBox(height: AppSpace.lg),
-                    AppButton(
-                      label: AppStrings.recordPaymentButton,
-                      loading: loading,
-                      onPressed: (selectedBill == null || loading)
-                          ? null
-                          : () async {
+                    const SizedBox(height: AppSpace.md),
+                    const OwnerSheetFieldLabel('Amount'),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => setModalState(() {}),
+                      style: AppText.screenTitle.copyWith(fontSize: 24, fontWeight: FontWeight.w700),
+                      decoration: InputDecoration(
+                        prefixText: '₹ ',
+                        prefixStyle: AppText.screenTitle.copyWith(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: CustomerDetailColors.accent,
+                        ),
+                        suffix: TextButton(
+                          onPressed: selectedBill != null
+                              ? () => setModalState(() {
+                                    amountController.text =
+                                        selectedBill!.balanceDue.toStringAsFixed(0);
+                                  })
+                              : null,
+                          style: TextButton.styleFrom(
+                            foregroundColor: CustomerDetailColors.accent,
+                            backgroundColor: CustomerDetailColors.accentLight,
+                            side: const BorderSide(color: CustomerDetailColors.accentBorder),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            textStyle: AppText.label.copyWith(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                          child: const Text('Full'),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(13),
+                          borderSide: const BorderSide(color: CustomerDetailColors.accent, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final preset in [500, 1000])
+                          ActionChip(
+                            label: Text('₹$preset'),
+                            onPressed: () => setModalState(() {
+                              amountController.text = '$preset';
+                            }),
+                            backgroundColor: CustomerDetailColors.statBg,
+                            side: const BorderSide(color: CustomerDetailColors.border),
+                            labelStyle: AppText.label.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: CustomerDetailColors.onSurface,
+                            ),
+                          ),
+                        if (selectedBill != null)
+                          ActionChip(
+                            label: Text('₹${formatOwnerCurrency(selectedBill!.balanceDue)}'),
+                            onPressed: () => setModalState(() {
+                              amountController.text =
+                                  selectedBill!.balanceDue.toStringAsFixed(0);
+                            }),
+                            backgroundColor: CustomerDetailColors.statBg,
+                            side: const BorderSide(color: CustomerDetailColors.border),
+                            labelStyle: AppText.label.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: CustomerDetailColors.onSurface,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpace.md),
+                    const OwnerSheetFieldLabel('Payment method'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _PaymentMethodChip(
+                            label: AppStrings.paymentsFilterCash,
+                            icon: LucideIcons.banknote,
+                            selected: method == 'cash',
+                            onTap: () => setModalState(() => method = 'cash'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _PaymentMethodChip(
+                            label: 'UPI / QR',
+                            icon: LucideIcons.qrCode,
+                            selected: method == 'upi',
+                            onTap: () => setModalState(() => method = 'upi'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _PaymentMethodChip(
+                            label: AppStrings.paymentsFilterBank,
+                            icon: LucideIcons.landmark,
+                            selected: method == 'bank_transfer',
+                            onTap: () => setModalState(() => method = 'bank_transfer'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: AppSpace.lg),
+                  AppButton(
+                    label: amountController.text.isNotEmpty
+                        ? 'Record ₹${amountController.text}'
+                        : AppStrings.recordPaymentButton,
+                    loading: loading,
+                    onPressed: (selectedBill == null || loading)
+                        ? null
+                        : () async {
                               setModalState(() => loading = true);
                               try {
                                 String? receiptWarning;
@@ -805,5 +1050,55 @@ class OwnerActionSheets {
       ),
     );
     searchController.dispose();
+  }
+}
+
+class _PaymentMethodChip extends StatelessWidget {
+  const _PaymentMethodChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? CustomerDetailColors.accent : CustomerDetailColors.statBg,
+      borderRadius: BorderRadius.circular(13),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(13),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(
+              color: selected ? CustomerDetailColors.accent : CustomerListColors.searchBorder,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 20, color: selected ? Colors.white : CustomerDetailColors.labelMuted),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: AppText.cardTitle.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? Colors.white : CustomerDetailColors.labelMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

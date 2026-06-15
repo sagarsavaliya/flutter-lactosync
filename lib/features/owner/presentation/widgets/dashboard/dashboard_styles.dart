@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Design tokens — aligned with briefs/redesign app screen lactosync frame 4.
 abstract final class DashboardColors {
@@ -41,7 +42,7 @@ abstract final class DashboardText {
     height: 1.2,
   );
 
-  static const greeting = TextStyle(
+  static TextStyle get greeting => GoogleFonts.quicksand(
     fontSize: 30,
     fontWeight: FontWeight.w700,
     color: DashboardColors.primary,
@@ -64,7 +65,7 @@ abstract final class DashboardText {
     height: 1.1,
   );
 
-  static const kpiValue = TextStyle(
+  static TextStyle get kpiValue => GoogleFonts.quicksand(
     fontSize: 24,
     fontWeight: FontWeight.w800,
     color: DashboardColors.primary,

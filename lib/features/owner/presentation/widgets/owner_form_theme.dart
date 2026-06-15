@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../../../core/theme/app_typography.dart';
+import 'customer_detail/customer_detail_styles.dart';
 import 'customer_list_styles.dart';
 
 /// Shared mint-green outline used on customer list search/sort and all owner inputs.
@@ -10,7 +13,7 @@ abstract final class OwnerFormTheme {
 
   static OutlineInputBorder outlineBorder([Color? color, double width = 1]) {
     return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(14),
       borderSide: BorderSide(color: color ?? borderColor, width: width),
     );
   }
@@ -27,7 +30,7 @@ abstract final class OwnerFormTheme {
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-      prefixIcon: const Icon(Icons.search, size: 20, color: CustomerListColors.searchIcon),
+      prefixIcon: const Icon(LucideIcons.search, size: 17, color: CustomerListColors.searchIcon),
       prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: searchRowHeight),
       border: border,
       enabledBorder: border,
@@ -64,7 +67,7 @@ class OwnerSearchSortRow extends StatelessWidget {
             child: TextField(
               controller: controller,
               onChanged: onChanged,
-              style: const TextStyle(fontSize: 14, height: 1.0),
+              style: AppText.body.copyWith(fontSize: 14, fontWeight: FontWeight.w600, height: 1.0),
               maxLines: 1,
               textAlignVertical: TextAlignVertical.center,
               decoration: OwnerFormTheme.searchDecoration(hintText: hintText),
@@ -85,22 +88,20 @@ class _SortButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const height = OwnerFormTheme.searchRowHeight;
-
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onSort,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
-          width: height,
+          width: 46,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: OwnerFormTheme.borderColor),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: CustomerListColors.searchBorder),
           ),
           alignment: Alignment.center,
-          child: const Icon(Icons.swap_vert, size: 16, color: CustomerListColors.sortIcon),
+          child: const Icon(LucideIcons.arrowUpDown, size: 18, color: CustomerDetailColors.accent),
         ),
       ),
     );

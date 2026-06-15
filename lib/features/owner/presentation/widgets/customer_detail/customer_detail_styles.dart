@@ -41,6 +41,9 @@ abstract final class CustomerDetailColors {
   static const calFutureBorder = Color(0xFFD8DECF);
   static const duesGradientStart = Color(0xFFC25B3A);
   static const duesGradientEnd = Color(0xFFD27A4E);
+  // Settled (no dues) variant — matches greeting gradient in the HTML design.
+  static const duesGreenStart = Color(0xFF2E6E45);
+  static const duesGreenEnd = Color(0xFF3C8557);
 }
 
 abstract final class CustomerDetailMetrics {

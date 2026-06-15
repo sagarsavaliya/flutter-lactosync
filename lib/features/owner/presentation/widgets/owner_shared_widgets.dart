@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -7,8 +8,10 @@ import '../../../../core/theme/app_sizes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_card.dart';
+import 'customer_detail/customer_detail_styles.dart';
 import 'customer_list_styles.dart';
 import 'owner_form_theme.dart';
+import 'owner_screen_widgets.dart';
 
 const List<double> kMilkQtyOptions = [
   0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0,
@@ -156,35 +159,53 @@ class BorderedDateNavigator extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback? onPickDate;
 
-  String get _centerLabel {
-    final today = DateTime.now();
-    if (date.year == today.year && date.month == today.month && date.day == today.day) {
-      return AppStrings.ordersToday;
-    }
-    return DateFormat('d MMM yyyy').format(date);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final today = DateTime.now();
+    final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
+    final subtitle = DateFormat('EEE, d MMM').format(date);
+
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: OwnerFormTheme.borderColor),
-        color: Colors.white,
-      ),
+      decoration: ownerWhiteCardDecoration(radius: OwnerScreenMetrics.pagerRadius),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       child: Row(
         children: [
-          _NavButton(icon: Icons.chevron_left, onPressed: onPrevious),
+          _PagerArrow(icon: LucideIcons.chevronLeft, onPressed: onPrevious),
           Expanded(
             child: InkWell(
               onTap: onPickDate,
+              borderRadius: BorderRadius.circular(8),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpace.sm),
-                child: Text(_centerLabel, textAlign: TextAlign.center, style: AppText.cardTitle),
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  children: [
+                    Text(
+                      isToday ? AppStrings.ordersToday : DateFormat('d MMM yyyy').format(date),
+                      textAlign: TextAlign.center,
+                      style: AppText.cardTitle.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: CustomerDetailColors.onSurface,
+                      ),
+                    ),
+                    if (isToday) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        textAlign: TextAlign.center,
+                        style: AppText.meta.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: CustomerDetailColors.iconMuted,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
-          _NavButton(icon: Icons.chevron_right, onPressed: onNext),
+          _PagerArrow(icon: LucideIcons.chevronRight, onPressed: onNext),
         ],
       ),
     );
@@ -198,35 +219,47 @@ class BorderedMonthNavigator extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     this.height = kOwnerInputHeight,
+    this.compact = false,
   });
 
   final DateTime month;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final double height;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final label = DateFormat('MMMM yyyy').format(month);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: OwnerFormTheme.borderColor),
-        color: Colors.white,
-      ),
+    return Container(
+      decoration: ownerWhiteCardDecoration(radius: compact ? 14 : OwnerScreenMetrics.pagerRadius),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 8, vertical: compact ? 6 : 7),
       child: SizedBox(
-        height: height,
+        height: compact ? null : height,
         child: Row(
           children: [
-            _NavButton(icon: Icons.chevron_left, onPressed: onPrevious, height: height),
+            _PagerArrow(
+              icon: LucideIcons.chevronLeft,
+              onPressed: onPrevious,
+              size: compact ? 30 : 34,
+            ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpace.sm),
-                child: Text(label, textAlign: TextAlign.center, style: AppText.cardTitle),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: AppText.cardTitle.copyWith(
+                  fontSize: compact ? 14 : 16,
+                  fontWeight: FontWeight.w700,
+                  color: CustomerDetailColors.onSurface,
+                ),
               ),
             ),
-            _NavButton(icon: Icons.chevron_right, onPressed: onNext, height: height),
+            _PagerArrow(
+              icon: LucideIcons.chevronRight,
+              onPressed: onNext,
+              size: compact ? 30 : 34,
+            ),
           ],
         ),
       ),
@@ -254,9 +287,10 @@ class BorderedFilterDropdown<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: OwnerFormTheme.borderColor),
-        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: CustomerDetailColors.border),
+        color: CustomerDetailColors.surface,
+        boxShadow: const [OwnerScreenMetrics.cardShadow],
       ),
       child: SizedBox(
         width: width,
@@ -275,23 +309,31 @@ class BorderedFilterDropdown<T> extends StatelessWidget {
   }
 }
 
-class _NavButton extends StatelessWidget {
-  const _NavButton({
+class _PagerArrow extends StatelessWidget {
+  const _PagerArrow({
     required this.icon,
     required this.onPressed,
-    this.height = kOwnerInputHeight,
+    this.size = 34,
   });
 
   final IconData icon;
   final VoidCallback onPressed;
-  final double height;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 44,
-      height: height,
-      child: IconButton(padding: EdgeInsets.zero, onPressed: onPressed, icon: Icon(icon)),
+    return Material(
+      color: CustomerDetailColors.background,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Icon(icon, size: 18, color: CustomerDetailColors.accent),
+        ),
+      ),
     );
   }
 }

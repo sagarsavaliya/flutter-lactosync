@@ -5,11 +5,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_strings.dart';
 import '../../../core/network/dio_provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/redesign_colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/redesign_scaffold.dart';
 import 'providers/auth_provider.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -64,95 +65,95 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final primary = isDark ? AppColors.darkPrimary : AppColors.primary;
-
-    return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.registerTitle)),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpace.lg),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(AppStrings.registerSubtitle, style: AppText.body.copyWith(color: inkMuted)),
-                const SizedBox(height: AppSpace.lg),
-                AppTextField(
-                  label: AppStrings.ownerNameLabel,
-                  controller: _ownerController,
-                  prefixIcon: Icons.person_outline,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? AppStrings.ownerNameRequired : null,
-                ),
-                const SizedBox(height: AppSpace.md),
-                AppTextField(
-                  label: AppStrings.farmNameLabel,
-                  controller: _farmController,
-                  prefixIcon: Icons.agriculture_outlined,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? AppStrings.farmNameRequired : null,
-                ),
-                const SizedBox(height: AppSpace.md),
-                AppTextField(
-                  label: AppStrings.mobileLabel,
-                  hint: AppStrings.mobileHint,
-                  controller: _mobileController,
-                  keyboardType: TextInputType.phone,
-                  prefixIcon: Icons.phone_android_outlined,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(10),
-                  ],
-                  validator: (v) {
-                    final d = v?.trim() ?? '';
-                    if (d.isEmpty) return AppStrings.mobileRequired;
-                    if (d.length != 10) return AppStrings.mobileInvalid;
-                    return null;
-                  },
-                ),
-                const SizedBox(height: AppSpace.md),
-                AppTextField(
-                  label: AppStrings.pinLabel,
-                  hint: AppStrings.pinHint,
-                  controller: _pinController,
-                  obscureText: true,
-                  keyboardType: TextInputType.number,
-                  prefixIcon: Icons.lock_outline,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
-                  ],
-                  validator: (v) {
-                    final p = v?.trim() ?? '';
-                    if (p.length != 4) return AppStrings.pinInvalid;
-                    return null;
-                  },
-                ),
-                const SizedBox(height: AppSpace.md),
-                AppTextField(
-                  label: AppStrings.confirmPinLabel,
-                  controller: _confirmController,
-                  obscureText: true,
-                  keyboardType: TextInputType.number,
-                  prefixIcon: Icons.lock_outline,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
-                  ],
-                  validator: (v) =>
-                      v?.trim() != _pinController.text.trim() ? AppStrings.pinMismatch : null,
-                ),
-                const SizedBox(height: AppSpace.lg),
-                AppButton(label: AppStrings.createAccount, loading: _loading, onPressed: _submit),
-                const SizedBox(height: AppSpace.sm),
-                TextButton(
-                  onPressed: () => context.go('/sign-in'),
-                  child: Text(AppStrings.alreadyHaveAccount, style: AppText.label.copyWith(color: primary)),
-                ),
-              ],
+    return RedesignFormScaffold(
+      title: AppStrings.registerTitle,
+      bottom: AppButton(label: AppStrings.createAccount, loading: _loading, onPressed: _submit),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              AppStrings.registerSubtitle,
+              style: AppText.body.copyWith(color: CustomerDetailColors.onSurfaceVariant),
             ),
-          ),
+            const SizedBox(height: AppSpace.lg),
+            AppTextField(
+              label: AppStrings.ownerNameLabel,
+              controller: _ownerController,
+              prefixIcon: Icons.person_outline,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? AppStrings.ownerNameRequired : null,
+            ),
+            const SizedBox(height: AppSpace.md),
+            AppTextField(
+              label: AppStrings.farmNameLabel,
+              controller: _farmController,
+              prefixIcon: Icons.agriculture_outlined,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? AppStrings.farmNameRequired : null,
+            ),
+            const SizedBox(height: AppSpace.md),
+            AppTextField(
+              label: AppStrings.mobileLabel,
+              hint: AppStrings.mobileHint,
+              controller: _mobileController,
+              keyboardType: TextInputType.phone,
+              prefixIcon: Icons.phone_android_outlined,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(10),
+              ],
+              validator: (v) {
+                final d = v?.trim() ?? '';
+                if (d.isEmpty) return AppStrings.mobileRequired;
+                if (d.length != 10) return AppStrings.mobileInvalid;
+                return null;
+              },
+            ),
+            const SizedBox(height: AppSpace.md),
+            AppTextField(
+              label: AppStrings.pinLabel,
+              hint: AppStrings.pinHint,
+              controller: _pinController,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              prefixIcon: Icons.lock_outline,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(4),
+              ],
+              validator: (v) {
+                final p = v?.trim() ?? '';
+                if (p.length != 4) return AppStrings.pinInvalid;
+                return null;
+              },
+            ),
+            const SizedBox(height: AppSpace.md),
+            AppTextField(
+              label: AppStrings.confirmPinLabel,
+              controller: _confirmController,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              prefixIcon: Icons.lock_outline,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(4),
+              ],
+              validator: (v) =>
+                  v?.trim() != _pinController.text.trim() ? AppStrings.pinMismatch : null,
+            ),
+            const SizedBox(height: AppSpace.sm),
+            Center(
+              child: TextButton(
+                onPressed: () => context.go('/sign-in'),
+                child: Text(
+                  AppStrings.alreadyHaveAccount,
+                  style: AppText.label.copyWith(color: CustomerDetailColors.accent),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

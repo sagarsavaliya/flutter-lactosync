@@ -263,7 +263,7 @@ class ContainerTypeItem {
       );
 }
 
-enum DocumentShareFormat { text, image }
+enum DocumentShareFormat { text, image, pdf }
 
 class DocumentTemplateSettings {
   const DocumentTemplateSettings({
@@ -289,14 +289,22 @@ class DocumentTemplateSettings {
 
   static DocumentShareFormat _parseFormat(Object? value) {
     if (value == 'text') return DocumentShareFormat.text;
+    if (value == 'pdf') return DocumentShareFormat.pdf;
     return DocumentShareFormat.image;
   }
 
+  static String _formatToApi(DocumentShareFormat format) {
+    return switch (format) {
+      DocumentShareFormat.text => 'text',
+      DocumentShareFormat.pdf => 'pdf',
+      DocumentShareFormat.image => 'image',
+    };
+  }
+
   Map<String, dynamic> toJson() => {
-        'milk_log_format': milkLogFormat == DocumentShareFormat.text ? 'text' : 'image',
-        'billing_format': billingFormat == DocumentShareFormat.text ? 'text' : 'image',
-        'payment_receipt_format':
-            paymentReceiptFormat == DocumentShareFormat.text ? 'text' : 'image',
+        'milk_log_format': _formatToApi(milkLogFormat),
+        'billing_format': _formatToApi(billingFormat),
+        'payment_receipt_format': _formatToApi(paymentReceiptFormat),
         'include_farm_header': includeFarmHeader,
       };
 

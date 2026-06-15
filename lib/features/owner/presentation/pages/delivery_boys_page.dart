@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/app_card.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../providers/delivery_provider.dart';
+import '../widgets/customer_detail/customer_detail_styles.dart';
+import '../widgets/owner_design_system.dart';
+import '../widgets/owner_screen_widgets.dart';
 
 class DeliveryBoysPage extends ConsumerStatefulWidget {
   const DeliveryBoysPage({super.key});
@@ -17,11 +21,9 @@ class _DeliveryBoysPageState extends ConsumerState<DeliveryBoysPage> {
   Future<void> _showAddSheet() => _showEditSheet(null);
 
   Future<void> _showEditSheet(DeliveryBoyModel? existing) async {
-    await showModalBottomSheet<void>(
+    await showOwnerBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _DeliveryBoySheet(existing: existing),
+      child: _DeliveryBoySheet(existing: existing),
     );
     ref.invalidate(deliveryBoysProvider);
   }
@@ -76,85 +78,118 @@ class _DeliveryBoysPageState extends ConsumerState<DeliveryBoysPage> {
     final boys = ref.watch(deliveryBoysProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: CustomerDetailColors.background,
       appBar: AppBar(
-        title: const Text('Delivery Boys'),
-        backgroundColor: AppColors.bg,
-        foregroundColor: AppColors.ink,
+        title: Text(
+          'Delivery Boys',
+          style: AppText.screenTitle.copyWith(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: CustomerDetailColors.accent,
+          ),
+        ),
+        backgroundColor: CustomerDetailColors.background,
+        foregroundColor: CustomerDetailColors.accent,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(LucideIcons.userPlus),
             onPressed: _showAddSheet,
           ),
         ],
       ),
       body: boys.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: CustomerDetailColors.accent),
+        ),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (list) => list.isEmpty
             ? Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                    Icon(LucideIcons.users, size: 64, color: CustomerDetailColors.iconMuted),
                     const SizedBox(height: 12),
-                    const Text('No delivery boys yet',
-                        style: TextStyle(color: Colors.grey)),
+                    Text(
+                      'No delivery boys yet',
+                      style: AppText.body.copyWith(color: CustomerDetailColors.labelMuted),
+                    ),
                     const SizedBox(height: 12),
-                    ElevatedButton.icon(
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(backgroundColor: CustomerDetailColors.accent),
                       onPressed: _showAddSheet,
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(LucideIcons.userPlus),
                       label: const Text('Add Delivery Boy'),
                     ),
                   ],
                 ),
               )
             : RefreshIndicator(
+                color: CustomerDetailColors.accent,
                 onRefresh: () async => ref.invalidate(deliveryBoysProvider),
                 child: ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: list.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  separatorBuilder: (_, __) => const SizedBox(height: 9),
                   itemBuilder: (context, i) {
                     final boy = list[i];
-                    return AppCard(
-                      padding: EdgeInsets.zero,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: boy.isActive
-                              ? AppColors.primary.withValues(alpha: 0.15)
-                              : Colors.grey.withValues(alpha: 0.15),
-                          child: Text(
-                            boy.name.isNotEmpty
-                                ? boy.name[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: ownerWhiteCardDecoration(),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
                               color: boy.isActive
-                                  ? AppColors.primary
-                                  : Colors.grey,
-                              fontWeight: FontWeight.bold,
+                                  ? CustomerDetailColors.avatarBg
+                                  : CustomerDetailColors.statBg,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Text(
+                              boy.name.isNotEmpty ? boy.name[0].toUpperCase() : '?',
+                              style: AppText.cardTitle.copyWith(
+                                color: boy.isActive
+                                    ? CustomerDetailColors.accent
+                                    : CustomerDetailColors.labelMuted,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                        ),
-                        title: Text(boy.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(
-                          '${boy.salaryType.replaceAll('_', ' ').toUpperCase()}'
-                          '${boy.phone != null ? " · ${boy.phone}" : ""}',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (v) {
-                            if (v == 'edit') _showEditSheet(boy);
-                            if (v == 'pin') _resetPin(boy);
-                          },
-                          itemBuilder: (_) => [
-                            const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                            const PopupMenuItem(
-                                value: 'pin', child: Text('Reset PIN')),
-                          ],
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  boy.name,
+                                  style: AppText.cardTitle.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: CustomerDetailColors.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  '${boy.salaryType.replaceAll('_', ' ').toUpperCase()}'
+                                  '${boy.phone != null ? " · ${boy.phone}" : ""}',
+                                  style: AppText.meta.copyWith(color: CustomerDetailColors.labelMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            icon: Icon(LucideIcons.moreVertical, color: CustomerDetailColors.iconMuted),
+                            onSelected: (v) {
+                              if (v == 'edit') _showEditSheet(boy);
+                              if (v == 'pin') _resetPin(boy);
+                            },
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(value: 'edit', child: Text('Edit')),
+                              PopupMenuItem(value: 'pin', child: Text('Reset PIN')),
+                            ],
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -237,88 +272,53 @@ class _DeliveryBoySheetState extends ConsumerState<_DeliveryBoySheet> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
-    return DraggableScrollableSheet(
-      initialChildSize: 0.75,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      builder: (_, controller) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          left: 16,
-          right: 16,
-        ),
-        child: ListView(
-          controller: controller,
-          children: [
-            const SizedBox(height: 8),
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OwnerSheetHeader(
+            title: isEdit ? 'Edit Delivery Boy' : 'Add Delivery Boy',
+            icon: LucideIcons.userPlus,
+          ),
+          const SizedBox(height: AppSpace.lg),
+          TextField(
+            controller: _nameCtrl,
+            decoration: const InputDecoration(labelText: 'Name *'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _phoneCtrl,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(labelText: 'Phone (optional)'),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _salaryType,
+            decoration: const InputDecoration(labelText: 'Salary Type'),
+            items: const [
+              DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+              DropdownMenuItem(value: 'per_delivery', child: Text('Per Delivery')),
+              DropdownMenuItem(value: 'hourly', child: Text('Hourly')),
+              DropdownMenuItem(value: 'part_time', child: Text('Part Time')),
+            ],
+            onChanged: (v) => setState(() => _salaryType = v!),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _salaryCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Salary Amount (optional)',
+              prefixText: '₹ ',
             ),
-            const SizedBox(height: 16),
-            Text(
-              isEdit ? 'Edit Delivery Boy' : 'Add Delivery Boy',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Name *'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Phone (optional)'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _salaryType,
-              decoration: const InputDecoration(labelText: 'Salary Type'),
-              items: const [
-                DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
-                DropdownMenuItem(value: 'per_delivery', child: Text('Per Delivery')),
-                DropdownMenuItem(value: 'hourly', child: Text('Hourly')),
-                DropdownMenuItem(value: 'part_time', child: Text('Part Time')),
-              ],
-              onChanged: (v) => setState(() => _salaryType = v!),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _salaryCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                  labelText: 'Salary Amount (optional)', prefixText: '₹ '),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _saving ? null : _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                minimumSize: const Size.fromHeight(48),
-              ),
-              child: _saving
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : Text(isEdit ? 'Save Changes' : 'Add Delivery Boy',
-                      style: const TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: AppSpace.lg),
+          OwnerSheetActions(
+            primaryLabel: isEdit ? 'Save Changes' : 'Add Delivery Boy',
+            loading: _saving,
+            onPrimary: _saving ? null : _save,
+          ),
+        ],
       ),
     );
   }

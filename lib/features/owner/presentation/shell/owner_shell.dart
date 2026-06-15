@@ -12,6 +12,7 @@ import '../../../../core/providers/module_provider.dart';
 import '../../../../core/providers/subscription_status_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../features/subscription/presentation/widgets/subscription_warning_banner.dart';
+import '../widgets/customer_detail/customer_detail_styles.dart';
 import '../widgets/customer_list_styles.dart';
 import '../widgets/dashboard/dashboard_styles.dart';
 import '../widgets/owner_top_bar.dart';
@@ -98,6 +99,15 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
     final isHome = index == 0;
     final isCustomers = index == 1;
     final isRoutes = items[index].path == '/owner/routes';
+    final isRedesignScreen = isHome ||
+        isRoutes ||
+        isCustomers ||
+        location.startsWith('/owner/daily-orders') ||
+        location.startsWith('/owner/billing') ||
+        location.startsWith('/owner/payment') ||
+        location.startsWith('/owner/settings') ||
+        location.startsWith('/owner/activity') ||
+        location.startsWith('/owner/delivery-boys');
 
     // Fallback title for settings (not in bottom nav).
     final title = location.startsWith('/owner/settings')
@@ -105,11 +115,7 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
         : _titleForIndex(index, items);
 
     return Scaffold(
-      backgroundColor: isHome || isRoutes
-          ? DashboardColors.background
-          : isCustomers
-              ? CustomerListColors.background
-              : AppColors.bg,
+      backgroundColor: isRedesignScreen ? CustomerDetailColors.background : AppColors.bg,
       appBar: OwnerTopBar(
         screenTitle: title,
         dashboardMode: isHome,
@@ -139,7 +145,7 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
         decoration: BoxDecoration(
           color: DashboardColors.surface,
           border: Border(top: BorderSide(
-            color: DashboardColors.outlineVariant.withValues(alpha: 0.3),
+            color: DashboardColors.outlineVariant,
           )),
         ),
         child: SafeArea(

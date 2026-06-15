@@ -1,27 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/widgets/app_card.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_widgets.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../data/repositories/customer_vacation_repository.dart';
 import '../providers/customer_vacation_provider.dart';
 
-/// CA-14 — Vacation management screen.
-/// Pushed from the Profile tab via context.push('/customer/vacation').
 class CustomerVacationPage extends ConsumerStatefulWidget {
   const CustomerVacationPage({super.key});
 
   @override
-  ConsumerState<CustomerVacationPage> createState() =>
-      _CustomerVacationPageState();
+  ConsumerState<CustomerVacationPage> createState() => _CustomerVacationPageState();
 }
 
 class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
-  // ── "Set vacation" form state ──────────────────────────────────────────────
   DateTime? _vacationStart;
   DateTime? _vacationEnd;
   String? _startError;
@@ -30,10 +26,10 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
   bool _isCancelling = false;
 
   final _startController = TextEditingController();
-  final _endController   = TextEditingController();
+  final _endController = TextEditingController();
 
-  static final _displayFmt = DateFormat('d MMM yyyy'); // "15 Jun 2026"
-  static final _apiFmt     = DateFormat('yyyy-MM-dd'); // "2026-06-15"
+  static final _displayFmt = DateFormat('d MMM yyyy');
+  static final _apiFmt = DateFormat('yyyy-MM-dd');
 
   @override
   void dispose() {
@@ -42,12 +38,9 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
     super.dispose();
   }
 
-  // ── Date picker helpers ───────────────────────────────────────────────────
-
   Future<void> _pickStartDate() async {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     final oneYearLater = DateTime.now().add(const Duration(days: 365));
-
     final picked = await showDatePicker(
       context: context,
       initialDate: _vacationStart ?? tomorrow,
@@ -55,12 +48,10 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
       lastDate: oneYearLater,
     );
     if (picked == null) return;
-
     setState(() {
       _vacationStart = picked;
       _startController.text = _displayFmt.format(picked);
       _startError = null;
-      // Reset end if it's now before start.
       if (_vacationEnd != null && _vacationEnd!.isBefore(picked)) {
         _vacationEnd = null;
         _endController.clear();
@@ -69,11 +60,8 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
   }
 
   Future<void> _pickEndDate() async {
-    final minDate = _vacationStart != null
-        ? _vacationStart!
-        : DateTime.now().add(const Duration(days: 1));
+    final minDate = _vacationStart ?? DateTime.now().add(const Duration(days: 1));
     final oneYearLater = DateTime.now().add(const Duration(days: 365));
-
     final picked = await showDatePicker(
       context: context,
       initialDate: _vacationEnd ?? minDate,
@@ -81,7 +69,6 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
       lastDate: oneYearLater,
     );
     if (picked == null) return;
-
     setState(() {
       _vacationEnd = picked;
       _endController.text = _displayFmt.format(picked);
@@ -89,100 +76,84 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
     });
   }
 
-  // ── Set vacation ─────────────────────────────────────────────────────────
-
   Future<void> _onSetVacation() async {
     if (_vacationStart == null || _vacationEnd == null) return;
-
     setState(() {
       _isSetting = true;
       _startError = null;
-      _endError   = null;
+      _endError = null;
     });
-
-    final error = await ref
-        .read(customerVacationProvider.notifier)
-        .setVacation(
+    final error = await ref.read(customerVacationProvider.notifier).setVacation(
           _apiFmt.format(_vacationStart!),
           _apiFmt.format(_vacationEnd!),
         );
-
     if (!mounted) return;
     setState(() => _isSetting = false);
-
     if (error == null) {
-      // Success — reset form state and show snackbar.
       setState(() {
         _vacationStart = null;
-        _vacationEnd   = null;
+        _vacationEnd = null;
         _startController.clear();
         _endController.clear();
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text("Vacation set. You'll receive a WhatsApp confirmation."),
-        ),
+        const SnackBar(content: Text("Vacation set. You'll receive a WhatsApp confirmation.")),
       );
+    } else if (error.contains('vacation_end') || error.toLowerCase().contains('end must be on or after')) {
+      setState(() => _endError = error);
     } else {
-      // Map specific API messages to inline field errors or snackbar.
-      if (error.contains('vacation_end') ||
-          error.toLowerCase().contains('end must be on or after')) {
-        setState(() => _endError = error);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: AppColors.danger,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: CustomerDetailColors.danger),
+      );
     }
   }
 
-  // ── Cancel vacation ───────────────────────────────────────────────────────
-
   Future<void> _onCancelVacation() async {
     setState(() => _isCancelling = true);
-
-    final error =
-        await ref.read(customerVacationProvider.notifier).cancel();
-
+    final error = await ref.read(customerVacationProvider.notifier).cancel();
     if (!mounted) return;
     setState(() => _isCancelling = false);
-
     if (error == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vacation cancelled.')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.danger,
-        ),
+        SnackBar(content: Text(error), backgroundColor: CustomerDetailColors.danger),
       );
     }
   }
-
-  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final vacationAsync = ref.watch(customerVacationProvider);
 
     return Scaffold(
+      backgroundColor: CustomerDetailColors.background,
       appBar: AppBar(
-        title: const Text('Vacation'),
+        backgroundColor: CustomerDetailColors.background,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: CustomerDetailColors.accent),
+        title: Text(
+          'Vacation',
+          style: AppText.screenTitle.copyWith(
+            fontSize: 19,
+            fontWeight: FontWeight.w700,
+            color: CustomerDetailColors.accent,
+          ),
+        ),
       ),
       body: RefreshIndicator(
+        color: CustomerDetailColors.accent,
         onRefresh: () => ref.read(customerVacationProvider.notifier).load(),
         child: vacationAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: CustomerDetailColors.accent),
+          ),
           error: (error, _) => _ErrorBody(
             message: error.toString(),
-            onRetry: () =>
-                ref.read(customerVacationProvider.notifier).load(),
+            onRetry: () => ref.read(customerVacationProvider.notifier).load(),
           ),
           data: (vacation) {
             if (vacation != null && vacation.hasVacation) {
@@ -210,8 +181,6 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
     );
   }
 }
-
-// ── State A — No vacation set ─────────────────────────────────────────────────
 
 class _NoVacationBody extends StatelessWidget {
   const _NoVacationBody({
@@ -243,75 +212,129 @@ class _NoVacationBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      // Allow pull-to-refresh to work even with short content.
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(AppSpace.lg),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header
-          const Text('Plan a vacation', style: AppText.sectionTitle),
-          const SizedBox(height: AppSpace.xs),
-          Text(
-            'Pause your deliveries for a date range.',
-            style: AppText.meta.copyWith(color: AppColors.inkMuted),
-          ),
-          const SizedBox(height: AppSpace.xl),
-
-          // From field
-          GestureDetector(
-            onTap: onPickStart,
-            child: AbsorbPointer(
-              child: AppTextField(
-                label: 'From',
-                hint: 'Select date',
-                controller: startController,
-                errorText: startError,
-                suffixIcon: Icons.calendar_today_outlined,
-              ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: CustomerDetailColors.surface,
+              borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+              border: Border.all(color: CustomerDetailColors.border),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: CustomerDetailColors.successBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(LucideIcons.truck, color: CustomerDetailColors.success, size: 22),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Deliveries active',
+                        style: AppText.cardTitle.copyWith(color: CustomerDetailColors.onSurface),
+                      ),
+                      Text(
+                        'Pause when away — billing stops automatically.',
+                        style: AppText.meta.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppSpace.lg),
-
-          // Until field
-          GestureDetector(
-            onTap: onPickEnd,
-            child: AbsorbPointer(
-              child: AppTextField(
-                label: 'Until',
-                hint: 'Select date',
-                controller: endController,
-                errorText: endError,
-                suffixIcon: Icons.calendar_today_outlined,
-              ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: CustomerDetailColors.surface,
+              borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+              border: Border.all(color: CustomerDetailColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF283C28).withValues(alpha: 0.1),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: AppSpace.xl),
-
-          // Set vacation button
-          FilledButton(
-            onPressed: (_canSubmit && !isSetting) ? onSetVacation : null,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-            ),
-            child: isSetting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Plan a vacation',
+                  style: AppText.cardTitle.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: CustomerDetailColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Pause deliveries for a date range.',
+                  style: AppText.meta.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+                ),
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: onPickStart,
+                  child: AbsorbPointer(
+                    child: AppTextField(
+                      label: 'From',
+                      hint: 'Select date',
+                      controller: startController,
+                      errorText: startError,
+                      suffixIcon: LucideIcons.calendar,
                     ),
-                  )
-                : const Text('Set vacation'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: onPickEnd,
+                  child: AbsorbPointer(
+                    child: AppTextField(
+                      label: 'Until',
+                      hint: 'Select date',
+                      controller: endController,
+                      errorText: endError,
+                      suffixIcon: LucideIcons.calendar,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: (_canSubmit && !isSetting) ? onSetVacation : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: CustomerDetailColors.accent,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                  ),
+                  child: isSetting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Set vacation'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 }
-
-// ── State B — Vacation active ─────────────────────────────────────────────────
 
 class _VacationActiveBody extends StatelessWidget {
   const _VacationActiveBody({
@@ -328,7 +351,7 @@ class _VacationActiveBody extends StatelessWidget {
 
   String get _formattedRange {
     final start = _displayFmt.format(DateTime.parse(vacation.start!));
-    final end   = _displayFmt.format(DateTime.parse(vacation.end!));
+    final end = _displayFmt.format(DateTime.parse(vacation.end!));
     return '$start – $end';
   }
 
@@ -336,80 +359,86 @@ class _VacationActiveBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(AppSpace.lg),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AppCard(
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: CustomerDetailColors.surface,
+              borderRadius: BorderRadius.circular(CustomerDetailMetrics.sectionCardRadius),
+              border: Border.all(color: CustomerDetailColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF283C28).withValues(alpha: 0.1),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Heading row
-                const Row(
+                Row(
                   children: [
-                    Icon(
-                      Icons.beach_access_outlined,
-                      color: AppColors.primary,
-                      size: 24,
+                    Icon(LucideIcons.plane, color: CustomerDetailColors.accent, size: 22),
+                    const SizedBox(width: 10),
+                    Text(
+                      'On vacation',
+                      style: AppText.cardTitle.copyWith(color: CustomerDetailColors.onSurface),
                     ),
-                    SizedBox(width: AppSpace.sm),
-                    Text('On vacation', style: AppText.cardTitle),
                   ],
                 ),
-                const SizedBox(height: AppSpace.sm),
-
-                // Date range
-                Text(_formattedRange, style: AppText.body),
-                const SizedBox(height: AppSpace.xs),
-
-                // Explanation
+                const SizedBox(height: 10),
+                Text(_formattedRange, style: AppText.body.copyWith(color: CustomerDetailColors.bodyInk)),
+                const SizedBox(height: 4),
                 Text(
                   'Deliveries paused during this period.',
-                  style: AppText.meta.copyWith(color: AppColors.inkMuted),
+                  style: AppText.meta.copyWith(color: CustomerDetailColors.onSurfaceVariant),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppSpace.lg),
-
-          // Cancel vacation button
-          isCancelling
-              ? const Center(child: CircularProgressIndicator())
-              : TextButton(
-                  onPressed: onCancel,
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.danger,
-                  ),
-                  child: const Text('Cancel vacation'),
-                ),
+          const SizedBox(height: 16),
+          CustomerDetailVacationCard(
+            isOnVacation: true,
+            onPauseTap: isCancelling ? () {} : onCancel,
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Error body ────────────────────────────────────────────────────────────────
-
 class _ErrorBody extends StatelessWidget {
   const _ErrorBody({required this.message, required this.onRetry});
-
   final String message;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(message, style: AppText.body, textAlign: TextAlign.center),
-          const SizedBox(height: AppSpace.sm),
-          TextButton(
-            onPressed: onRetry,
-            child: const Text('Retry'),
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.5,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(message, style: AppText.body, textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: CustomerDetailColors.accent),
+                  onPressed: onRetry,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

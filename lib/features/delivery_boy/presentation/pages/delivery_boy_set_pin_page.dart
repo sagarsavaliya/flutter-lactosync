@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/redesign_colors.dart';
+import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/redesign_scaffold.dart';
 import '../providers/delivery_boy_auth_provider.dart';
 
 class DeliveryBoySetPinPage extends ConsumerStatefulWidget {
@@ -54,7 +57,7 @@ class _DeliveryBoySetPinPageState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mapDioError(e).message),
-          backgroundColor: AppColors.danger,
+          backgroundColor: CustomerDetailColors.danger,
         ),
       );
     } finally {
@@ -64,63 +67,38 @@ class _DeliveryBoySetPinPageState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text('Change PIN'),
-        backgroundColor: AppColors.bg,
-        foregroundColor: AppColors.ink,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Enter your current PIN, then your new PIN.',
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              _PinField(
-                controller: _currentCtrl,
-                label: 'Current PIN',
-                onSubmitted: (_) {},
-              ),
-              const SizedBox(height: 16),
-              _PinField(
-                controller: _newCtrl,
-                label: 'New PIN',
-                onSubmitted: (_) {},
-              ),
-              const SizedBox(height: 16),
-              _PinField(
-                controller: _confirmCtrl,
-                label: 'Confirm New PIN',
-                onSubmitted: (_) => _save(),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _loading ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: _loading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Save New PIN',
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
-              ),
-            ],
-          ),
+    return RedesignFormScaffold(
+      title: 'Change PIN',
+      subtitle: 'Enter your current PIN, then your new PIN.',
+      child: RedesignSurfaceCard(
+        padding: const EdgeInsets.all(AppSpace.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _PinField(
+              controller: _currentCtrl,
+              label: 'Current PIN',
+              onSubmitted: (_) {},
+            ),
+            const SizedBox(height: AppSpace.md),
+            _PinField(
+              controller: _newCtrl,
+              label: 'New PIN',
+              onSubmitted: (_) {},
+            ),
+            const SizedBox(height: AppSpace.md),
+            _PinField(
+              controller: _confirmCtrl,
+              label: 'Confirm New PIN',
+              onSubmitted: (_) => _save(),
+            ),
+            const SizedBox(height: AppSpace.lg),
+            AppButton(
+              label: 'Save New PIN',
+              loading: _loading,
+              onPressed: _save,
+            ),
+          ],
         ),
       ),
     );
@@ -151,16 +129,17 @@ class _PinFieldState extends State<_PinField> {
       keyboardType: TextInputType.number,
       obscureText: _obscure,
       maxLength: 4,
+      style: Theme.of(context).textTheme.bodyMedium,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       onSubmitted: widget.onSubmitted,
       decoration: InputDecoration(
         labelText: widget.label,
         prefixIcon: const Icon(Icons.lock_outline),
-        border: const OutlineInputBorder(),
         counterText: '',
         suffixIcon: IconButton(
           icon: Icon(
-              _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+            _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          ),
           onPressed: () => setState(() => _obscure = !_obscure),
         ),
       ),

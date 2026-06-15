@@ -4,7 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/redesign_colors.dart';
+import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/redesign_scaffold.dart';
 import '../providers/delivery_boy_auth_provider.dart';
 
 class DeliveryBoyLoginPage extends ConsumerStatefulWidget {
@@ -44,7 +49,7 @@ class _DeliveryBoyLoginPageState extends ConsumerState<DeliveryBoyLoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mapDioError(e).message),
-          backgroundColor: AppColors.danger,
+          backgroundColor: CustomerDetailColors.danger,
         ),
       );
     } finally {
@@ -58,93 +63,94 @@ class _DeliveryBoyLoginPageState extends ConsumerState<DeliveryBoyLoginPage> {
         _pinCtrl.text.trim().length == 4 &&
         !_loading;
 
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+    return RedesignFormScaffold(
+      scrollable: true,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 88,
+              height: 88,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: CustomerDetailColors.accentLight,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: CustomerDetailColors.accentBorder),
+              ),
+              child: const Icon(
+                Icons.delivery_dining_rounded,
+                size: 44,
+                color: CustomerDetailColors.accent,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpace.lg),
+          Text(
+            'Delivery Boy Login',
+            textAlign: TextAlign.center,
+            style: AppText.screenTitle.copyWith(
+              fontSize: 24,
+              color: CustomerDetailColors.onSurface,
+            ),
+          ),
+          const SizedBox(height: AppSpace.xs),
+          Text(
+            'Enter your phone number and 4-digit PIN',
+            textAlign: TextAlign.center,
+            style: AppText.body.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: AppSpace.xl),
+          RedesignSurfaceCard(
+            padding: const EdgeInsets.all(AppSpace.lg),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.delivery_dining,
-                    size: 72, color: AppColors.primary),
-                const SizedBox(height: 16),
-                const Text(
-                  'Delivery Boy Login',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Enter your phone number and 4-digit PIN',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 32),
-                TextField(
+                AppTextField(
+                  label: 'Phone Number',
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
+                  prefixIcon: Icons.phone_outlined,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                    border: OutlineInputBorder(),
-                  ),
                 ),
-                const SizedBox(height: 16),
-                TextField(
+                const SizedBox(height: AppSpace.md),
+                AppTextField(
+                  label: '4-Digit PIN',
                   controller: _pinCtrl,
                   keyboardType: TextInputType.number,
                   obscureText: _obscurePin,
-                  maxLength: 4,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  prefixIcon: Icons.lock_outline,
+                  suffixIcon: _obscurePin
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  onSuffixTap: () => setState(() => _obscurePin = !_obscurePin),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
+                  ],
                   onChanged: (_) => setState(() {}),
-                  onSubmitted: (_) => canSubmit ? _login() : null,
-                  decoration: InputDecoration(
-                    labelText: '4-Digit PIN',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    border: const OutlineInputBorder(),
-                    counterText: '',
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePin
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined),
-                      onPressed: () =>
-                          setState(() => _obscurePin = !_obscurePin),
-                    ),
-                  ),
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton(
+                const SizedBox(height: AppSpace.lg),
+                AppButton(
+                  label: 'Login',
+                  loading: _loading,
                   onPressed: canSubmit ? _login : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    minimumSize: const Size.fromHeight(50),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Login',
-                          style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
-                const SizedBox(height: 24),
-                TextButton(
-                  onPressed: () => context.go('/sign-in'),
-                  child: const Text('Not a delivery boy? Owner login →'),
                 ),
               ],
             ),
           ),
-        ),
+          const SizedBox(height: AppSpace.lg),
+          TextButton(
+            onPressed: () => context.go('/sign-in'),
+            child: Text(
+              'Not a delivery boy? Owner login →',
+              style: AppText.label.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+            ),
+          ),
+        ],
       ),
     );
   }

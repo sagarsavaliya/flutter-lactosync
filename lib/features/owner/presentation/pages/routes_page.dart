@@ -138,6 +138,7 @@ class _RoutesPageState extends ConsumerState<RoutesPage>
                     route: route,
                     onRefresh: () => ref.invalidate(deliveryRoutesProvider),
                     onEdit: () => _showEditSheet(route),
+                    onDelete: () => _confirmDeleteRoute(route),
                   ),
                 ),
               Padding(
@@ -159,6 +160,35 @@ class _RoutesPageState extends ConsumerState<RoutesPage>
       builder: (_) => _RouteSheet(existing: route),
     );
     ref.invalidate(deliveryRoutesProvider);
+  }
+
+  Future<void> _confirmDeleteRoute(DeliveryRouteModel route) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete route?'),
+        content: Text(
+          'Remove "${route.name}" and unassign all customers from this route?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await deleteDeliveryRoute(ref, route.id);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(mapDioError(e).message)),
+      );
+    }
   }
 }
 
@@ -201,11 +231,13 @@ class _RouteCard extends StatefulWidget {
     required this.route,
     required this.onRefresh,
     required this.onEdit,
+    required this.onDelete,
   });
 
   final DeliveryRouteModel route;
   final VoidCallback onRefresh;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   State<_RouteCard> createState() => _RouteCardState();
@@ -213,12 +245,6 @@ class _RouteCard extends StatefulWidget {
 
 class _RouteCardState extends State<_RouteCard> {
   bool _expanded = false;
-
-  String get _windowLabel {
-    final shift = widget.route.shift;
-    if (shift.isEmpty) return '';
-    return shift[0].toUpperCase() + shift.substring(1);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -343,6 +369,15 @@ class _RouteCardState extends State<_RouteCard> {
                         ),
                       ),
                       InkWell(
+                        onTap: widget.onDelete,
+                        borderRadius: BorderRadius.circular(8),
+                        child: const Padding(
+                          padding: EdgeInsets.all(6),
+                          child: Icon(Icons.delete_outline,
+                              size: 20, color: Color(0xFF6E7A6C)),
+                        ),
+                      ),
+                      InkWell(
                         onTap: () => setState(() => _expanded = !_expanded),
                         borderRadius: BorderRadius.circular(8),
                         child: Padding(
@@ -374,7 +409,7 @@ class _RouteCardState extends State<_RouteCard> {
                   child: RouteStatBoxes(
                     stops: route.customerCount,
                     liters: route.totalLiters,
-                    windowLabel: _windowLabel,
+                    offCount: route.offCount,
                   ),
                 ),
               ),
@@ -550,54 +585,112 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
         child: ListView(
           controller: controller,
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Center(
               child: Container(
-                width: 40,
+                width: 38,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: const Color(0xFFDCE1D6),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
               isEdit ? 'Edit Route' : 'New Route',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: AppText.screenTitle.copyWith(
+                fontSize: 20,
+                color: const Color(0xFF1E2A1E),
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 6),
+            Text(
+              isEdit ? 'Update the route name or shift.' : 'Create a new delivery route.',
+              style: AppText.body.copyWith(color: const Color(0xFF8C938A)),
+            ),
+            const SizedBox(height: 24),
             TextField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Route Name *'),
+              style: AppText.body.copyWith(
+                color: const Color(0xFF1E2A1E),
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: InputDecoration(
+                labelText: 'Route Name',
+                hintText: 'e.g. Punitnagar Road',
+                filled: true,
+                fillColor: const Color(0xFFF6F8F1),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFECEFE5)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFECEFE5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF2E6E45), width: 1.5),
+                ),
+                labelStyle: AppText.meta.copyWith(color: const Color(0xFF8C938A)),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             DropdownButtonFormField<String>(
-              initialValue: _shift,
-              decoration: const InputDecoration(labelText: 'Shift'),
+              value: _shift,
+              decoration: InputDecoration(
+                labelText: 'Shift',
+                filled: true,
+                fillColor: const Color(0xFFF6F8F1),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFECEFE5)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFECEFE5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF2E6E45), width: 1.5),
+                ),
+                labelStyle: AppText.meta.copyWith(color: const Color(0xFF8C938A)),
+              ),
               items: const [
                 DropdownMenuItem(value: 'morning', child: Text('Morning')),
                 DropdownMenuItem(value: 'evening', child: Text('Evening')),
               ],
               onChanged: (v) => setState(() => _shift = v!),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
+            const SizedBox(height: 28),
+            FilledButton(
               onPressed: _saving ? null : _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: DashboardColors.primary,
-                minimumSize: const Size.fromHeight(48),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF2E6E45),
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: _saving
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : Text(isEdit ? 'Save Changes' : 'Create Route',
-                      style: const TextStyle(color: Colors.white)),
+                  : Text(
+                      isEdit ? 'Save Changes' : 'Create Route',
+                      style: AppText.body.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
+            const SizedBox(height: 8),
           ],
         ),
       ),

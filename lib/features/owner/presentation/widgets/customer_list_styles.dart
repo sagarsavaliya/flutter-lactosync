@@ -149,6 +149,155 @@ class CustomersSearchSortRow extends StatelessWidget {
   }
 }
 
+class CustomersShiftSummaryCards extends StatelessWidget {
+  const CustomersShiftSummaryCards({
+    super.key,
+    required this.morning,
+    required this.evening,
+  });
+
+  final ShiftCountBreakdown? morning;
+  final ShiftCountBreakdown? evening;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 2, 0, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _ShiftSummaryCard(
+              title: 'Morning',
+              icon: Icons.wb_sunny_rounded,
+              iconColor: const Color(0xFFE89A2E),
+              active: morning?.active ?? 0,
+              inactive: morning?.inactive ?? 0,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _ShiftSummaryCard(
+              title: 'Evening',
+              icon: Icons.nights_stay_rounded,
+              iconColor: const Color(0xFF5C6BC0),
+              active: evening?.active ?? 0,
+              inactive: evening?.inactive ?? 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShiftSummaryCard extends StatelessWidget {
+  const _ShiftSummaryCard({
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+    required this.active,
+    required this.inactive,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  final int active;
+  final int inactive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: CustomerListColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF283C28).withValues(alpha: 0.18),
+            blurRadius: 14,
+            spreadRadius: -10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 15, color: iconColor),
+              const SizedBox(width: 7),
+              Text(
+                title,
+                style: AppText.meta.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: CustomerListColors.nameInk,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _ShiftStat(value: active, label: 'active', valueColor: CustomerListColors.accent),
+              const SizedBox(width: 12),
+              Container(width: 1, height: 16, color: CustomerListColors.searchBorder),
+              const SizedBox(width: 12),
+              _ShiftStat(value: inactive, label: 'inactive', valueColor: CustomerListColors.inactiveOrange),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShiftStat extends StatelessWidget {
+  const _ShiftStat({
+    required this.value,
+    required this.label,
+    required this.valueColor,
+  });
+
+  final int value;
+  final String label;
+  final Color valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      textBaseline: TextBaseline.alphabetic,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      children: [
+        Text(
+          '$value',
+          style: AppText.cardTitle.copyWith(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: valueColor,
+            height: 1,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: AppText.meta.copyWith(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: CustomerListColors.summaryMuted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class CustomersStatusStrip extends StatelessWidget {
   const CustomersStatusStrip({
     super.key,

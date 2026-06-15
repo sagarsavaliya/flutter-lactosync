@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../domain/entities/owner_models.dart';
-import 'owner_form_theme.dart';
-import 'owner_shared_widgets.dart';
+import 'customer_detail/customer_detail_styles.dart';
+import 'customer_list_styles.dart';
+import 'owner_screen_widgets.dart';
 
 class KpiStatCard extends StatelessWidget {
   const KpiStatCard({
@@ -28,7 +28,7 @@ class KpiStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = color ?? Theme.of(context).colorScheme.primary;
+    final accent = color ?? CustomerDetailColors.accent;
 
     return AppCard(
       child: Row(
@@ -62,6 +62,8 @@ class OrderListTile extends StatelessWidget {
     required this.isSkipped,
     required this.onQtyChanged,
     required this.onSkip,
+    this.onUndo,
+    this.dotColor,
   });
 
   final String customerName;
@@ -71,89 +73,88 @@ class OrderListTile extends StatelessWidget {
   final bool isSkipped;
   final ValueChanged<double> onQtyChanged;
   final VoidCallback onSkip;
+  final VoidCallback? onUndo;
+  final Color? dotColor;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final borderColor = OwnerFormTheme.borderColor;
-    final dropdownValue = isSkipped ? kMilkQtyOptions.first : nearestMilkQty(quantity);
+    final dot = dotColor ?? milkTypeDotColor(productName);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpace.sm),
-      child: AppCard(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpace.md, vertical: AppSpace.sm),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      customerName,
-                      style: AppText.cardTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: ownerWhiteCardDecoration(),
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    customerName,
+                    style: AppText.cardTitle.copyWith(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: CustomerDetailColors.onSurface,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '$productName · $shiftLabel',
-                      style: AppText.meta.copyWith(color: inkMuted),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$productName · $shiftLabel',
+                    style: AppText.meta.copyWith(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: CustomerDetailColors.labelMuted,
                     ),
-                  ],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (isSkipped) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                decoration: BoxDecoration(
+                  color: CustomerListColors.inactiveBadgeBg,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Text(
+                  AppStrings.ordersSkipped,
+                  style: AppText.meta.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: CustomerListColors.inactiveOrange,
+                  ),
                 ),
               ),
-              const SizedBox(width: AppSpace.sm),
-              if (isSkipped)
-                Text(AppStrings.ordersSkipped, style: AppText.meta.copyWith(color: inkMuted))
-              else
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 76,
-                      height: kOwnerCompactActionHeight,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: borderColor),
-                          color: Colors.white,
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<double>(
-                            value: dropdownValue,
-                            isExpanded: true,
-                            isDense: true,
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpace.xs),
-                            items: kMilkQtyOptions
-                                .map(
-                                  (q) => DropdownMenuItem(
-                                    value: q,
-                                    child: Text(milkQtyLabel(q), style: AppText.meta),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) onQtyChanged(v);
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpace.sm),
-                    OwnerOutlineButton(
-                      label: AppStrings.ordersSkip,
-                      onPressed: onSkip,
-                    ),
-                  ],
-                ),
+              const SizedBox(width: 7),
+              OwnerIconActionButton(
+                icon: LucideIcons.rotateCcw,
+                onTap: onUndo,
+                background: CustomerDetailColors.surface,
+                border: CustomerListColors.searchBorder,
+                iconColor: CustomerDetailColors.accent,
+              ),
+            ] else ...[
+              OwnerQtyStepper(quantity: quantity, onChanged: onQtyChanged),
+              const SizedBox(width: 7),
+              OwnerIconActionButton(
+                icon: LucideIcons.skipForward,
+                onTap: onSkip,
+                iconColor: CustomerDetailColors.labelMuted,
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -165,88 +166,188 @@ class InvoiceListTile extends StatelessWidget {
     super.key,
     required this.invoice,
     this.onTap,
+    this.onSend,
+    this.sending = false,
   });
 
   final OwnerInvoice invoice;
   final VoidCallback? onTap;
+  final VoidCallback? onSend;
+  final bool sending;
+
+  ({Color bar, Color badgeBg, Color badgeFg, Color badgeBorder, Color outColor}) _colors() {
+    return switch (invoice.status) {
+      'paid' => (
+          bar: CustomerDetailColors.success,
+          badgeBg: CustomerDetailColors.successBg,
+          badgeFg: CustomerDetailColors.successInk,
+          badgeBorder: CustomerDetailColors.rateChipBorder,
+          outColor: CustomerDetailColors.successInk,
+        ),
+      'partial' => (
+          bar: CustomerListColors.inactiveDot,
+          badgeBg: CustomerDetailColors.morningChipBg,
+          badgeFg: CustomerDetailColors.morningChipInk,
+          badgeBorder: CustomerDetailColors.morningChipBorder,
+          outColor: CustomerDetailColors.danger,
+        ),
+      _ => (
+          bar: CustomerDetailColors.accentBorder,
+          badgeBg: CustomerDetailColors.accentLight,
+          badgeFg: CustomerDetailColors.accent,
+          badgeBorder: CustomerDetailColors.accentBorder,
+          outColor: CustomerDetailColors.danger,
+        ),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final color = switch (invoice.status) {
-      'paid' => AppColors.success,
-      'partial' => Theme.of(context).colorScheme.primary,
-      _ => AppColors.danger,
-    };
+    final colors = _colors();
+    final outLabel = invoice.balanceDue <= 0
+        ? 'Settled'
+        : '₹${formatOwnerCurrency(invoice.balanceDue)} due';
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpace.sm),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: color.withValues(alpha: isDark ? 0.12 : 0.06),
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        color: CustomerDetailColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.md),
           child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: color.withValues(alpha: 0.4)),
+              border: Border.all(color: CustomerDetailColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF283C28).withValues(alpha: 0.2),
+                  blurRadius: 12,
+                  spreadRadius: -10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            padding: const EdgeInsets.all(AppSpace.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 4, color: colors.bar),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            invoice.customerName,
-                            style: AppText.cardTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  invoice.customerName,
+                                  style: AppText.cardTitle.copyWith(
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: CustomerDetailColors.onSurface,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                '₹${formatOwnerCurrency(invoice.totalAmount)}',
+                                style: AppText.cardTitle.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: CustomerDetailColors.onSurface,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            invoice.invoiceNumber,
-                            style: AppText.meta.copyWith(color: inkMuted),
+                          const SizedBox(height: 5),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: colors.badgeBg,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        invoice.statusLabel,
+                                        style: AppText.meta.copyWith(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          color: colors.badgeFg,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Flexible(
+                                      child: Text(
+                                        invoice.invoiceNumber,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppText.meta.copyWith(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: CustomerDetailColors.iconMuted,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                outLabel,
+                                style: AppText.body.copyWith(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: colors.outColor,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Material(
+                                color: CustomerDetailColors.accentLight,
+                                borderRadius: BorderRadius.circular(8),
+                                child: InkWell(
+                                  onTap: sending ? null : onSend,
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: CustomerDetailColors.accentBorder),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: sending
+                                        ? const SizedBox(
+                                            width: 12,
+                                            height: 12,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          )
+                                        : const Icon(
+                                            LucideIcons.send,
+                                            size: 14,
+                                            color: CustomerDetailColors.accent,
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                    Text(
-                      invoice.statusLabel,
-                      style: AppText.label.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpace.sm),
-                ThreeColumnAmountGrid(
-                  columns: [
-                    AmountGridColumn(
-                      label: AppStrings.billingTotalBilled,
-                      value: invoice.totalAmount,
-                      valueColor: Theme.of(context).colorScheme.primary,
-                    ),
-                    AmountGridColumn(
-                      label: AppStrings.billingCollected,
-                      value: invoice.amountPaid,
-                      valueColor: AppColors.success,
-                    ),
-                    AmountGridColumn(
-                      label: AppStrings.billingOutstanding,
-                      value: invoice.balanceDue,
-                      valueColor: AppColors.danger,
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -261,63 +362,125 @@ class PaymentListTile extends StatelessWidget {
   final OwnerPayment payment;
   final bool compact;
 
+  ({Color bg, Color fg}) _methodColors() {
+    return switch (payment.paymentMethod) {
+      'cash' => (bg: CustomerDetailColors.successBg, fg: CustomerDetailColors.successInk),
+      'upi' => (bg: CustomerDetailColors.accentLight, fg: CustomerDetailColors.accent),
+      'bank_transfer' => (bg: CustomerDetailColors.morningChipBg, fg: CustomerDetailColors.morningChipInk),
+      _ => (bg: CustomerDetailColors.statBg, fg: CustomerDetailColors.bodyInk),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final borderColor = OwnerFormTheme.borderColor;
-    final isCash = payment.paymentMethod == 'cash';
-    final methodLine = isCash && payment.handedTo != null && payment.handedTo!.isNotEmpty
-        ? '${payment.paymentMethodLabel} · ${payment.handedTo}'
-        : payment.paymentMethodLabel;
-    final padding = compact ? AppSpace.sm : AppSpace.md;
+    final methodColors = _methodColors();
+    final initials = customerInitials(payment.customerName);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpace.sm),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: borderColor),
-          color: AppColors.success.withValues(alpha: isDark ? 0.08 : 0.04),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(padding),
-          child: Column(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: Text(payment.customerName, style: AppText.cardTitle)),
-                  Text(payment.paymentDate, style: AppText.meta.copyWith(color: inkMuted)),
-                ],
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Container(
+        padding: EdgeInsets.all(compact ? 11 : 13),
+        decoration: ownerWhiteCardDecoration(),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: CustomerDetailColors.avatarBg,
+                borderRadius: BorderRadius.circular(13),
               ),
-              const SizedBox(height: AppSpace.xxs),
-              Row(
+              child: Text(
+                initials,
+                style: AppText.cardTitle.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: CustomerDetailColors.accent,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      payment.invoiceNumber ?? '—',
-                      style: AppText.meta.copyWith(color: inkMuted),
+                  Text(
+                    payment.customerName,
+                    style: AppText.cardTitle.copyWith(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: CustomerDetailColors.onSurface,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  const SizedBox(height: 3),
+                  Row(
                     children: [
-                      Text(
-                        '₹${payment.amount.toStringAsFixed(0)}',
-                        style: AppText.cardTitle.copyWith(
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w700,
+                      Flexible(
+                        child: Text(
+                          payment.invoiceNumber ?? '—',
+                          style: AppText.meta.copyWith(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: CustomerDetailColors.iconMuted,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Text(methodLine, style: AppText.meta.copyWith(color: inkMuted)),
+                      Container(
+                        width: 3,
+                        height: 3,
+                        margin: const EdgeInsets.symmetric(horizontal: 7),
+                        decoration: const BoxDecoration(
+                          color: CustomerListColors.indexInk,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Text(
+                        payment.paymentDate,
+                        style: AppText.meta.copyWith(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: CustomerDetailColors.iconMuted,
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '₹${formatOwnerCurrency(payment.amount)}',
+                  style: AppText.cardTitle.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: CustomerDetailColors.successInk,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: methodColors.bg,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: Text(
+                    payment.paymentMethodLabel,
+                    style: AppText.meta.copyWith(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      color: methodColors.fg,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

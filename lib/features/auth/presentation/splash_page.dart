@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_strings.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/redesign_colors.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../customer/presentation/providers/customer_auth_provider.dart';
 import '../../delivery_boy/presentation/providers/delivery_boy_auth_provider.dart';
@@ -30,7 +30,6 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   Future<void> _bootstrap() async {
     await Future<void>.delayed(const Duration(milliseconds: 900));
 
-    // Check owner session first (owners take priority on this device).
     final session = await ref.read(authRepositoryProvider).readStoredSession();
     if (!mounted) return;
 
@@ -43,7 +42,6 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       return;
     }
 
-    // No owner session — check for a delivery boy session.
     final isDeliveryBoyLoggedIn =
         ref.read(deliveryBoyAuthRepositoryProvider).isLoggedIn;
     if (!mounted) return;
@@ -53,7 +51,6 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       return;
     }
 
-    // No delivery boy session — check for a customer session.
     final isCustomerLoggedIn =
         await ref.read(customerAuthRepositoryProvider).isLoggedIn;
     if (!mounted) return;
@@ -68,11 +65,8 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final ink = isDark ? AppColors.darkInk : AppColors.ink;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-
     return Scaffold(
+      backgroundColor: CustomerDetailColors.background,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -80,30 +74,52 @@ class _SplashPageState extends ConsumerState<SplashPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/branding/app_icon.png',
-                  width: 88,
-                  height: 88,
-                  errorBuilder: (_, __, ___) => const AppLogo(size: 56),
+                Container(
+                  width: 96,
+                  height: 96,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: CustomerDetailColors.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: CustomerDetailColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: CustomerDetailColors.accent.withValues(alpha: 0.12),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Image.asset(
+                    'assets/branding/app_icon.png',
+                    width: 64,
+                    height: 64,
+                    errorBuilder: (_, __, ___) => const AppLogo(size: 48),
+                  ),
                 ),
                 const SizedBox(height: AppSpace.md),
                 Text(
                   AppStrings.appName,
-                  style: AppText.screenTitle.copyWith(color: ink, fontSize: 20),
+                  style: AppText.screenTitle.copyWith(
+                    color: CustomerDetailColors.accent,
+                    fontSize: 22,
+                  ),
                 ),
                 const SizedBox(height: AppSpace.xs),
                 Text(
                   AppStrings.appTagline,
                   textAlign: TextAlign.center,
-                  style: AppText.body.copyWith(color: inkMuted),
+                  style: AppText.body.copyWith(
+                    color: CustomerDetailColors.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: AppSpace.xl),
-                SizedBox(
+                const SizedBox(
                   width: 22,
                   height: 22,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: isDark ? AppColors.darkPrimary : AppColors.primary,
+                    color: CustomerDetailColors.accent,
                   ),
                 ),
               ],

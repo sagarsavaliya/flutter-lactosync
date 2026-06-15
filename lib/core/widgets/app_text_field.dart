@@ -14,6 +14,8 @@ class AppTextField extends StatelessWidget {
     this.initialValue,
     this.errorText,
     this.prefixIcon,
+    this.prefixText,
+    this.labelTrailing,
     this.suffixIcon,
     this.suffixText,
     this.onSuffixTap,
@@ -33,6 +35,8 @@ class AppTextField extends StatelessWidget {
   final String? initialValue;
   final String? errorText;
   final IconData? prefixIcon;
+  final String? prefixText;
+  final Widget? labelTrailing;
   final IconData? suffixIcon;
   final String? suffixText;
   final VoidCallback? onSuffixTap;
@@ -52,7 +56,15 @@ class AppTextField extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showLabel) ...[
-          Text(label, style: AppText.label.copyWith(color: AppColors.inkMuted)),
+          Row(
+            children: [
+              Text(label, style: AppText.label.copyWith(color: AppColors.inkMuted)),
+              if (labelTrailing != null) ...[
+                const Spacer(),
+                labelTrailing!,
+              ],
+            ],
+          ),
           const SizedBox(height: AppSpace.xs),
         ],
         TextFormField(
@@ -70,6 +82,7 @@ class AppTextField extends StatelessWidget {
             hintText: hint,
             errorText: errorText,
             prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+            prefixText: prefixText,
             suffixIcon: suffixText != null
                 ? Padding(
                     padding: const EdgeInsets.only(right: AppSpace.sm),

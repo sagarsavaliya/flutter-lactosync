@@ -4,18 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/redesign_scaffold.dart';
+import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
 import '../providers/customer_auth_provider.dart';
 
-/// Two-stage OTP screen:
-/// Stage 1 — Enter mobile number → POST send-otp
-/// Stage 2 — Enter OTP code → POST verify-otp → navigate to set-pin
 class CustomerOtpPage extends ConsumerStatefulWidget {
   const CustomerOtpPage({
     super.key,
@@ -23,10 +21,7 @@ class CustomerOtpPage extends ConsumerStatefulWidget {
     required this.reason,
   });
 
-  /// Pre-filled mobile number (may be empty if coming from a direct link).
   final String initialContact;
-
-  /// 'first_time' or 'forgot' — used for display copy only.
   final String reason;
 
   @override
@@ -34,19 +29,16 @@ class CustomerOtpPage extends ConsumerStatefulWidget {
 }
 
 class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
-  // ── Stage 1: Send OTP ────────────────────────────────────────────────────
   final _mobileController = TextEditingController();
   String? _mobileError;
   bool _sendLoading = false;
 
-  // ── Stage 2: Verify OTP ─────────────────────────────────────────────────
   bool _otpSent = false;
   String _sentToContact = '';
   final _otpController = TextEditingController();
   String? _otpError;
   bool _verifyLoading = false;
 
-  // ── Resend countdown ────────────────────────────────────────────────────
   static const _resendSeconds = 30;
   int _countdown = _resendSeconds;
   Timer? _timer;
@@ -64,8 +56,6 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
     _timer?.cancel();
     super.dispose();
   }
-
-  // ── Countdown helpers ────────────────────────────────────────────────────
 
   void _startCountdown() {
     _timer?.cancel();
@@ -91,8 +81,6 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
-  // ── Stage 1: Send OTP ───────────────────────────────────────────────────
-
   Future<void> _sendOtp() async {
     final contact = _mobileController.text.trim();
     if (contact.isEmpty || contact.length != 10) {
@@ -104,9 +92,7 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
       _sendLoading = true;
     });
     try {
-      await ref
-          .read(customerAuthRepositoryProvider)
-          .sendOtp(contact);
+      await ref.read(customerAuthRepositoryProvider).sendOtp(contact);
       if (!mounted) return;
       setState(() {
         _otpSent = true;
@@ -118,15 +104,13 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mapDioError(e).message),
-          backgroundColor: AppColors.danger,
+          backgroundColor: CustomerDetailColors.danger,
         ),
       );
     } finally {
       if (mounted) setState(() => _sendLoading = false);
     }
   }
-
-  // ── Stage 2: Verify OTP ─────────────────────────────────────────────────
 
   Future<void> _verifyOtp() async {
     final otp = _otpController.text.trim();
@@ -143,20 +127,15 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
       _verifyLoading = true;
     });
     try {
-      await ref
-          .read(customerAuthRepositoryProvider)
-          .verifyOtp(_sentToContact, otp);
+      await ref.read(customerAuthRepositoryProvider).verifyOtp(_sentToContact, otp);
       if (!mounted) return;
-      context.push(
-        '/customer/set-pin',
-        extra: {'contact': _sentToContact},
-      );
+      context.push('/customer/set-pin', extra: {'contact': _sentToContact});
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mapDioError(e).message),
-          backgroundColor: AppColors.danger,
+          backgroundColor: CustomerDetailColors.danger,
         ),
       );
     } finally {
@@ -166,9 +145,7 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
 
   Future<void> _resendOtp() async {
     try {
-      await ref
-          .read(customerAuthRepositoryProvider)
-          .sendOtp(_sentToContact);
+      await ref.read(customerAuthRepositoryProvider).sendOtp(_sentToContact);
       if (!mounted) return;
       _startCountdown();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -179,13 +156,11 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mapDioError(e).message),
-          backgroundColor: AppColors.danger,
+          backgroundColor: CustomerDetailColors.danger,
         ),
       );
     }
   }
-
-  // ── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -193,175 +168,161 @@ class _CustomerOtpPageState extends ConsumerState<CustomerOtpPage> {
   }
 
   Widget _buildSendStage(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final ink = isDark ? AppColors.darkInk : AppColors.ink;
     final isForgot = widget.reason == 'forgot';
 
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpace.lg),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: AppSpace.xxl),
-                    Center(
-                      child: Icon(
-                        Icons.message_outlined,
-                        size: 56,
-                        color: primary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpace.md),
-                    Text(
-                      'Verify with OTP',
-                      textAlign: TextAlign.center,
-                      style: AppText.screenTitle.copyWith(color: ink),
-                    ),
-                    const SizedBox(height: AppSpace.xs),
-                    Text(
-                      "We'll send a 6-digit code on WhatsApp",
-                      textAlign: TextAlign.center,
-                      style: AppText.body.copyWith(color: inkMuted),
-                    ),
-                    const SizedBox(height: AppSpace.xxl),
-                    AppTextField(
-                      label: 'Mobile number',
-                      hint: '10-digit number',
-                      controller: _mobileController,
-                      keyboardType: TextInputType.phone,
-                      prefixIcon: Icons.phone_android_outlined,
-                      errorText: _mobileError,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(10),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.md),
-                    AppButton(
-                      label: 'Send OTP',
-                      loading: _sendLoading,
-                      onPressed: _sendOtp,
-                    ),
-                    const SizedBox(height: AppSpace.sm),
-                    if (isForgot)
-                      Center(
-                        child: TextButton(
-                          onPressed: () => context.pop(),
-                          child: Text(
-                            'Back to sign in',
-                            style: AppText.label.copyWith(color: primary),
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: AppSpace.lg),
+    return RedesignFormScaffold(
+      scrollable: true,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 16),
+          _AuthHeroIcon(icon: LucideIcons.messageCircle),
+          const SizedBox(height: 20),
+          Text(
+            'Verify with OTP',
+            textAlign: TextAlign.center,
+            style: AppText.screenTitle.copyWith(color: CustomerDetailColors.onSurface),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "We'll send a 6-digit code on WhatsApp",
+            textAlign: TextAlign.center,
+            style: AppText.body.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 40),
+          RedesignSurfaceCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                AppTextField(
+                  label: 'Mobile number',
+                  hint: '10-digit number',
+                  controller: _mobileController,
+                  keyboardType: TextInputType.phone,
+                  prefixIcon: LucideIcons.smartphone,
+                  errorText: _mobileError,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
                   ],
                 ),
+                const SizedBox(height: 16),
+                AppButton(label: 'Send OTP', loading: _sendLoading, onPressed: _sendOtp),
+              ],
+            ),
+          ),
+          if (isForgot) ...[
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton(
+                onPressed: () => context.pop(),
+                child: Text(
+                  'Back to sign in',
+                  style: AppText.label.copyWith(color: CustomerDetailColors.accent),
+                ),
               ),
-            );
-          },
-        ),
+            ),
+          ],
+        ],
       ),
     );
   }
 
   Widget _buildVerifyStage(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final inkMuted = isDark ? AppColors.darkInkMuted : AppColors.inkMuted;
-    final inkFaint = isDark ? AppColors.darkInkFaint : AppColors.inkFaint;
-    final ink = isDark ? AppColors.darkInk : AppColors.ink;
     final canResend = _countdown == 0;
 
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpace.lg),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: AppSpace.xxl),
-                    Center(
-                      child: Icon(
-                        Icons.lock_open_outlined,
-                        size: 56,
-                        color: primary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpace.md),
-                    Text(
-                      'Enter OTP',
-                      textAlign: TextAlign.center,
-                      style: AppText.screenTitle.copyWith(color: ink),
-                    ),
-                    const SizedBox(height: AppSpace.xs),
-                    Text(
-                      'Check WhatsApp for the 6-digit code sent to\n$_sentToContact',
-                      textAlign: TextAlign.center,
-                      style: AppText.body.copyWith(color: inkMuted),
-                    ),
-                    const SizedBox(height: AppSpace.xxl),
-                    AppTextField(
-                      label: 'OTP',
-                      hint: '6 digits',
-                      controller: _otpController,
-                      keyboardType: TextInputType.number,
-                      prefixIcon: Icons.sms_outlined,
-                      errorText: _otpError,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(6),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.md),
-                    AppButton(
-                      label: 'Verify OTP',
-                      loading: _verifyLoading,
-                      onPressed: _verifyOtp,
-                    ),
-                    const SizedBox(height: AppSpace.md),
-                    Row(
-                      children: [
-                        Text(
-                          canResend
-                              ? 'Resend OTP'
-                              : 'Resend OTP in ${_formatCountdown(_countdown)}',
-                          style: AppText.meta.copyWith(color: inkMuted),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: canResend ? _resendOtp : null,
-                          style: TextButton.styleFrom(
-                            foregroundColor:
-                                canResend ? primary : inkFaint,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpace.sm,
-                              vertical: AppSpace.xxs,
-                            ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text('Resend'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.lg),
+    return RedesignFormScaffold(
+      scrollable: true,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 16),
+          _AuthHeroIcon(icon: LucideIcons.unlock),
+          const SizedBox(height: 20),
+          Text(
+            'Enter OTP',
+            textAlign: TextAlign.center,
+            style: AppText.screenTitle.copyWith(color: CustomerDetailColors.onSurface),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Check WhatsApp for the 6-digit code sent to\n$_sentToContact',
+            textAlign: TextAlign.center,
+            style: AppText.body.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 40),
+          RedesignSurfaceCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                AppTextField(
+                  label: 'OTP',
+                  hint: '6 digits',
+                  controller: _otpController,
+                  keyboardType: TextInputType.number,
+                  prefixIcon: LucideIcons.messageSquare,
+                  errorText: _otpError,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
                   ],
                 ),
-              ),
-            );
-          },
+                const SizedBox(height: 16),
+                AppButton(
+                  label: 'Verify OTP',
+                  loading: _verifyLoading,
+                  onPressed: _verifyOtp,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text(
+                      canResend
+                          ? 'Resend OTP'
+                          : 'Resend OTP in ${_formatCountdown(_countdown)}',
+                      style: AppText.meta.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: canResend ? _resendOtp : null,
+                      child: Text(
+                        'Resend',
+                        style: AppText.label.copyWith(
+                          color: canResend
+                              ? CustomerDetailColors.accent
+                              : CustomerDetailColors.labelMuted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuthHeroIcon extends StatelessWidget {
+  const _AuthHeroIcon({required this.icon});
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          color: CustomerDetailColors.accentLight,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: CustomerDetailColors.accentBorder),
         ),
+        child: Icon(icon, size: 36, color: CustomerDetailColors.accent),
       ),
     );
   }

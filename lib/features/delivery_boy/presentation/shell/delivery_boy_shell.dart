@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/redesign_colors.dart';
+import '../../../owner/presentation/widgets/dashboard/dashboard_styles.dart';
 
 class DeliveryBoyShell extends StatelessWidget {
   const DeliveryBoyShell({super.key, required this.child});
   final Widget child;
 
   static const _tabs = [
-    _Tab(path: '/delivery-boy/home', icon: Icons.home_rounded, label: 'Home'),
-    _Tab(path: '/delivery-boy/route-sheet', icon: Icons.route_rounded, label: 'Route Sheet'),
+    _Tab(path: '/delivery-boy/home', icon: LucideIcons.home, label: 'Home'),
+    _Tab(
+      path: '/delivery-boy/route-sheet',
+      icon: LucideIcons.map,
+      label: 'Route Sheet',
+    ),
   ];
 
   int _indexFromLocation(String location) {
@@ -25,18 +31,16 @@ class DeliveryBoyShell extends StatelessWidget {
     final index = _indexFromLocation(location);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: CustomerDetailColors.background,
       body: child,
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
+          color: DashboardColors.surface,
+          border: Border(
+            top: BorderSide(
+              color: DashboardColors.outlineVariant.withValues(alpha: 0.3),
             ),
-          ],
+          ),
         ),
         child: SafeArea(
           top: false,
@@ -84,8 +88,8 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected
-        ? AppColors.primary
-        : AppColors.inkMuted.withValues(alpha: 0.6);
+        ? DashboardColors.primary
+        : DashboardColors.onSurfaceVariant.withValues(alpha: 0.6);
 
     return InkWell(
       onTap: onTap,
@@ -97,15 +101,7 @@ class _NavItem extends StatelessWidget {
           children: [
             Icon(icon, size: 24, color: color),
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.normal,
-                color: color,
-              ),
-            ),
+            Text(label, style: DashboardText.navLabel.copyWith(color: color)),
           ],
         ),
       ),

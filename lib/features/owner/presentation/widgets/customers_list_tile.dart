@@ -237,7 +237,7 @@ class _AvatarStack extends StatelessWidget {
           ),
           child: Text(
             initials,
-            style: AppText.meta.copyWith(
+            style: AppText.cardTitle.copyWith(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: avatarFg,
@@ -266,7 +266,7 @@ class _AvatarStack extends StatelessWidget {
               ),
               child: Text(
                 '$subscriptionCount',
-                style: AppText.meta.copyWith(
+                style: AppText.cardTitle.copyWith(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,

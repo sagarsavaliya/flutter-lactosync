@@ -679,21 +679,40 @@ class CustomerDetailDuesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0', 'en_IN');
+    final settled = pending <= 0;
+    // Green (settled) vs salmon (dues outstanding) — when previous months are
+    // unpaid, `pending` carries the cumulative balance and the card stays salmon.
+    final gradientColors = settled
+        ? const [
+            CustomerDetailColors.duesGreenStart,
+            CustomerDetailColors.duesGreenEnd,
+          ]
+        : const [
+            CustomerDetailColors.duesGradientStart,
+            CustomerDetailColors.duesGradientEnd,
+          ];
+    final shadowColor = settled
+        ? CustomerDetailColors.accent.withValues(alpha: 0.45)
+        : CustomerDetailColors.danger.withValues(alpha: 0.45);
+    final actionInk =
+        settled ? CustomerDetailColors.accent : CustomerDetailColors.danger;
+    const labelTint = Color(0xFFF7DBCD);
+    const greenLabelTint = Color(0xFFCDEBD5);
+    final labelColor = settled ? greenLabelTint : labelTint;
+    const valueColor = Color(0xFFFCEFE8);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            CustomerDetailColors.duesGradientStart,
-            CustomerDetailColors.duesGradientEnd,
-          ],
+          colors: gradientColors,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: CustomerDetailColors.danger.withValues(alpha: 0.45),
+            color: shadowColor,
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -708,11 +727,11 @@ class CustomerDetailDuesCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Pending balance',
+                      settled ? 'No pending dues' : 'Pending balance',
                       style: AppText.meta.copyWith(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFFF7DBCD),
+                        color: labelColor,
                       ),
                     ),
                     Text(
@@ -720,7 +739,7 @@ class CustomerDetailDuesCard extends StatelessWidget {
                       style: AppText.screenTitle.copyWith(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFFFCEFE8),
+                        color: valueColor,
                         height: 1.1,
                       ),
                     ),
@@ -735,7 +754,7 @@ class CustomerDetailDuesCard extends StatelessWidget {
                     style: AppText.meta.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFFF7DBCD),
+                      color: labelColor,
                     ),
                   ),
                   Text(
@@ -743,7 +762,7 @@ class CustomerDetailDuesCard extends StatelessWidget {
                     style: AppText.cardTitle.copyWith(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFFFCEFE8),
+                      color: valueColor,
                     ),
                   ),
                 ],
@@ -765,15 +784,15 @@ class CustomerDetailDuesCard extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.credit_card_outlined,
-                              size: 17, color: CustomerDetailColors.danger),
+                          Icon(Icons.credit_card_outlined,
+                              size: 17, color: actionInk),
                           const SizedBox(width: 7),
                           Text(
                             AppStrings.recordPaymentButton,
-                            style: AppText.body.copyWith(
+                            style: AppText.cardTitle.copyWith(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: CustomerDetailColors.danger,
+                              color: actionInk,
                             ),
                           ),
                         ],
@@ -801,7 +820,7 @@ class CustomerDetailDuesCard extends StatelessWidget {
                         const SizedBox(width: 7),
                         Text(
                           'Remind',
-                          style: AppText.body.copyWith(
+                          style: AppText.cardTitle.copyWith(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -1015,7 +1034,9 @@ class CustomerDetailBillingRow extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
+        color: CustomerDetailColors.surface,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cardBorder),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF283C28).withValues(alpha: 0.18),
@@ -1026,7 +1047,7 @@ class CustomerDetailBillingRow extends StatelessWidget {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(13),
         child: Material(
           color: CustomerDetailColors.surface,
           child: InkWell(
@@ -1037,15 +1058,8 @@ class CustomerDetailBillingRow extends StatelessWidget {
                 children: [
                   Container(width: 4, color: accent),
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(color: cardBorder),
-                          right: BorderSide(color: cardBorder),
-                          bottom: BorderSide(color: cardBorder),
-                        ),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(15, 13, 12, 13),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(13, 13, 12, 13),
                       child: Row(
                         children: [
                           Expanded(
@@ -1156,7 +1170,7 @@ class CustomerDetailPaymentRow extends StatelessWidget {
               children: [
                 Text(
                   invoiceRef,
-                  style: AppText.body.copyWith(
+                  style: AppText.cardTitle.copyWith(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: CustomerDetailColors.onSurface,
@@ -1553,7 +1567,7 @@ class _DeliveryCalendarHeatmap extends StatelessWidget {
               ),
               Text(
                 '${monthTotal.toStringAsFixed(1)} L',
-                style: AppText.meta.copyWith(
+                style: AppText.cardTitle.copyWith(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                   color: CustomerDetailColors.accent,
@@ -1890,7 +1904,7 @@ class CustomerDetailConsumptionCard extends StatelessWidget {
                     child: Text(
                       '₹${row.lineTotal.toStringAsFixed(0)}',
                       textAlign: TextAlign.right,
-                      style: AppText.body.copyWith(
+                      style: AppText.cardTitle.copyWith(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
                         color: CustomerDetailColors.onSurface,

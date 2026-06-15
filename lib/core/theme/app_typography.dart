@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // Design token: all text styles.
 // Line-heights are expressed as height multipliers (Flutter convention).
+// screenTitle, cardTitle, numStrong use Quicksand (geometric heading font).
 abstract final class AppText {
-  static const TextStyle screenTitle = TextStyle(
+  static TextStyle get screenTitle => GoogleFonts.quicksand(
     fontSize: 18, fontWeight: FontWeight.w700, height: 1.2,
   );
-  static const TextStyle sectionTitle = TextStyle(
-    fontSize: 14, fontWeight: FontWeight.w600, height: 1.25,
+  static TextStyle get cardTitle => GoogleFonts.quicksand(
+    fontSize: 14, fontWeight: FontWeight.w700, height: 1.25,
   );
-  static const TextStyle cardTitle = TextStyle(
+  static TextStyle get numStrong => GoogleFonts.quicksand(
+    fontSize: 15, fontWeight: FontWeight.w700, height: 1.1,
+  );
+  static const TextStyle sectionTitle = TextStyle(
     fontSize: 14, fontWeight: FontWeight.w600, height: 1.25,
   );
   static const TextStyle body = TextStyle(
@@ -20,8 +25,5 @@ abstract final class AppText {
   );
   static const TextStyle meta = TextStyle(
     fontSize: 11, fontWeight: FontWeight.w400, height: 1.2,
-  );
-  static const TextStyle numStrong = TextStyle(
-    fontSize: 15, fontWeight: FontWeight.w700, height: 1.1,
   );
 }
