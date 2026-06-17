@@ -13,7 +13,6 @@ import '../providers/owner_provider.dart';
 import '../widgets/customer_detail/customer_detail_styles.dart';
 import '../widgets/owner_action_sheets.dart';
 import '../widgets/owner_design_system.dart';
-import '../widgets/owner_form_theme.dart';
 import '../widgets/owner_page_fab.dart';
 import '../widgets/owner_screen_widgets.dart';
 import '../widgets/owner_shared_widgets.dart';
@@ -201,12 +200,10 @@ class _BillingPageState extends ConsumerState<BillingPage> {
                   ),
                   const SizedBox(height: 11),
                   BillingSearchSendRow(
-                    searchChild: OwnerSearchSortRow(
-                      controller: _searchController,
-                      hintText: AppStrings.searchCustomerLabel,
-                      onChanged: (v) => setState(() => _search = v.trim()),
-                      onSort: _showSortMenu,
-                    ),
+                    controller: _searchController,
+                    hintText: AppStrings.searchCustomerLabel,
+                    onChanged: (v) => setState(() => _search = v.trim()),
+                    onSort: _showSortMenu,
                     sendLabel: 'Send all',
                     sending: _sendingBulk,
                     enabled: invoicesAsync.maybeWhen(

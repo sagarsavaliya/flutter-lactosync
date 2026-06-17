@@ -45,11 +45,16 @@ class CustomerProfileRepository {
     }
 
     final profile = data['profile'];
-    if (profile is! Map<String, dynamic>) {
-      throw ApiException('API_ERROR', 'Profile key missing in response.');
+    if (profile is Map<String, dynamic>) {
+      return profile;
     }
 
-    return profile;
+    // Some API versions return profile fields at the data root.
+    if (data.containsKey('first_name') || data.containsKey('contact')) {
+      return data;
+    }
+
+    throw ApiException('API_ERROR', 'Profile key missing in response.');
   }
 
   /// PUT /api/customer/v1/profile

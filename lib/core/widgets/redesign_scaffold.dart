@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 import '../theme/redesign_colors.dart';
+import 'app_screen_safe_area.dart';
 
 /// Auth / onboarding form shell — frame 7 add-customer DNA.
 class RedesignFormScaffold extends StatelessWidget {
@@ -101,7 +102,7 @@ class RedesignFormScaffold extends StatelessWidget {
               iconTheme: const IconThemeData(color: CustomerDetailColors.onSurface),
             )
           : null,
-      body: SafeArea(
+      body: AppScreenSafeArea(
         child: centerBody && !scrollable
             ? Center(child: themed)
             : themed,

@@ -1,3 +1,4 @@
+import '../../../../core/utils/api_json.dart';
 import '../../../owner/domain/entities/owner_models.dart';
 
 /// Maps customer dashboard subscription + monthly order days into owner detail models
@@ -6,7 +7,7 @@ SubscriptionLineDetail customerSubscriptionLineFromOrders({
   required Map<String, dynamic> subscription,
   required List<Map<String, dynamic>> days,
 }) {
-  final lineId = (subscription['subscription_line_id'] as num?)?.toInt() ?? 0;
+  final lineId = parseApiInt(subscription['subscription_line_id']);
   final shift = subscription['shift'] as String? ?? 'morning';
   final shiftLabel = subscription['shift_label'] as String? ??
       (shift.isEmpty ? shift : '${shift[0].toUpperCase()}${shift.substring(1)}');
@@ -19,14 +20,14 @@ SubscriptionLineDetail customerSubscriptionLineFromOrders({
 
     Map<String, dynamic>? entry;
     for (final candidate in entries) {
-      if ((candidate['subscription_line_id'] as num?)?.toInt() == lineId) {
+      if (parseApiInt(candidate['subscription_line_id']) == lineId) {
         entry = candidate;
         break;
       }
     }
     if (entry == null) continue;
 
-    final qty = (entry['qty'] as num?)?.toDouble() ?? 0;
+    final qty = parseApiDouble(entry['qty']);
     final delivered = status == 'delivered' && qty > 0;
 
     dailyOrders.add(
@@ -48,7 +49,7 @@ SubscriptionLineDetail customerSubscriptionLineFromOrders({
     effectiveRate: 0,
     shift: shift,
     shiftLabel: shiftLabel,
-    quantity: (subscription['qty'] as num?)?.toDouble() ?? 1,
+    quantity: parseApiDouble(subscription['qty'], 1),
     dailyOrders: dailyOrders,
   );
 }
@@ -62,4 +63,4 @@ List<ConsumptionRow> customerConsumptionRowsFromJson(Map<String, dynamic>? json)
 }
 
 double customerConsumptionGrandTotal(Map<String, dynamic>? json) =>
-    (json?['grand_total'] as num?)?.toDouble() ?? 0;
+    parseApiDouble(json?['grand_total']);

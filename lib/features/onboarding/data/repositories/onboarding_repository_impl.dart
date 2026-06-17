@@ -83,14 +83,18 @@ class OnboardingRepositoryImpl implements OnboardingRepository {
   }
 
   @override
-  Future<OnboardingStatus> saveCustomer(Map<String, dynamic> payload) async {
+  Future<SaveCustomerResult> saveCustomer(Map<String, dynamic> payload) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/onboarding/customers',
       data: payload,
     );
-    final status = _statusFromBody(_readData(response.data));
+    final data = _readData(response.data);
+    final status = _statusFromBody(data);
+    final customer = CustomerItem.fromJson(
+      Map<String, dynamic>.from(data['customer'] as Map),
+    );
     await updateStoredSessionOnboarding(status);
-    return status;
+    return SaveCustomerResult(status: status, customer: customer);
   }
 
   @override

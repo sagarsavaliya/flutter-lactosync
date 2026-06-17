@@ -10,8 +10,12 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../owner/domain/entities/owner_models.dart';
 import '../../../owner/presentation/widgets/customer_detail/customer_detail_widgets.dart';
+import '../providers/customer_auth_provider.dart';
 import '../providers/customer_dashboard_provider.dart';
 import '../providers/customer_order_provider.dart';
+import 'customer_orders_sheets.dart';
+import '../../data/repositories/customer_vacation_repository.dart';
+import '../providers/customer_vacation_provider.dart';
 import 'customer_dashboard_styles.dart';
 
 // ── Header ────────────────────────────────────────────────────────────────────
@@ -120,7 +124,8 @@ class CusDashNextDeliveryCard extends ConsumerStatefulWidget {
     required this.shiftLabel,
     required this.isMorning,
     required this.productLine,
-    required this.canSkip,
+    this.day,
+    this.canEdit = false,
   });
 
   final DateTime date;
@@ -128,7 +133,8 @@ class CusDashNextDeliveryCard extends ConsumerStatefulWidget {
   final String shiftLabel;
   final bool isMorning;
   final String productLine;
-  final bool canSkip;
+  final Map<String, dynamic>? day;
+  final bool canEdit;
 
   @override
   ConsumerState<CusDashNextDeliveryCard> createState() =>
@@ -136,91 +142,27 @@ class CusDashNextDeliveryCard extends ConsumerStatefulWidget {
 }
 
 class _CusDashNextDeliveryCardState extends ConsumerState<CusDashNextDeliveryCard> {
-  bool _skipping = false;
+  bool _editing = false;
 
-  Future<void> _skip() async {
-    final dateStr = DateFormat('yyyy-MM-dd').format(widget.date);
-    final confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: false,
-      backgroundColor: CusDashColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: CusDashColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text('Skip delivery?', style: CusDashText.cardTitle),
-            const SizedBox(height: 8),
-            Text(
-              'Your delivery on $dateStr will be skipped.',
-              style: AppText.body.copyWith(color: CusDashColors.inkMuted, height: 1.5),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      side: const BorderSide(color: CusDashColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: CusDashColors.accent,
-                      minimumSize: const Size.fromHeight(50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text('Skip'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-    if (confirmed != true) return;
-
-    setState(() => _skipping = true);
+  Future<void> _edit() async {
+    final day = widget.day;
+    if (day == null) return;
+    setState(() => _editing = true);
     try {
       final repo = ref.read(customerOrderRepositoryProvider);
-      await repo.skipDay(dateStr);
-      ref.invalidate(customerDashboardProvider);
-      ref.invalidate(customerOrdersProvider(
-        '${widget.date.year}-${widget.date.month.toString().padLeft(2, '0')}',
-      ));
-      if (mounted) AppSnackBar.show(context, 'Delivery skipped');
-    } catch (e) {
-      if (mounted) AppSnackBar.showError(context, e.toString());
+      final monthKey =
+          '${widget.date.year}-${widget.date.month.toString().padLeft(2, '0')}';
+      showCustomerOrderDayEditSheet(
+        context: context,
+        day: day,
+        repository: repo,
+        onSaved: () {
+          ref.invalidate(customerDashboardProvider);
+          ref.invalidate(customerOrdersProvider(monthKey));
+        },
+      );
     } finally {
-      if (mounted) setState(() => _skipping = false);
+      if (mounted) setState(() => _editing = false);
     }
   }
 
@@ -286,12 +228,12 @@ class _CusDashNextDeliveryCardState extends ConsumerState<CusDashNextDeliveryCar
                   ],
                 ),
               ),
-              if (widget.canSkip)
+              if (widget.canEdit && widget.day != null)
                 Material(
                   color: CusDashColors.surface,
                   borderRadius: BorderRadius.circular(12),
                   child: InkWell(
-                    onTap: _skipping ? null : _skip,
+                    onTap: _editing ? null : _edit,
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -299,7 +241,7 @@ class _CusDashNextDeliveryCardState extends ConsumerState<CusDashNextDeliveryCar
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: CusDashColors.border),
                       ),
-                      child: _skipping
+                      child: _editing
                           ? const SizedBox(
                               width: 18,
                               height: 18,
@@ -312,17 +254,17 @@ class _CusDashNextDeliveryCardState extends ConsumerState<CusDashNextDeliveryCar
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  LucideIcons.skipForward,
+                                  LucideIcons.pencil,
                                   size: 16,
-                                  color: CusDashColors.labelMuted,
+                                  color: CusDashColors.accent,
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'SKIP',
+                                  'EDIT',
                                   style: AppText.meta.copyWith(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w800,
-                                    color: CusDashColors.labelMuted,
+                                    color: CusDashColors.accent,
                                   ),
                                 ),
                               ],
@@ -533,7 +475,7 @@ class _MonthStat extends StatelessWidget {
 
 // ── Delivery calendar ─────────────────────────────────────────────────────────
 
-class CusDashDeliveryCalendar extends StatelessWidget {
+class CusDashDeliveryCalendar extends ConsumerStatefulWidget {
   const CusDashDeliveryCalendar({
     super.key,
     required this.month,
@@ -551,19 +493,234 @@ class CusDashDeliveryCalendar extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
 
+  @override
+  ConsumerState<CusDashDeliveryCalendar> createState() =>
+      _CusDashDeliveryCalendarState();
+}
+
+class _CusDashDeliveryCalendarState extends ConsumerState<CusDashDeliveryCalendar> {
   static const _dow = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  static const _crossSpacing = 6.0;
+  static const _mainSpacing = 6.0;
+
+  DateTime? _rangeStart;
+  DateTime? _rangeEnd;
+  bool _dragging = false;
+
+  DateTime get _today {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day);
+  }
+
+  DateTime get _minSelectable => _today.add(const Duration(days: 1));
+
+  String get _monthKey =>
+      '${widget.month.year}-${widget.month.month.toString().padLeft(2, '0')}';
+
+  bool _canSelect(DateTime date) => !date.isBefore(_minSelectable);
+
+  bool _isInSelection(DateTime date) {
+    if (_rangeStart == null || _rangeEnd == null) return false;
+    final lo = _rangeStart!.isBefore(_rangeEnd!) ? _rangeStart! : _rangeEnd!;
+    final hi = _rangeStart!.isBefore(_rangeEnd!) ? _rangeEnd! : _rangeStart!;
+    return !date.isBefore(lo) && !date.isAfter(hi);
+  }
+
+  DateTime? _posToDate(
+    Offset pos,
+    double cellSize,
+    int leading,
+    int daysInMonth,
+    int rowCount,
+  ) {
+    final strideX = cellSize + _crossSpacing;
+    final strideY = cellSize + _mainSpacing;
+    final col = (pos.dx / strideX).floor().clamp(0, 6);
+    final row = (pos.dy / strideY).floor().clamp(0, rowCount - 1);
+    // Ignore taps in the vertical gap between rows.
+    final yInStride = pos.dy - row * strideY;
+    if (yInStride > cellSize) return null;
+    final index = row * 7 + col;
+    if (index < leading || index >= leading + daysInMonth) return null;
+    final d = index - leading + 1;
+    return DateTime(widget.month.year, widget.month.month, d);
+  }
+
+  void _clearSelection() {
+    _rangeStart = null;
+    _rangeEnd = null;
+    _dragging = false;
+  }
+
+  void _onPointerDown(
+    Offset pos,
+    double cellSize,
+    int leading,
+    int daysInMonth,
+    int rowCount,
+  ) {
+    final vacation = ref.read(customerVacationProvider).valueOrNull;
+    if (vacation?.hasVacation == true) {
+      AppSnackBar.show(
+        context,
+        'Clear your current vacation before setting a new one.',
+      );
+      return;
+    }
+
+    final date = _posToDate(pos, cellSize, leading, daysInMonth, rowCount);
+    if (date == null || !_canSelect(date)) return;
+    setState(() {
+      _dragging = true;
+      _rangeStart = date;
+      _rangeEnd = date;
+    });
+  }
+
+  void _onPointerMove(
+    Offset pos,
+    double cellSize,
+    int leading,
+    int daysInMonth,
+    int rowCount,
+  ) {
+    if (!_dragging) return;
+    final date = _posToDate(pos, cellSize, leading, daysInMonth, rowCount);
+    if (date == null || !_canSelect(date)) return;
+    if (_sameDay(_rangeEnd, date)) return;
+    setState(() => _rangeEnd = date);
+  }
+
+  bool _sameDay(DateTime? a, DateTime b) =>
+      a != null && a.year == b.year && a.month == b.month && a.day == b.day;
+
+  bool _isVacationDay(DateTime date, VacationData? vacation, String? apiStatus) {
+    if (apiStatus == 'vacation') return true;
+    if (vacation == null || !vacation.hasVacation) return false;
+    final start = DateTime.parse(vacation.start!);
+    final end = DateTime.parse(vacation.end!);
+    final d = DateTime(date.year, date.month, date.day);
+    final lo = DateTime(start.year, start.month, start.day);
+    final hi = DateTime(end.year, end.month, end.day);
+    return !d.isBefore(lo) && !d.isAfter(hi);
+  }
+
+  Future<void> _refreshAfterVacationChange() async {
+    ref.invalidate(customerVacationProvider);
+    ref.invalidate(customerDashboardProvider);
+    ref.invalidate(customerOrdersProvider(_monthKey));
+    await ref.read(customerOrdersProvider(_monthKey).future);
+  }
+
+  Future<void> _cancelVacation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Clear vacation',
+          style: AppText.cardTitle.copyWith(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: CusDashColors.ink,
+          ),
+        ),
+        content: Text(
+          'Remove your vacation dates and resume regular deliveries?',
+          style: AppText.body.copyWith(color: CusDashColors.inkMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: AppText.body.copyWith(color: CusDashColors.inkMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Clear vacation',
+              style: AppText.body.copyWith(
+                fontWeight: FontWeight.w700,
+                color: CusDashColors.calVacationInk,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final error = await ref.read(customerVacationProvider.notifier).cancel();
+    if (!mounted) return;
+    if (error != null) {
+      AppSnackBar.showError(context, error);
+      return;
+    }
+
+    AppSnackBar.show(context, 'Vacation cleared.');
+    await _refreshAfterVacationChange();
+  }
+
+  Future<void> _onPointerUp() async {
+    if (!_dragging) return;
+    final start = _rangeStart;
+    final end = _rangeEnd;
+    setState(() => _dragging = false);
+
+    if (start == null || end == null) {
+      setState(() => _clearSelection());
+      return;
+    }
+
+    final stopFrom = start.isBefore(end) ? start : end;
+    final stopUntil = start.isBefore(end) ? end : start;
+    final resumeOn = stopUntil.add(const Duration(days: 1));
+
+    final confirmed = await showCusVacationConfirmDialog(
+      context: context,
+      stopFrom: stopFrom,
+      resumeOn: resumeOn,
+    );
+
+    if (!mounted) return;
+    setState(() => _clearSelection());
+
+    if (confirmed != true) return;
+
+    final apiFmt = DateFormat('yyyy-MM-dd');
+    final error = await ref.read(customerVacationProvider.notifier).setVacation(
+          apiFmt.format(stopFrom),
+          apiFmt.format(stopUntil),
+        );
+
+    if (!mounted) return;
+    if (error != null) {
+      AppSnackBar.showError(context, error);
+      return;
+    }
+
+    AppSnackBar.show(context, 'Vacation set for selected dates.');
+    await _refreshAfterVacationChange();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
-    final leading = DateTime(month.year, month.month, 1).weekday - 1;
-    final monthShort = DateFormat('MMM').format(month);
+    final today = _today;
+    final vacation = ref.watch(customerVacationProvider).valueOrNull;
+    final hasVacation = vacation?.hasVacation == true;
+    final daysInMonth = DateUtils.getDaysInMonth(widget.month.year, widget.month.month);
+    final leading = DateTime(widget.month.year, widget.month.month, 1).weekday - 1;
+    final monthShort = DateFormat('MMM').format(widget.month);
 
     final byDate = <int, Map<String, dynamic>>{};
-    for (final day in days) {
+    for (final day in widget.days) {
       final parsed = DateTime.tryParse(day['date'] as String? ?? '');
-      if (parsed != null && parsed.year == month.year && parsed.month == month.month) {
+      if (parsed != null &&
+          parsed.year == widget.month.year &&
+          parsed.month == widget.month.month) {
         byDate[parsed.day] = day;
       }
     }
@@ -587,7 +744,11 @@ class CusDashDeliveryCalendar extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _MonthNavBtn(icon: LucideIcons.chevronLeft, enabled: canGoBack, onTap: onPrevious),
+                    _MonthNavBtn(
+                      icon: LucideIcons.chevronLeft,
+                      enabled: widget.canGoBack,
+                      onTap: widget.onPrevious,
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
@@ -599,13 +760,35 @@ class CusDashDeliveryCalendar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _MonthNavBtn(icon: LucideIcons.chevronRight, enabled: canGoForward, onTap: onNext),
+                    _MonthNavBtn(
+                      icon: LucideIcons.chevronRight,
+                      enabled: widget.canGoForward,
+                      onTap: widget.onNext,
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 6),
+          Text(
+            hasVacation
+                ? 'Vacation is active — clear it below to set new dates'
+                : 'Drag across future dates to mark vacation',
+            style: AppText.meta.copyWith(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: CusDashColors.labelMuted,
+            ),
+          ),
+          if (hasVacation) ...[
+            const SizedBox(height: 10),
+            _CusDashActiveVacationBanner(
+              vacation: vacation!,
+              onClear: _cancelVacation,
+            ),
+          ],
+          const SizedBox(height: 12),
           Row(
             children: _dow
                 .map(
@@ -624,24 +807,64 @@ class CusDashDeliveryCalendar extends StatelessWidget {
                 .toList(),
           ),
           const SizedBox(height: 8),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 6,
-              childAspectRatio: 1,
-            ),
-            itemCount: leading + daysInMonth,
-            itemBuilder: (_, index) {
-              if (index < leading) return const SizedBox.shrink();
-              final d = index - leading + 1;
-              return _CusDashCalCell(
-                day: d,
-                date: DateTime(month.year, month.month, d),
-                today: today,
-                dayData: byDate[d],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cellSize = (constraints.maxWidth - _crossSpacing * 6) / 7;
+              final rowCount = ((leading + daysInMonth + 6) / 7).ceil();
+              final gridHeight =
+                  cellSize * rowCount + _mainSpacing * (rowCount - 1);
+
+              return SizedBox(
+                height: gridHeight,
+                child: Stack(
+                  children: [
+                    GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 7,
+                        mainAxisSpacing: _mainSpacing,
+                        crossAxisSpacing: _crossSpacing,
+                        childAspectRatio: 1,
+                      ),
+                      itemCount: leading + daysInMonth,
+                      itemBuilder: (_, index) {
+                        if (index < leading) return const SizedBox.shrink();
+                        final d = index - leading + 1;
+                        final date = DateTime(widget.month.year, widget.month.month, d);
+                        final apiStatus = byDate[d]?['status'] as String?;
+                        return _CusDashCalCell(
+                          day: d,
+                          date: date,
+                          today: today,
+                          dayData: byDate[d],
+                          isVacation: _isVacationDay(date, vacation, apiStatus),
+                          isSelected: _isInSelection(date),
+                        );
+                      },
+                    ),
+                    Positioned.fill(
+                      child: Listener(
+                        behavior: HitTestBehavior.translucent,
+                        onPointerDown: (e) => _onPointerDown(
+                          e.localPosition,
+                          cellSize,
+                          leading,
+                          daysInMonth,
+                          rowCount,
+                        ),
+                        onPointerMove: (e) => _onPointerMove(
+                          e.localPosition,
+                          cellSize,
+                          leading,
+                          daysInMonth,
+                          rowCount,
+                        ),
+                        onPointerUp: (_) => _onPointerUp(),
+                        onPointerCancel: (_) => setState(() => _clearSelection()),
+                      ),
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -649,6 +872,183 @@ class CusDashDeliveryCalendar extends StatelessWidget {
           const _CusDashCalLegend(),
         ],
       ),
+    );
+  }
+}
+
+class _CusDashActiveVacationBanner extends StatelessWidget {
+  const _CusDashActiveVacationBanner({
+    required this.vacation,
+    required this.onClear,
+  });
+
+  final VacationData vacation;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('d MMM');
+    final start = DateTime.parse(vacation.start!);
+    final end = DateTime.parse(vacation.end!);
+    final rangeLabel = start.month == end.month && start.year == end.year
+        ? '${fmt.format(start)} – ${fmt.format(end)}'
+        : '${fmt.format(start)} – ${DateFormat('d MMM yyyy').format(end)}';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: CusDashColors.calVacationBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: CusDashColors.calVacationBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(LucideIcons.plane, size: 16, color: CusDashColors.calVacationInk),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Vacation: $rangeLabel',
+              style: AppText.body.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: CusDashColors.calVacationInk,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onClear,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'Clear',
+              style: AppText.body.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: CusDashColors.calVacationInk,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Confirms a vacation range picked on the dashboard calendar.
+Future<bool?> showCusVacationConfirmDialog({
+  required BuildContext context,
+  required DateTime stopFrom,
+  required DateTime resumeOn,
+}) {
+  final fmt = DateFormat('d MMM yyyy');
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        'Set vacation',
+        style: AppText.cardTitle.copyWith(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: CusDashColors.ink,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _CusVacationDateRow(
+            label: 'Delivery stop from',
+            value: fmt.format(stopFrom),
+          ),
+          const SizedBox(height: 12),
+          _CusVacationDateRow(
+            label: 'Start delivery on',
+            value: fmt.format(resumeOn),
+          ),
+        ],
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      actions: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(46),
+                  side: const BorderSide(color: CusDashColors.border),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: AppText.body.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: CusDashColors.ink,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: CusDashColors.accent,
+                  minimumSize: const Size.fromHeight(46),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('OK'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+class _CusVacationDateRow extends StatelessWidget {
+  const _CusVacationDateRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 5,
+          child: Text(
+            label,
+            style: AppText.body.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: CusDashColors.inkMuted,
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 4,
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: AppText.body.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: CusDashColors.ink,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -686,12 +1086,16 @@ class _CusDashCalCell extends StatelessWidget {
     required this.date,
     required this.today,
     required this.dayData,
+    this.isVacation = false,
+    this.isSelected = false,
   });
 
   final int day;
   final DateTime date;
   final DateTime today;
   final Map<String, dynamic>? dayData;
+  final bool isVacation;
+  final bool isSelected;
 
   double _totalQty() {
     final entries = (dayData?['entries'] as List?)?.cast<Map<String, dynamic>>() ?? [];
@@ -726,7 +1130,7 @@ class _CusDashCalCell extends StatelessWidget {
     final qty = _totalQty();
     final qtyLabel = _qtyLabel(qty);
     final showQty = _showsConsumption(status, qty, isFuture, isToday);
-    final skipped = !isFuture && (status == 'skipped' || status == 'vacation');
+    final skipped = !isFuture && status == 'skipped';
 
     late Color bg;
     late Color borderColor;
@@ -735,7 +1139,13 @@ class _CusDashCalCell extends StatelessWidget {
     late Color numColor;
     var borderWidth = 1.0;
 
-    if (isFuture) {
+    if (isVacation || status == 'vacation') {
+      bg = CusDashColors.calVacationBg;
+      borderColor = CusDashColors.calVacationBorder;
+      center = 'V';
+      centerColor = CusDashColors.calVacationInk;
+      numColor = CusDashColors.calVacationInk;
+    } else if (isFuture) {
       bg = CusDashColors.surface;
       borderColor = CusDashColors.calFutureBorder;
       center = '';
@@ -778,11 +1188,23 @@ class _CusDashCalCell extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: borderWidth),
+        border: Border.all(
+          color: isSelected ? const Color(0xFF5C7EAE) : borderColor,
+          width: isSelected ? 2 : borderWidth,
+        ),
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
+          if (isSelected)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(0xFF5C7EAE).withValues(alpha: 0.22),
+                ),
+              ),
+            ),
           if (day <= 31)
             Positioned(
               top: 4,
@@ -825,6 +1247,7 @@ class _CusDashCalLegend extends StatelessWidget {
         _LegendDot(color: CusDashColors.calDelivered, label: 'Delivered'),
         _LegendDot(color: CusDashColors.todayBorder, label: 'Today', hollow: true, fill: CusDashColors.todayBg),
         _LegendDot(color: CusDashColors.calSkippedBorder, label: 'Skipped', hollow: true, fill: CusDashColors.calSkippedBg),
+        _LegendDot(color: CusDashColors.calVacationBorder, label: 'Vacation', hollow: true, fill: CusDashColors.calVacationBg),
         _LegendDot(color: CusDashColors.calFutureBorder, label: 'Upcoming', dashed: true),
       ],
     );
@@ -1218,7 +1641,7 @@ class _QuickActionTile extends StatelessWidget {
             border: Border.all(color: CusDashColors.border),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF283C28).withValues(alpha: 0.05),
+                color: const Color.fromARGB(255, 255, 255, 255).withValues(alpha: 1),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -1262,59 +1685,36 @@ class CusDashBrandingFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: CusDashColors.accent,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              'L',
-              style: GoogleFonts.quicksand(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'LactoSync',
-                  style: AppText.cardTitle.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: CusDashColors.accent,
-                  ),
-                ),
-                Text(
-                  'Fresh dairy, delivered daily',
-                  style: AppText.meta.copyWith(
-                    fontSize: 11,
-                    color: CusDashColors.labelMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            'AKSHARA',
+      padding: const EdgeInsets.only(top: 20, bottom: 5),
+      child: Center(
+        child: Text.rich(
+          TextSpan(
             style: AppText.meta.copyWith(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
               color: CusDashColors.labelMuted,
+              height: 1.4,
             ),
+            children: [
+              const TextSpan(text: 'Made with '),
+              const TextSpan(
+                text: 'love',
+                style: TextStyle(
+                  color: Color(0xFFD95858),
+                  fontWeight: FontWeight.w700,
+                ),
+              ), 
+               const TextSpan(text: ' by '),
+              const TextSpan(text: 'Akshara Technologies', 
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFD95858),
+                ),
+              ),
+            ],
           ),
-        ],
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }

@@ -138,7 +138,7 @@ class _RouteDetailPageState extends ConsumerState<RouteDetailPage> {
     try {
       await dio.put('/owner/routes/${widget.routeId}/assignments', data: {
         'delivery_boy_id': boyId,
-        'date': DateTime.now().toIso8601String().substring(0, 10),
+        'date': '1970-01-01',
       });
       ref.invalidate(routeCustomersProvider(widget.routeId));
       ref.invalidate(deliveryRoutesProvider);

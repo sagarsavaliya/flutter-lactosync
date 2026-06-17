@@ -47,7 +47,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
     if (!mounted) return;
 
     if (isDeliveryBoyLoggedIn) {
-      context.go('/delivery-boy/home');
+      context.go('/delivery-boy/pickup');
       return;
     }
 

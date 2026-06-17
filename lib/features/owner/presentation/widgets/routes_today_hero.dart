@@ -42,9 +42,9 @@ class RoutesTodayHeroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: _greenDark.withValues(alpha: 0.45),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: _greenDark.withValues(alpha: 0.28),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),

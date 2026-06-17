@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DeliveryBoyRouteAssignment extends Model
 {
+    /** Standing assignment — same pattern as route customer assignments. */
+    public const STANDING_DATE = '1970-01-01';
+
     protected $fillable = [
         'route_id',
         'delivery_boy_id',

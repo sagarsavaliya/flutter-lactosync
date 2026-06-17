@@ -44,7 +44,7 @@ class _DeliveryBoyLoginPageState extends ConsumerState<DeliveryBoyLoginPage> {
           .read(deliveryBoyAuthRepositoryProvider)
           .login(_phoneCtrl.text.trim(), _pinCtrl.text.trim());
       if (!mounted) return;
-      context.go('/delivery-boy/home');
+      context.go('/delivery-boy/pickup');
     } catch (e) {
       if (!mounted) return;
       AppSnackBar.showError(context, mapDioError(e).message);

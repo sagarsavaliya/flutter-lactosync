@@ -7,6 +7,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../owner/domain/entities/owner_models.dart';
 import '../../data/repositories/customer_billing_repository.dart';
 import '../providers/customer_billing_provider.dart';
+import '../../../../core/utils/api_json.dart';
 import '../providers/customer_dashboard_provider.dart';
 import '../providers/customer_order_provider.dart';
 import '../providers/customer_profile_provider.dart';
@@ -169,7 +170,8 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
                           shiftLabel: nextDelivery.shiftLabel,
                           isMorning: nextDelivery.isMorning,
                           productLine: nextDelivery.productLine,
-                          canSkip: nextDelivery.canSkip,
+                          day: nextDelivery.day,
+                          canEdit: nextDelivery.canEdit,
                         ),
                         const SizedBox(height: CusDashMetrics.sectionGap),
                       ],
@@ -367,7 +369,8 @@ class _NextDelivery {
     required this.shiftLabel,
     required this.isMorning,
     required this.productLine,
-    required this.canSkip,
+    required this.day,
+    required this.canEdit,
   });
 
   final DateTime date;
@@ -375,7 +378,8 @@ class _NextDelivery {
   final String shiftLabel;
   final bool isMorning;
   final String productLine;
-  final bool canSkip;
+  final Map<String, dynamic> day;
+  final bool canEdit;
 }
 
 _NextDelivery? _findNextDelivery(
@@ -390,8 +394,11 @@ _NextDelivery? _findNextDelivery(
   final sub = subs.first;
   final shift = sub['shift'] as String? ?? 'morning';
   final shiftLabel = sub['shift_label'] as String? ?? _capitalize(shift);
-  final qty = (sub['qty'] as num?)?.toDouble() ?? 0;
+  final qty = parseApiDouble(sub['qty']);
   final productName = sub['product_name'] as String? ?? '';
+  final minEditableDate = shift == 'evening'
+      ? todayDate
+      : todayDate.add(const Duration(days: 1));
 
   double rate = 0;
   for (final row in consumptionRows) {
@@ -413,7 +420,7 @@ _NextDelivery? _findNextDelivery(
     final parsed = DateTime.tryParse(dateStr ?? '');
     if (parsed == null) continue;
     final d = DateTime(parsed.year, parsed.month, parsed.day);
-    if (d.isBefore(todayDate)) continue;
+    if (d.isBefore(minEditableDate)) continue;
 
     final status = day['status'] as String? ?? 'no_record';
     if (status == 'skipped' || status == 'vacation') continue;
@@ -424,25 +431,41 @@ _NextDelivery? _findNextDelivery(
         ? 'Tomorrow'
         : DateFormat('EEE d MMM').format(d);
 
+    final canEdit = status == 'expected' && !d.isBefore(minEditableDate);
+
     return _NextDelivery(
       date: d,
       dateLabel: dateLabel,
       shiftLabel: shiftLabel,
       isMorning: shift == 'morning',
       productLine: productLine,
-      canSkip: !d.isBefore(todayDate),
+      day: day,
+      canEdit: canEdit,
     );
   }
 
   // Fallback when orders not loaded yet.
-  final tomorrow = todayDate.add(const Duration(days: 1));
+  final fallbackDate = minEditableDate;
+  final fallbackStr = DateFormat('yyyy-MM-dd').format(fallbackDate);
+  final isTomorrow = fallbackDate.difference(todayDate).inDays == 1;
   return _NextDelivery(
-    date: tomorrow,
-    dateLabel: 'Tomorrow',
+    date: fallbackDate,
+    dateLabel: isTomorrow ? 'Tomorrow' : DateFormat('EEE d MMM').format(fallbackDate),
     shiftLabel: shiftLabel,
     isMorning: shift == 'morning',
     productLine: productLine,
-    canSkip: true,
+    day: {
+      'date': fallbackStr,
+      'status': 'expected',
+      'entries': [
+        {
+          'product_name': productName,
+          'quantity': qty,
+          'locked': false,
+        },
+      ],
+    },
+    canEdit: true,
   );
 }
 

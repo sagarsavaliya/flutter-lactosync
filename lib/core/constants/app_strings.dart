@@ -172,7 +172,7 @@ abstract final class AppStrings {
   static const morningShift = 'Morning';
   static const eveningShift = 'Evening';
   static const addMoreProduct = 'Add another product';
-  static const createSubscriptionBtn = 'Create subscription';
+  static const createSubscriptionBtn = 'Create';
   static const rateCalculation = 'Your rate';
   static const perLtr = '/ltr';
 
@@ -379,6 +379,9 @@ abstract final class AppStrings {
   static const addSubscriptionTitle = 'Add subscription';
   static const sendToCustomer = 'Send to customer';
   static const updateOrderLog = 'Update order log';
+  /// Compact labels for the milk-log action sheet (two buttons side by side).
+  static const sendToCustomerBtn = 'Send';
+  static const updateOrderLogBtn = 'Update';
   static const milkLogActionsTitle = 'Milk order log';
   static const milkLogPreparing = 'Preparing order log image…';
   static const milkLogSending = 'Sending order log on WhatsApp…';

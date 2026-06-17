@@ -27,12 +27,18 @@ abstract final class CusDashColors {
   static const calDelivered = Color(0xFF2E6E45);
   static const calSkippedBg = Color(0xFFF1F4EC);
   static const calSkippedBorder = Color(0xFFE7EBE0);
+  static const calVacationBg = Color(0xFFEDE7F6);
+  static const calVacationBorder = Color(0xFF9575CD);
+  static const calVacationInk = Color(0xFF6A5ACD);
   static const calFutureBorder = Color(0xFFD8DECF);
   static const progressTrack = Color(0x33FFFFFF);
   static const progressFill = Color(0xFFE8C547);
   static const activeBg = Color(0xFFE4F2E6);
   static const activeInk = Color(0xFF1E7A40);
   static const cowDot = Color(0xFF84C68E);
+  static const orderBarPast = Color(0xFF84C68E);
+  static const orderBarPastSoft = Color(0x9984C68E);
+  static const orderBarMuted = Color(0xFFD4DDD0);
 }
 
 abstract final class CusDashMetrics {

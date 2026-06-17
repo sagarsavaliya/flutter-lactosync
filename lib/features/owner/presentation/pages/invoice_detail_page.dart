@@ -9,7 +9,6 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/services/invoice_document_builder.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/utils/print_document.dart';
 import '../../../../core/widgets/action_toast.dart';
 import '../../domain/entities/owner_models.dart';
 import '../providers/owner_provider.dart';
@@ -127,15 +126,6 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
     }
   }
 
-  Future<void> _printBill(InvoiceDetailResult data) async {
-    try {
-      final text = await _invoiceDocument(data);
-      await printDocument(text, title: data.invoice.invoiceNumber);
-    } catch (_) {
-      if (mounted) ActionToast.show(context, AppStrings.shareBillFailed);
-    }
-  }
-
   Future<void> _shareBill(InvoiceDetailResult data) async {
     try {
       final text = await _invoiceDocument(data);
@@ -167,6 +157,19 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
     }
   }
 
+  bool _canRegenerateBill(OwnerInvoice invoice) {
+    if (invoice.status == 'paid') return false;
+    final parts = invoice.billingMonth.split('-');
+    if (parts.length == 2) {
+      final now = DateTime.now();
+      final billMonth = DateTime(int.parse(parts[0]), int.parse(parts[1]));
+      if (billMonth.year == now.year && billMonth.month == now.month) {
+        return true;
+      }
+    }
+    return invoice.balanceDue > 0;
+  }
+
   PreferredSizeWidget _buildAppBar(OwnerInvoice invoice) {
     return AppBar(
       backgroundColor: CustomerDetailColors.background,
@@ -186,23 +189,16 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
         ),
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 4),
-          child: _HeaderActionChip(
-            label: AppStrings.recalculateBillButton,
-            icon: LucideIcons.refreshCw,
-            loading: _regenerating,
-            onTap: _regenerating ? null : () => _regenerateBill(invoice),
+        if (_canRegenerateBill(invoice))
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: _HeaderActionChip(
+              label: AppStrings.recalculateBillButton,
+              icon: LucideIcons.refreshCw,
+              loading: _regenerating,
+              onTap: _regenerating ? null : () => _regenerateBill(invoice),
+            ),
           ),
-        ),
-        _HeaderIconButton(
-          icon: LucideIcons.printer,
-          tooltip: AppStrings.printBillButton,
-          onTap: () {
-            final data = ref.read(invoiceDetailProvider(widget.invoiceId)).valueOrNull;
-            if (data != null) _printBill(data);
-          },
-        ),
         _HeaderIconButton(
           icon: LucideIcons.share2,
           tooltip: AppStrings.shareBillButton,
@@ -301,6 +297,17 @@ class _InvoiceDetailPageState extends ConsumerState<InvoiceDetailPage> {
                                         color: CustomerDetailColors.iconMuted,
                                       ),
                                     ),
+                                    if (invoice.customerAddress.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        invoice.customerAddress,
+                                        style: AppText.meta.copyWith(
+                                          fontSize: 12,
+                                          color: CustomerDetailColors.onSurfaceVariant,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),

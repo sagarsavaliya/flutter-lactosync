@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/api_json.dart';
 import 'customer_dashboard_styles.dart';
 
 // ── Header ────────────────────────────────────────────────────────────────────
@@ -57,7 +58,7 @@ class CusOrdersHeader extends StatelessWidget {
                   children: [
                     Text(
                       monthLabel,
-                      style: AppText.body.copyWith(
+                      style: GoogleFonts.quicksand(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: CusDashColors.ink,
@@ -181,31 +182,104 @@ class CusOrdersSectionLabel extends StatelessWidget {
 
 enum CusOrderCardMode { upcoming, history }
 
+/// Order list card — left accent stripe clipped to rounded corners (reference design).
+class CusAccentListCard extends StatelessWidget {
+  const CusAccentListCard({
+    super.key,
+    required this.accentColor,
+    required this.child,
+    this.onTap,
+    this.bottomPadding = 10,
+  });
+
+  final Color accentColor;
+  final Widget child;
+  final VoidCallback? onTap;
+  final double bottomPadding;
+
+  static const _radius = CusDashMetrics.innerRadius;
+  static const _accentWidth = 6.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomPadding),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(_radius),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF283C28).withValues(alpha: 0.06),
+              blurRadius: 14,
+              spreadRadius: -4,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(_radius),
+          child: Material(
+            color: CusDashColors.surface,
+            child: InkWell(
+              onTap: onTap,
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ColoredBox(
+                      color: accentColor,
+                      child: const SizedBox(width: _accentWidth),
+                    ),
+                    Expanded(child: child),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Color cusOrderAccentBarColor({
+  required bool isToday,
+  required String? status,
+}) {
+  if (status == 'skipped' || status == 'vacation') {
+    return CusDashColors.orderBarMuted;
+  }
+  if (isToday) return CusDashColors.accent;
+  return CusDashColors.orderBarPast;
+}
+
+String cusOrderDayLabel(DateTime? date, {required bool isToday}) {
+  if (date == null) return '';
+  if (isToday) return 'Today';
+  return DateFormat('EEE').format(date);
+}
+
 class CusOrderDayCard extends StatelessWidget {
   const CusOrderDayCard({
     super.key,
     required this.day,
     required this.productLabel,
     required this.subtitle,
-    required this.qtyLabel,
     required this.mode,
     this.status,
     this.isToday = false,
     this.onTap,
-    this.onSkip,
-    this.skipping = false,
+    this.onEdit,
   });
 
   final Map<String, dynamic> day;
   final String productLabel;
   final String subtitle;
-  final String qtyLabel;
   final CusOrderCardMode mode;
   final String? status;
   final bool isToday;
   final VoidCallback? onTap;
-  final VoidCallback? onSkip;
-  final bool skipping;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -216,161 +290,137 @@ class CusOrderDayCard extends StatelessWidget {
     } catch (_) {}
 
     final dayNum = date != null ? '${date.day}' : '';
-    final dow = date != null ? DateFormat('EEE').format(date).toUpperCase() : '';
 
-    final showSkip = mode == CusOrderCardMode.upcoming && onSkip != null;
-    final showStatus = mode == CusOrderCardMode.history && !isToday && status != null;
+    final dayStatus = status ?? day['status'] as String?;
+    final showEdit = mode == CusOrderCardMode.upcoming && onEdit != null;
+    final showStatus = (mode == CusOrderCardMode.history && !isToday && dayStatus != null) ||
+        (mode == CusOrderCardMode.upcoming &&
+            dayStatus != null &&
+            dayStatus != 'expected' &&
+            onEdit == null);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: CusDashColors.surface,
-        borderRadius: BorderRadius.circular(CusDashMetrics.innerRadius),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(CusDashMetrics.innerRadius),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(CusDashMetrics.innerRadius),
-              border: Border.all(color: CusDashColors.border),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF283C28).withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: CusDashColors.accent,
-                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(CusDashMetrics.innerRadius)),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                SizedBox(
-                  width: 36,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dayNum,
-                        style: GoogleFonts.quicksand(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: CusDashColors.accent,
-                          height: 1,
-                        ),
-                      ),
-                      Text(
-                        dow,
-                        style: AppText.meta.copyWith(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: CusDashColors.labelMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        productLabel,
-                        style: AppText.cardTitle.copyWith(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: CusDashColors.ink,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: AppText.body.copyWith(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: CusDashColors.inkMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (showSkip)
-                  _SkipButton(onTap: onSkip!, loading: skipping)
-                else if (showStatus)
-                  _StatusPill(status: status!)
-                else if (mode == CusOrderCardMode.history && isToday)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 14),
-                    child: Text(
-                      qtyLabel,
-                      style: AppText.body.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: CusDashColors.inkMuted,
-                      ),
+    final dayLabel = cusOrderDayLabel(date, isToday: isToday);
+    final accentColor = cusOrderAccentBarColor(
+      isToday: isToday,
+      status: dayStatus,
+    );
+
+    return CusAccentListCard(
+      accentColor: accentColor,
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            child: SizedBox(
+              width: 40,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    dayNum,
+                    style: GoogleFonts.quicksand(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: CusDashColors.ink,
+                      height: 1,
                     ),
                   ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    dayLabel,
+                    style: AppText.meta.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: CusDashColors.labelMuted,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Container(width: 1, color: CusDashColors.border),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 13, 12, 13),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          productLabel,
+                          style: AppText.cardTitle.copyWith(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: CusDashColors.ink,
+                          ),
+                        ),
+                        if (subtitle.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            subtitle,
+                            style: AppText.meta.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: CusDashColors.inkMuted,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (showEdit) ...[
+                    const SizedBox(width: 8),
+                    _EditButton(onTap: onEdit!),
+                  ] else if (showStatus) ...[
+                    const SizedBox(width: 8),
+                    _StatusPill(status: dayStatus!),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SkipButton extends StatelessWidget {
-  const _SkipButton({required this.onTap, required this.loading});
+class _EditButton extends StatelessWidget {
+  const _EditButton({required this.onTap});
   final VoidCallback onTap;
-  final bool loading;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: Material(
-        color: CusDashColors.background,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: loading ? null : onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            width: 52,
-            height: 52,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: CusDashColors.border),
-            ),
-            child: loading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: CusDashColors.accent),
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(LucideIcons.skipForward, size: 16, color: CusDashColors.labelMuted),
-                      const SizedBox(height: 2),
-                      Text(
-                        'SKIP',
-                        style: AppText.meta.copyWith(
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w800,
-                          color: CusDashColors.labelMuted,
-                        ),
-                      ),
-                    ],
-                  ),
+    return Material(
+      color: CusDashColors.accentLight,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(LucideIcons.pencil, size: 13, color: CusDashColors.activeInk),
+              const SizedBox(width: 5),
+              Text(
+                'Edit',
+                style: AppText.meta.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: CusDashColors.activeInk,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -390,33 +440,30 @@ class _StatusPill extends StatelessWidget {
     final label = isDelivered ? 'Delivered' : (status == 'vacation' ? 'Vacation' : 'Skipped');
     final textColor = isDelivered ? CusDashColors.activeInk : CusDashColors.inkMuted;
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppText.meta.copyWith(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: textColor,
             ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: AppText.meta.copyWith(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w800,
-                color: textColor,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -573,7 +620,7 @@ double cusOrderDayQty(Map<String, dynamic> day) {
   final entries = (day['entries'] as List?)?.cast<Map<String, dynamic>>() ?? [];
   var total = 0.0;
   for (final e in entries) {
-    total += (e['qty'] as num?)?.toDouble() ?? 0;
+    total += parseApiDouble(e['qty']);
   }
   return total;
 }
@@ -586,6 +633,7 @@ String cusOrderProductLabel(
   if (entries.isEmpty) return 'Delivery';
 
   final name = entries.first['product_name'] as String? ?? 'Product';
+  if (name.contains('₹')) return name;
   for (final row in consumptionRows) {
     final pName = row['product_name'] as String? ?? '';
     if (pName.toLowerCase().contains(name.toLowerCase().split(' ').first)) {
@@ -604,16 +652,69 @@ String cusOrderQtyLabel(Map<String, dynamic> day) {
   return qty == qty.roundToDouble() ? '${qty.toInt()} L' : '${qty.toStringAsFixed(1)} L';
 }
 
+DateTime cusTodayDate() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
+}
+
+/// Future delivery days — expected, skipped, and vacation (so none disappear).
 List<Map<String, dynamic>> cusUpcomingDays(List<Map<String, dynamic>> days) {
-  final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-  return days.where((day) {
+  final today = cusTodayDate();
+  final list = days.where((day) {
     final parsed = DateTime.tryParse(day['date'] as String? ?? '');
     if (parsed == null) return false;
     final d = DateTime(parsed.year, parsed.month, parsed.day);
     if (d.isBefore(today)) return false;
     final status = day['status'] as String? ?? '';
-    return status == 'expected';
+    return status == 'expected' || status == 'skipped' || status == 'vacation';
   }).toList();
+  list.sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
+  return list;
+}
+
+/// Earliest upcoming expected delivery date (YYYY-MM-DD), or null.
+String? cusNextUpcomingDate(List<Map<String, dynamic>> upcoming) {
+  for (final day in upcoming) {
+    if ((day['status'] as String? ?? '') == 'expected') {
+      return day['date'] as String?;
+    }
+  }
+  return null;
+}
+
+/// Next date the customer can edit qty for (shift-aware: morning → tomorrow+).
+String? cusNextEditableUpcomingDate(
+  List<Map<String, dynamic>> upcoming, {
+  String shift = 'morning',
+}) {
+  final today = cusTodayDate();
+  final minDate = shift == 'evening' ? today : today.add(const Duration(days: 1));
+
+  for (final day in upcoming) {
+    final status = day['status'] as String? ?? '';
+    if (status != 'expected' && status != 'skipped') continue;
+    final parsed = DateTime.tryParse(day['date'] as String? ?? '');
+    if (parsed == null) continue;
+    final d = DateTime(parsed.year, parsed.month, parsed.day);
+    if (!d.isBefore(minDate)) {
+      return day['date'] as String?;
+    }
+  }
+  return null;
+}
+
+/// Next editable delivery day map, or null if none in [days].
+Map<String, dynamic>? cusNextEditableDay(
+  List<Map<String, dynamic>> days, {
+  String shift = 'morning',
+}) {
+  final upcoming = cusUpcomingDays(days);
+  final dateStr = cusNextEditableUpcomingDate(upcoming, shift: shift);
+  if (dateStr == null) return null;
+  for (final day in days) {
+    if ((day['date'] as String?) == dateStr) return day;
+  }
+  return null;
 }
 
 List<Map<String, dynamic>> cusHistoryDays(List<Map<String, dynamic>> days) {

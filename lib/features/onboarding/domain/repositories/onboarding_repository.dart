@@ -11,7 +11,7 @@ abstract class OnboardingRepository {
   });
   Future<List<ProductItem>> fetchProducts();
   Future<OnboardingStatus> saveProductsBatch(List<Map<String, dynamic>> products);
-  Future<OnboardingStatus> saveCustomer(Map<String, dynamic> payload);
+  Future<SaveCustomerResult> saveCustomer(Map<String, dynamic> payload);
   Future<List<CustomerItem>> fetchCustomers({String search = ''});
   Future<OnboardingStatus> saveSubscription({
     required int customerId,

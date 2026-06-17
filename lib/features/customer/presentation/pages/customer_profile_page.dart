@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_provider.dart';
+import '../../../../core/utils/api_json.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../owner/domain/entities/owner_models.dart';
 import '../../../owner/presentation/widgets/customer_detail/customer_detail_styles.dart';
@@ -26,30 +27,35 @@ class CustomerProfilePage extends ConsumerWidget {
     final profileAsync = ref.watch(customerProfileProvider);
 
     return profileAsync.when(
-      loading: () => const Scaffold(
+      loading: () => Scaffold(
         backgroundColor: CusDashColors.background,
-        body: Center(child: CircularProgressIndicator(color: CusDashColors.accent)),
+        body: const Center(
+          child: CircularProgressIndicator(color: CusDashColors.accent),
+        ),
       ),
       error: (error, _) => Scaffold(
         backgroundColor: CusDashColors.background,
         body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(LucideIcons.user, size: 48, color: CusDashColors.inkMuted),
-              const SizedBox(height: 12),
-              Text(
-                error is ApiException ? error.message : 'Failed to load profile.',
-                style: AppText.body.copyWith(color: CusDashColors.inkMuted),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: CusDashColors.accent),
-                onPressed: () => ref.invalidate(customerProfileProvider),
-                child: const Text('Retry'),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(LucideIcons.user, size: 48, color: CusDashColors.inkMuted),
+                const SizedBox(height: 12),
+                Text(
+                  error is ApiException ? error.message : 'Failed to load profile.',
+                  style: AppText.body.copyWith(color: CusDashColors.inkMuted),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: CusDashColors.accent),
+                  onPressed: () => ref.invalidate(customerProfileProvider),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -509,8 +515,16 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
 
     return Scaffold(
       backgroundColor: CusDashColors.background,
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        color: CusDashColors.accent,
+        onRefresh: () async {
+          ref.invalidate(customerProfileProvider);
+          ref.invalidate(customerDashboardProvider);
+          await ref.read(customerProfileProvider.future);
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
           const SliverToBoxAdapter(child: CusProfileHeader()),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: CusDashMetrics.horizontalPad),
@@ -530,7 +544,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                     productLabel: _subscriptionLabel(primarySub, rows),
                     shiftLabel: shiftLabel,
                     isMorning: shift == 'morning',
-                    qtyPerDay: (primarySub['qty'] as num?)?.toDouble() ?? 1,
+                    qtyPerDay: parseApiDouble(primarySub['qty'], 1),
                     isActive: true,
                     onManage: () => _showManagePlanSheet(ownerMobile),
                   ),
@@ -602,6 +616,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

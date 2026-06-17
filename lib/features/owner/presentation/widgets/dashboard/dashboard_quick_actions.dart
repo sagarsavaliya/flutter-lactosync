@@ -38,7 +38,7 @@ class DashboardQuickActions extends ConsumerWidget {
               child: _QuickActionTile(
                 icon: LucideIcons.userPlus,
                 label: AppStrings.dashboardFindCustomer,
-                onTap: () => OwnerActionSheets.showFindCustomer(context, ref),
+                onTap: () => OwnerActionSheets.openAddCustomer(context),
               ),
             ),
             const SizedBox(width: 10),

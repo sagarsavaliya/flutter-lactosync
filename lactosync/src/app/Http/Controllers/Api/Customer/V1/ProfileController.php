@@ -5,11 +5,10 @@ namespace App\Http\Controllers\Api\Customer\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Farm;
 use App\Models\FarmOwner;
-use App\Services\WhatsApp\WhatsAppService;
+use App\Services\Notifications\CustomerAppOwnerAlertService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
@@ -51,7 +50,7 @@ class ProfileController extends Controller
         return ApiResponse::success(['profile' => $data]);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(Request $request, CustomerAppOwnerAlertService $ownerAlerts): JsonResponse
     {
         /** @var \App\Models\Customer $customer */
         $customer = $request->user();
@@ -84,42 +83,7 @@ class ProfileController extends Controller
         $customer->save();
 
         if ($hasAddressChange) {
-            $fullAddress = implode(', ', array_filter([
-                $customer->address_line,
-                $customer->area,
-                $customer->landmark,
-                $customer->city,
-                $customer->state,
-                $customer->zip,
-            ]));
-
-            $ownerMobile = null;
-
-            try {
-                $farmOwner = FarmOwner::where('farm_id', $customer->farm_id)->first();
-                $ownerMobile = $farmOwner?->mobile;
-            } catch (\Throwable $e) {
-                Log::warning('ProfileController: could not load farm owner for address notification', [
-                    'customer_id' => $customer->id,
-                    'farm_id'     => $customer->farm_id,
-                    'error'       => $e->getMessage(),
-                ]);
-            }
-
-            if ($ownerMobile) {
-                try {
-                    app(WhatsAppService::class)->sendText(
-                        $ownerMobile,
-                        "Customer {$customer->fullName()} updated their delivery address to {$fullAddress}."
-                    );
-                } catch (\Throwable $e) {
-                    Log::warning('ProfileController: WhatsApp owner notification failed after address change', [
-                        'customer_id'  => $customer->id,
-                        'owner_mobile' => $ownerMobile,
-                        'error'        => $e->getMessage(),
-                    ]);
-                }
-            }
+            $ownerAlerts->addressUpdated($customer, $customer->shortAddress());
         }
 
         $updatedFields = $customer->only($allowed);

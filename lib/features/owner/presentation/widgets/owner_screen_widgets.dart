@@ -6,6 +6,8 @@ import '../../../../core/theme/app_typography.dart';
 import 'customer_detail/customer_detail_styles.dart';
 import 'customer_list_styles.dart';
 
+import 'owner_form_theme.dart';
+
 abstract final class OwnerScreenMetrics {
   static const cardRadius = 16.0;
   static const pagerRadius = 15.0;
@@ -459,14 +461,20 @@ class OwnerSummaryFooterTile extends StatelessWidget {
 class BillingSearchSendRow extends StatelessWidget {
   const BillingSearchSendRow({
     super.key,
-    required this.searchChild,
+    required this.controller,
+    required this.hintText,
+    required this.onChanged,
+    required this.onSort,
     required this.sendLabel,
     required this.onSend,
     this.sending = false,
     this.enabled = true,
   });
 
-  final Widget searchChild;
+  final TextEditingController controller;
+  final String hintText;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onSort;
   final String sendLabel;
   final VoidCallback? onSend;
   final bool sending;
@@ -474,46 +482,65 @@ class BillingSearchSendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: searchChild),
-        const SizedBox(width: 10),
-        Material(
-          color: enabled ? CustomerDetailColors.accent : CustomerDetailColors.accent.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(14),
-          elevation: enabled ? 4 : 0,
-          shadowColor: CustomerDetailColors.accent.withValues(alpha: 0.45),
-          child: InkWell(
-            onTap: enabled && !sending ? onSend : null,
+    const height = OwnerFormTheme.searchRowHeight;
+
+    return SizedBox(
+      height: height,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Material(
+            color: enabled
+                ? CustomerDetailColors.accent
+                : CustomerDetailColors.accent.withValues(alpha: 0.45),
             borderRadius: BorderRadius.circular(14),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (sending)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  else
-                    const Icon(LucideIcons.send, size: 16, color: Colors.white),
-                  const SizedBox(width: 7),
-                  Text(
-                    sendLabel,
-                    style: AppText.cardTitle.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+            child: InkWell(
+              onTap: enabled && !sending ? onSend : null,
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                height: height,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (sending)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    else
+                      const Icon(LucideIcons.send, size: 16, color: Colors.white),
+                    const SizedBox(width: 6),
+                    Text(
+                      sendLabel,
+                      style: AppText.cardTitle.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              style: AppText.body.copyWith(fontSize: 14, fontWeight: FontWeight.w600, height: 1.0),
+              maxLines: 1,
+              textAlignVertical: TextAlignVertical.center,
+              decoration: OwnerFormTheme.searchDecoration(hintText: hintText),
+            ),
+          ),
+          const SizedBox(width: 8),
+          OwnerSortButton(onSort: onSort),
+        ],
+      ),
     );
   }
 }

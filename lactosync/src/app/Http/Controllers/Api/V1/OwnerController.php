@@ -213,7 +213,15 @@ class OwnerController extends Controller
             'city' => ['sometimes', 'nullable', 'string', 'max:80'],
             'state' => ['sometimes', 'nullable', 'string', 'max:80'],
             'zip' => ['sometimes', 'nullable', 'digits:6'],
-            'contact' => ['sometimes', 'digits:10'],
+            'contact' => [
+                'sometimes',
+                'digits:10',
+                Rule::unique('customers', 'contact')
+                    ->where(fn ($query) => $query
+                        ->where('farm_id', $owner->farm_id)
+                        ->whereNull('deleted_at'))
+                    ->ignore($customer->id),
+            ],
             'whatsapp_enabled' => ['sometimes', 'boolean'],
             'secondary_contact' => ['sometimes', 'nullable', 'digits:10'],
         ]);

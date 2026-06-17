@@ -2,10 +2,12 @@
 
 namespace App\Services\Notifications;
 
+use App\Models\Customer;
 use App\Models\FarmOwner;
 use App\Models\Invoice;
 use App\Models\OwnerNotification;
 use App\Models\Payment;
+use App\Models\SubscriptionLine;
 use Illuminate\Support\Carbon;
 
 class OwnerNotificationService
@@ -82,6 +84,93 @@ class OwnerNotificationService
             'customer_id' => $invoice->customer_id,
             'billing_month' => $invoice->billing_month,
             'balance_due' => (float) $invoice->balance_due,
+        ]);
+    }
+
+    public function customerVacationSet(
+        FarmOwner $owner,
+        Customer $customer,
+        string $vacationStart,
+        string $vacationEnd,
+        string $resumeLabel,
+    ): OwnerNotification {
+        $start = Carbon::parse($vacationStart)->format('d M Y');
+        $end = Carbon::parse($vacationEnd)->format('d M Y');
+
+        return $this->create($owner, 'customer_vacation_set', 'Customer vacation', sprintf(
+            '%s paused delivery from %s to %s. Resumes %s.',
+            $customer->fullName(),
+            $start,
+            $end,
+            $resumeLabel,
+        ), [
+            'customer_id' => $customer->id,
+            'vacation_start' => $vacationStart,
+            'vacation_end' => $vacationEnd,
+        ]);
+    }
+
+    public function customerVacationCleared(FarmOwner $owner, Customer $customer): OwnerNotification
+    {
+        return $this->create($owner, 'customer_vacation_cleared', 'Vacation cleared', sprintf(
+            '%s cleared their vacation. Regular delivery continues.',
+            $customer->fullName(),
+        ), [
+            'customer_id' => $customer->id,
+        ]);
+    }
+
+    public function customerQtyChanged(
+        FarmOwner $owner,
+        Customer $customer,
+        string $deliveryDate,
+        SubscriptionLine $line,
+        int $qty,
+    ): OwnerNotification {
+        $line->loadMissing('product');
+        $productName = $line->product?->name ?? 'Milk';
+        $dateLabel = Carbon::parse($deliveryDate)->format('d M Y');
+
+        return $this->create($owner, 'customer_qty_changed', 'Qty changed', sprintf(
+            '%s changed %s to %s L for %s (%s).',
+            $customer->fullName(),
+            $productName,
+            $qty,
+            $dateLabel,
+            $line->shift instanceof \BackedEnum ? $line->shift->label() : (string) $line->shift,
+        ), [
+            'customer_id' => $customer->id,
+            'delivery_date' => $deliveryDate,
+            'subscription_line_id' => $line->id,
+            'qty' => $qty,
+        ]);
+    }
+
+    public function customerDaySkipped(FarmOwner $owner, Customer $customer, string $deliveryDate): OwnerNotification
+    {
+        $dateLabel = Carbon::parse($deliveryDate)->format('d M Y');
+
+        return $this->create($owner, 'customer_day_skipped', 'Delivery skipped', sprintf(
+            '%s skipped delivery for %s.',
+            $customer->fullName(),
+            $dateLabel,
+        ), [
+            'customer_id' => $customer->id,
+            'delivery_date' => $deliveryDate,
+        ]);
+    }
+
+    public function customerAddressUpdated(
+        FarmOwner $owner,
+        Customer $customer,
+        string $addressSummary,
+    ): OwnerNotification {
+        return $this->create($owner, 'customer_address_updated', 'Address updated', sprintf(
+            '%s updated delivery address to %s.',
+            $customer->fullName(),
+            $addressSummary,
+        ), [
+            'customer_id' => $customer->id,
         ]);
     }
 

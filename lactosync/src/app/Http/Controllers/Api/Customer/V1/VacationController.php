@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api\Customer\V1;
 
+use App\Services\Notifications\CustomerAppOwnerAlertService;
 use App\Services\WhatsApp\CustomerWhatsAppNotifier;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class VacationController
 {
@@ -20,8 +22,11 @@ class VacationController
         ]);
     }
 
-    public function store(Request $request, CustomerWhatsAppNotifier $notifier): JsonResponse
-    {
+    public function store(
+        Request $request,
+        CustomerWhatsAppNotifier $notifier,
+        CustomerAppOwnerAlertService $ownerAlerts,
+    ): JsonResponse {
         $request->validate([
             'vacation_start' => ['required', 'date', 'after:today'],
             'vacation_end'   => ['required', 'date', 'after_or_equal:vacation_start'],
@@ -48,14 +53,9 @@ class VacationController
         $customer->vacation_end   = $vacationEnd;
         $customer->save();
 
-        // Send WhatsApp notification (suppressed inside notifier when whatsapp_enabled = false).
         $farm = $customer->farm;
-        $notifier->deliveryPaused(
-            $customer,
-            $vacationStart,
-            $vacationEnd,
-            $farm,
-        );
+        $notifier->deliveryPaused($customer, $vacationStart, $vacationEnd, $farm);
+        $ownerAlerts->vacationSet($customer, $vacationStart, $vacationEnd);
 
         return ApiResponse::success([
             'vacation_start' => $customer->vacation_start->format('Y-m-d'),
@@ -63,14 +63,25 @@ class VacationController
         ]);
     }
 
-    public function destroy(Request $request): JsonResponse
-    {
+    public function destroy(
+        Request $request,
+        CustomerWhatsAppNotifier $notifier,
+        CustomerAppOwnerAlertService $ownerAlerts,
+    ): JsonResponse {
         /** @var \App\Models\Customer $customer */
         $customer = $request->user();
+
+        $wasOnVacation = $customer->vacation_start !== null && $customer->vacation_end !== null;
 
         $customer->vacation_start = null;
         $customer->vacation_end   = null;
         $customer->save();
+
+        if ($wasOnVacation) {
+            $farm = $customer->farm;
+            $notifier->subscriptionResumed($customer, Carbon::today()->toDateString(), $farm);
+            $ownerAlerts->vacationCleared($customer);
+        }
 
         return ApiResponse::success(['cancelled' => true]);
     }

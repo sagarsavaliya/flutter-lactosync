@@ -80,12 +80,14 @@ class ProductItem {
     return ProductItem(
       id: json['id'] as int,
       name: json['name'] as String,
-      milkType: json['milk_type'] as String,
-      milkTypeLabel: json['milk_type_label'] as String,
+      milkType: json['milk_type'] as String? ?? '',
+      milkTypeLabel: json['milk_type_label'] as String? ?? '',
       rate: (json['rate'] as num).toDouble(),
       unit: json['unit'] as String,
-      containerType: json['container_type'] as String,
-      containerTypeLabel: json['container_type_label'] as String,
+      containerType: json['container_type'] as String? ??
+          json['container_kind'] as String? ??
+          '',
+      containerTypeLabel: json['container_type_label'] as String? ?? '',
     );
   }
 }
@@ -114,4 +116,21 @@ class CustomerItem {
       contact: json['contact'] as String,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is CustomerItem && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
+class SaveCustomerResult {
+  const SaveCustomerResult({
+    required this.status,
+    required this.customer,
+  });
+
+  final OnboardingStatus status;
+  final CustomerItem customer;
 }

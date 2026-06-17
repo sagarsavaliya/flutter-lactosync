@@ -15,7 +15,7 @@ class CusProfileHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         CusDashMetrics.horizontalPad,
-        12,
+        16,
         CusDashMetrics.horizontalPad,
         8,
       ),

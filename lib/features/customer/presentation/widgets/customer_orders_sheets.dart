@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/utils/milk_qty.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../data/repositories/customer_order_repository.dart';
@@ -260,8 +261,8 @@ class CustomerOrderDayEditSheet extends StatefulWidget {
 }
 
 class _CustomerOrderDayEditSheetState extends State<CustomerOrderDayEditSheet> {
-  late final Map<int, int> _qtys;
-  late final Map<int, int> _originalQtys;
+  late final Map<int, double> _qtys;
+  late final Map<int, double> _originalQtys;
   bool _isSaving = false;
   bool _isSkipping = false;
 
@@ -271,7 +272,10 @@ class _CustomerOrderDayEditSheetState extends State<CustomerOrderDayEditSheet> {
     final entries = (widget.day['entries'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     _qtys = {
       for (final e in entries)
-        (e['subscription_line_id'] as int): (e['qty'] as num?)?.toInt() ?? 1,
+        (e['subscription_line_id'] as int): nearestMilkQty(
+          (e['qty'] as num?)?.toDouble() ?? 0.5,
+          allowZero: true,
+        ),
     };
     _originalQtys = Map.from(_qtys);
   }
@@ -292,7 +296,7 @@ class _CustomerOrderDayEditSheetState extends State<CustomerOrderDayEditSheet> {
   Future<void> _onSave() async {
     final changed = _entries.where((e) {
       final id = e['subscription_line_id'] as int;
-      return _qtys[id] != _originalQtys[id];
+      return !milkQtysEqual(_qtys[id] ?? 0, _originalQtys[id] ?? 0);
     }).toList();
 
     if (changed.isEmpty) {
@@ -360,44 +364,70 @@ class _CustomerOrderDayEditSheetState extends State<CustomerOrderDayEditSheet> {
           ..._entries.map(
             (e) => _StepperRow(
               entry: e,
-              qty: _qtys[e['subscription_line_id'] as int] ?? 1,
+              qty: _qtys[e['subscription_line_id'] as int] ?? 0.5,
               onChanged: (newQty) {
                 setState(() => _qtys[e['subscription_line_id'] as int] = newQty);
               },
             ),
           ),
           const SizedBox(height: 16),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: CusDashColors.accent,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            onPressed: _isSaving || _isSkipping ? null : _onSave,
-            child: _isSaving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Text('Save Changes'),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: CusDashColors.payButton,
-              side: BorderSide(color: CusDashColors.payButton.withValues(alpha: 0.5)),
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            onPressed: _isSaving || _isSkipping ? null : _onSkip,
-            child: _isSkipping
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: CusDashColors.payButton),
-                  )
-                : const Text('Skip This Day'),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: CusDashColors.inkMuted,
+                    side: const BorderSide(color: CusDashColors.border),
+                    minimumSize: const Size.fromHeight(52),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: _isSaving || _isSkipping
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: CusDashColors.payButton,
+                    side: BorderSide(color: CusDashColors.payButton.withValues(alpha: 0.5)),
+                    minimumSize: const Size.fromHeight(52),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: _isSaving || _isSkipping ? null : _onSkip,
+                  child: _isSkipping
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: CusDashColors.payButton,
+                          ),
+                        )
+                      : const Text('Skip'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: CusDashColors.accent,
+                    minimumSize: const Size.fromHeight(52),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: _isSaving || _isSkipping ? null : _onSave,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Save'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -409,14 +439,17 @@ class _StepperRow extends StatelessWidget {
   const _StepperRow({required this.entry, required this.qty, required this.onChanged});
 
   final Map<String, dynamic> entry;
-  final int qty;
-  final ValueChanged<int> onChanged;
+  final double qty;
+  final ValueChanged<double> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final name = entry['product_name'] as String? ?? '';
     final shift = entry['shift'] as String? ?? '';
     final shiftLabel = shift == 'morning' ? 'Morning' : 'Evening';
+    final idx = kMilkQtyStepperOptions.indexWhere((v) => milkQtysEqual(v, qty));
+    final canDecrease = idx > 0;
+    final canIncrease = idx >= 0 && idx < kMilkQtyStepperOptions.length - 1;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -438,22 +471,22 @@ class _StepperRow extends StatelessWidget {
               children: [
                 IconButton(
                   icon: const Icon(Icons.remove, size: 16),
-                  onPressed: qty > 0 ? () => onChanged(qty - 1) : null,
+                  onPressed: canDecrease ? () => onChanged(stepMilkQty(qty, -1)) : null,
                   padding: const EdgeInsets.all(8),
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                   color: CusDashColors.accent,
                 ),
                 SizedBox(
-                  width: 32,
+                  width: 52,
                   child: Text(
-                    qty.toString(),
+                    milkQtyLabel(qty),
                     textAlign: TextAlign.center,
-                    style: AppText.cardTitle.copyWith(fontSize: 15),
+                    style: AppText.cardTitle.copyWith(fontSize: 13),
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.add, size: 16),
-                  onPressed: () => onChanged(qty + 1),
+                  onPressed: canIncrease ? () => onChanged(stepMilkQty(qty, 1)) : null,
                   padding: const EdgeInsets.all(8),
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                   color: CusDashColors.accent,

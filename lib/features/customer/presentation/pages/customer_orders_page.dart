@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../data/repositories/customer_order_repository.dart';
 import '../providers/customer_dashboard_provider.dart';
 import '../providers/customer_order_provider.dart';
 import '../widgets/customer_dashboard_styles.dart';
 import '../widgets/customer_orders_sheets.dart';
 import '../widgets/customer_orders_widgets.dart';
-import '../../../../core/widgets/app_snackbar.dart';
 
 class CustomerOrdersPage extends ConsumerStatefulWidget {
   const CustomerOrdersPage({super.key});
@@ -19,7 +17,6 @@ class CustomerOrdersPage extends ConsumerStatefulWidget {
 
 class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
   late DateTime _selectedMonth;
-  String? _skippingDate;
 
   @override
   void initState() {
@@ -41,24 +38,59 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
     }
   }
 
-  void _openDaySheet(Map<String, dynamic> day) {
+  void _openDaySheet(
+    Map<String, dynamic> day, {
+    required bool allowEdit,
+  }) {
     final status = day['status'] as String? ?? 'no_record';
-    final entries = (day['entries'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    final isLocked = entries.isNotEmpty && entries.every((e) => e['locked'] == true);
     final repo = ref.read(customerOrderRepositoryProvider);
-    final onSaved = () => ref.invalidate(customerOrdersProvider(_monthKey));
+    final onSaved = () {
+      ref.invalidate(customerOrdersProvider(_monthKey));
+      ref.invalidate(customerDashboardProvider);
+    };
 
-    if (status == 'expected' && !isLocked) {
+    if (status == 'expected' && allowEdit) {
       showCustomerOrderDayEditSheet(
         context: context,
         day: day,
         repository: repo,
         onSaved: onSaved,
       );
-    } else if (status == 'delivered' ||
+      return;
+    }
+
+    if (status == 'skipped' && allowEdit) {
+      final dateStr = day['date'] as String? ?? '';
+      final parsed = DateTime.tryParse(dateStr);
+      if (parsed != null) {
+        final dashData = ref.read(customerDashboardProvider).value;
+        final subs = (dashData?['active_subscriptions'] as List?)
+                ?.cast<Map<String, dynamic>>() ??
+            [];
+        final shift = subs.isNotEmpty
+            ? (subs.first['shift'] as String? ?? 'morning')
+            : 'morning';
+        final today = cusTodayDate();
+        final d = DateTime(parsed.year, parsed.month, parsed.day);
+        final minEditable = shift == 'evening'
+            ? today
+            : today.add(const Duration(days: 1));
+        if (!d.isBefore(minEditable)) {
+          showCustomerOrderDayEditSheet(
+            context: context,
+            day: day,
+            repository: repo,
+            onSaved: onSaved,
+          );
+          return;
+        }
+      }
+    }
+
+    if (status == 'expected' ||
+        status == 'delivered' ||
         status == 'skipped' ||
-        status == 'vacation' ||
-        (status == 'expected' && isLocked)) {
+        status == 'vacation') {
       final dashData = ref.read(customerDashboardProvider).value;
       final activeSubs = (dashData?['active_subscriptions'] as List?)
               ?.cast<Map<String, dynamic>>() ??
@@ -71,32 +103,17 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
     }
   }
 
-  Future<void> _skipDay(Map<String, dynamic> day) async {
-    final dateStr = day['date'] as String? ?? '';
-    if (dateStr.isEmpty) return;
-
-    setState(() => _skippingDate = dateStr);
-    try {
-      await ref.read(customerOrderRepositoryProvider).skipDay(dateStr);
-      ref.invalidate(customerOrdersProvider(_monthKey));
-      ref.invalidate(customerDashboardProvider);
-      if (mounted) AppSnackBar.show(context, 'Delivery skipped');
-    } catch (e) {
-      if (mounted) AppSnackBar.showError(context, e.toString());
-    } finally {
-      if (mounted) setState(() => _skippingDate = null);
-    }
-  }
-
   String _subtitleForDay(DateTime date, Map<String, dynamic> day, {required bool upcoming}) {
-    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final today = cusTodayDate();
     final diff = date.difference(today).inDays;
     final qty = cusOrderQtyLabel(day);
     final status = day['status'] as String? ?? '';
 
     if (upcoming) {
+      if (status == 'skipped' || status == 'vacation') return '';
+      if (status != 'expected') return '';
       final when = diff == 1 ? 'Tomorrow' : (diff == 0 ? 'Today' : DateFormat('EEE d MMM').format(date));
-      return '$when · $qty';
+      return qty == '—' ? when : '$when · $qty';
     }
     if (status == 'skipped' || status == 'vacation') return '—';
     return qty;
@@ -105,6 +122,28 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
   bool _isToday(String dateStr) {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     return dateStr == today;
+  }
+
+  bool get _isCurrentMonth {
+    final now = DateTime.now();
+    return _selectedMonth.year == now.year && _selectedMonth.month == now.month;
+  }
+
+  String _nextDeliverySubtitle(DateTime date, Map<String, dynamic> day) {
+    final today = cusTodayDate();
+    final diff = date.difference(today).inDays;
+    final qty = cusOrderQtyLabel(day);
+    final status = day['status'] as String? ?? '';
+    if (status == 'skipped') {
+      final when = diff == 1
+          ? 'Tomorrow · Skipped'
+          : (diff == 0 ? 'Today · Skipped' : '${DateFormat('EEE d MMM').format(date)} · Skipped');
+      return when;
+    }
+    final when = diff == 1
+        ? 'Tomorrow'
+        : (diff == 0 ? 'Today' : DateFormat('EEE d MMM').format(date));
+    return qty == '—' ? when : '$when · $qty';
   }
 
   @override
@@ -147,9 +186,19 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
                       final consumptionRows =
                           consumption.cast<Map<String, dynamic>>();
 
+                      final dashData = ref.watch(customerDashboardProvider).valueOrNull;
+                      final subs = (dashData?['active_subscriptions'] as List?)
+                              ?.cast<Map<String, dynamic>>() ??
+                          [];
+                      final shift = subs.isNotEmpty
+                          ? (subs.first['shift'] as String? ?? 'morning')
+                          : 'morning';
+
                       final stats = cusOrdersMonthStats(days);
-                      final upcoming = cusUpcomingDays(days);
                       final history = cusHistoryDays(days);
+                      final nextEditableDay = _isCurrentMonth
+                          ? cusNextEditableDay(days, shift: shift)
+                          : null;
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -159,22 +208,34 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
                             skipped: stats.skipped,
                             totalLiters: stats.totalLiters,
                           ),
-                          if (upcoming.isNotEmpty) ...[
-                            const CusOrdersSectionLabel(title: 'UPCOMING'),
-                            ...upcoming.map((day) {
-                              final dateStr = day['date'] as String? ?? '';
-                              final date = DateTime.parse(dateStr);
-                              return CusOrderDayCard(
-                                day: day,
-                                productLabel: cusOrderProductLabel(day, consumptionRows),
-                                subtitle: _subtitleForDay(date, day, upcoming: true),
-                                qtyLabel: cusOrderQtyLabel(day),
-                                mode: CusOrderCardMode.upcoming,
-                                onTap: () => _openDaySheet(day),
-                                onSkip: () => _skipDay(day),
-                                skipping: _skippingDate == dateStr,
-                              );
-                            }),
+                          if (nextEditableDay != null) ...[
+                            const CusOrdersSectionLabel(title: 'NEXT DELIVERY'),
+                            Builder(
+                              builder: (_) {
+                                final dateStr = nextEditableDay['date'] as String? ?? '';
+                                final date = DateTime.parse(dateStr);
+                                final isToday = _isToday(dateStr);
+                                return CusOrderDayCard(
+                                  day: nextEditableDay,
+                                  productLabel: cusOrderProductLabel(
+                                    nextEditableDay,
+                                    consumptionRows,
+                                  ),
+                                  subtitle: _nextDeliverySubtitle(date, nextEditableDay),
+                                  mode: CusOrderCardMode.upcoming,
+                                  status: nextEditableDay['status'] as String? ?? 'expected',
+                                  isToday: isToday,
+                                  onTap: () => _openDaySheet(
+                                    nextEditableDay,
+                                    allowEdit: true,
+                                  ),
+                                  onEdit: () => _openDaySheet(
+                                    nextEditableDay,
+                                    allowEdit: true,
+                                  ),
+                                );
+                              },
+                            ),
                           ],
                           const CusOrdersSectionLabel(title: 'DELIVERY HISTORY'),
                           if (history.isEmpty)
@@ -191,11 +252,10 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
                                 day: day,
                                 productLabel: cusOrderProductLabel(day, consumptionRows),
                                 subtitle: _subtitleForDay(date, day, upcoming: false),
-                                qtyLabel: cusOrderQtyLabel(day),
                                 mode: CusOrderCardMode.history,
                                 status: status,
                                 isToday: isToday,
-                                onTap: () => _openDaySheet(day),
+                                onTap: () => _openDaySheet(day, allowEdit: false),
                               );
                             }),
                           const SizedBox(height: 24),

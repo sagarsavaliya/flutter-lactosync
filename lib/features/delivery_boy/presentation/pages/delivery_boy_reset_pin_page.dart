@@ -62,7 +62,7 @@ class _DeliveryBoyResetPinPageState
             pin: pin,
           );
       if (!mounted) return;
-      context.go('/delivery-boy/home');
+      context.go('/delivery-boy/pickup');
     } catch (e) {
       if (!mounted) return;
       AppSnackBar.showError(context, mapDioError(e).message);

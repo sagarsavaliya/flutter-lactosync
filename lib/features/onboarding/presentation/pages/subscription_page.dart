@@ -4,13 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_provider.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/redesign_colors.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_form_layout.dart';
-import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/redesign_scaffold.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/onboarding_models.dart';
@@ -41,9 +40,14 @@ class _LineDraft {
 }
 
 class SubscriptionPage extends ConsumerStatefulWidget {
-  const SubscriptionPage({super.key, this.lockedCustomerId});
+  const SubscriptionPage({
+    super.key,
+    this.lockedCustomerId,
+    this.prefilledCustomer,
+  });
 
   final int? lockedCustomerId;
+  final CustomerItem? prefilledCustomer;
 
   @override
   ConsumerState<SubscriptionPage> createState() => _SubscriptionPageState();
@@ -56,6 +60,16 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
   bool _initialized = false;
 
   @override
+  void initState() {
+    super.initState();
+    final prefilled = widget.prefilledCustomer;
+    final lockedId = widget.lockedCustomerId ?? prefilled?.id;
+    if (lockedId != null && prefilled != null && prefilled.id == lockedId) {
+      _selectedCustomer = prefilled;
+    }
+  }
+
+  @override
   void dispose() {
     for (final line in _lines) {
       line.dispose();
@@ -63,19 +77,37 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
     super.dispose();
   }
 
-  void _initFromBootstrap(SubscriptionBootstrap data) {
+  @override
+  void didUpdateWidget(SubscriptionPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.lockedCustomerId != widget.lockedCustomerId ||
+        oldWidget.prefilledCustomer?.id != widget.prefilledCustomer?.id) {
+      _initialized = false;
+      _selectedCustomer = widget.prefilledCustomer;
+    }
+  }
+
+  void _applyBootstrap(SubscriptionBootstrap data) {
     if (_initialized) return;
     _initialized = true;
-    final lockedId = widget.lockedCustomerId;
+
+    final lockedId = widget.lockedCustomerId ?? widget.prefilledCustomer?.id;
     if (lockedId != null) {
       _selectedCustomer = data.customers.where((c) => c.id == lockedId).firstOrNull ??
-          (data.customers.isNotEmpty ? data.customers.first : null);
+          widget.prefilledCustomer;
     } else {
       _selectedCustomer = data.customers.isNotEmpty ? data.customers.first : null;
     }
-    if (data.products.isNotEmpty) {
+
+    if (data.products.isNotEmpty && _lines.first.productId == null) {
       _lines.first.productId = data.products.first.id;
     }
+  }
+
+  CustomerItem? _customerDropdownValue(List<CustomerItem> customers) {
+    final target = _selectedCustomer ?? widget.prefilledCustomer;
+    if (target == null) return null;
+    return customers.where((c) => c.id == target.id).firstOrNull ?? target;
   }
 
   ProductItem? _productFor(int? id, List<ProductItem> products) {
@@ -94,7 +126,8 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
   }
 
   Future<void> _submit() async {
-    if (_selectedCustomer == null) {
+    final customer = _selectedCustomer ?? widget.prefilledCustomer;
+    if (customer == null) {
       AppSnackBar.show(context, 'Add a customer first');
       return;
     }
@@ -123,7 +156,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
     setState(() => _loading = true);
     try {
       await ref.read(onboardingRepositoryProvider).saveSubscription(
-            customerId: _selectedCustomer!.id,
+            customerId: customer.id,
             lines: payload,
           );
       ref.invalidate(authSessionProvider);
@@ -164,7 +197,9 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    mapDioError(e).message,
+                    e is ApiException
+                        ? e.message
+                        : mapDioError(e).message,
                     textAlign: TextAlign.center,
                     style: AppText.body.copyWith(color: CustomerDetailColors.bodyInk),
                   ),
@@ -178,17 +213,32 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
             ),
           ),
           data: (data) {
-            _initFromBootstrap(data);
-            final customers = data.customers;
+            if (!_initialized) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted || _initialized) return;
+                setState(() => _applyBootstrap(data));
+              });
+            }
+
+            final lockedId = widget.lockedCustomerId ?? widget.prefilledCustomer?.id;
+            var customers = List<CustomerItem>.from(data.customers);
+            final prefilled = widget.prefilledCustomer;
+            if (lockedId != null &&
+                prefilled != null &&
+                prefilled.id == lockedId &&
+                !customers.any((c) => c.id == lockedId)) {
+              customers = [prefilled, ...customers];
+            }
             final products = data.products;
-            final isCustomerLocked = widget.lockedCustomerId != null;
+            final isCustomerLocked = lockedId != null;
+            final customerValue = _customerDropdownValue(customers);
 
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
               children: [
                 RedesignSurfaceCard(
                   child: DropdownButtonFormField<CustomerItem>(
-                    value: _selectedCustomer,
+                    value: customerValue,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: AppStrings.selectCustomer,
@@ -264,8 +314,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
                               ),
                               const SizedBox(width: AppSpace.sm),
                               Expanded(
-                                child: AppTextField(
-                                  label: AppStrings.couponLtrLabel,
+                                child: TextFormField(
                                   controller: line.couponController,
                                   keyboardType: TextInputType.number,
                                   inputFormatters: [
@@ -274,13 +323,25 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
                                     ),
                                   ],
                                   onChanged: (_) => setState(() {}),
+                                  decoration: const InputDecoration(
+                                    labelText: AppStrings.couponLtrLabel,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: AppSpace.sm),
                               Expanded(
-                                child: AppReadOnlyField(
-                                  label: AppStrings.totalLabel,
-                                  value: '₹${total.toStringAsFixed(0)}',
+                                child: TextFormField(
+                                  key: ValueKey(total),
+                                  readOnly: true,
+                                  enableInteractiveSelection: false,
+                                  initialValue: '₹${total.toStringAsFixed(0)}',
+                                  style: AppText.body.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: CustomerDetailColors.onSurface,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    labelText: AppStrings.totalLabel,
+                                  ),
                                 ),
                               ),
                             ],

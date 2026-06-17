@@ -279,8 +279,6 @@ class _ProfileAvatar extends StatelessWidget {
 
         const PopupMenuItem(value: 'settings', child: Text(AppStrings.navSettings)),
 
-        const PopupMenuItem(value: 'refresh_modules', child: Text('Refresh Features')),
-
         const PopupMenuItem(value: 'signout', child: Text(AppStrings.signOut)),
 
       ],
@@ -300,10 +298,6 @@ class _ProfileAvatar extends StatelessWidget {
           case 'settings':
 
             context.go('/owner/settings');
-
-          case 'refresh_modules':
-
-            await ref.read(moduleProvider.notifier).fetch();
 
           case 'signout':
 

@@ -164,12 +164,12 @@ class _CustomerDetailPageState extends ConsumerState<CustomerDetailPage> {
           OwnerSheetTitle(AppStrings.milkLogActionsTitle, subtitle: line.productName),
           const SizedBox(height: 16),
           OwnerSheetActions(
-            primaryLabel: AppStrings.sendToCustomer,
+            primaryLabel: AppStrings.sendToCustomerBtn,
             onPrimary: () async {
               Navigator.pop(context);
               await _sendMilkLog(data: data, line: line);
             },
-            secondaryLabel: AppStrings.updateOrderLog,
+            secondaryLabel: AppStrings.updateOrderLogBtn,
             onSecondary: () async {
               Navigator.pop(context);
               await UpdateOrderLogSheet.show(

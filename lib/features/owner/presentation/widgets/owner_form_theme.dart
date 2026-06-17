@@ -74,15 +74,15 @@ class OwnerSearchSortRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          _SortButton(onSort: onSort),
+          OwnerSortButton(onSort: onSort),
         ],
       ),
     );
   }
 }
 
-class _SortButton extends StatelessWidget {
-  const _SortButton({required this.onSort});
+class OwnerSortButton extends StatelessWidget {
+  const OwnerSortButton({super.key, required this.onSort});
 
   final VoidCallback onSort;
 

@@ -166,7 +166,7 @@ class OwnerDeliveryController extends Controller
 
         $boyAssignments = DeliveryBoyRouteAssignment::query()
             ->whereIn('route_id', $routes->pluck('id'))
-            ->where('assigned_date', $date)
+            ->where('assigned_date', DeliveryBoyRouteAssignment::STANDING_DATE)
             ->with('deliveryBoy')
             ->get()
             ->keyBy('route_id');
@@ -461,7 +461,7 @@ class OwnerDeliveryController extends Controller
         $date = $request->input('date');
 
         $assignment = DeliveryBoyRouteAssignment::where('route_id', $route->id)
-            ->where('assigned_date', $date)
+            ->where('assigned_date', DeliveryBoyRouteAssignment::STANDING_DATE)
             ->with('deliveryBoy')
             ->first();
 
@@ -487,7 +487,7 @@ class OwnerDeliveryController extends Controller
 
         $validated = $request->validate([
             'delivery_boy_id' => ['required', 'integer', 'exists:delivery_boys,id'],
-            'date'            => ['required', 'date_format:Y-m-d'],
+            'date'            => ['nullable', 'date_format:Y-m-d'],
         ]);
 
         $boy = DeliveryBoy::findOrFail($validated['delivery_boy_id']);
@@ -495,12 +495,13 @@ class OwnerDeliveryController extends Controller
             return $this->notFound();
         }
 
+        $standingDate = DeliveryBoyRouteAssignment::STANDING_DATE;
         $now = now()->toDateTimeString();
         DB::table('delivery_boy_route_assignments')->upsert(
             [
                 'route_id'        => $route->id,
                 'delivery_boy_id' => $boy->id,
-                'assigned_date'   => $validated['date'],
+                'assigned_date'   => $standingDate,
                 'created_at'      => $now,
                 'updated_at'      => $now,
             ],
@@ -513,7 +514,7 @@ class OwnerDeliveryController extends Controller
             'data'    => [
                 'route_id'        => $route->id,
                 'delivery_boy_id' => $boy->id,
-                'assigned_date'   => $validated['date'],
+                'assigned_date'   => $standingDate,
                 'delivery_boy'    => $this->formatBoy($boy),
             ],
         ]);
@@ -568,7 +569,7 @@ class OwnerDeliveryController extends Controller
 
         // Batch-load delivery boy assignments for the date.
         $boyAssignments = DeliveryBoyRouteAssignment::whereIn('route_id', $routeIds)
-            ->where('assigned_date', $date)
+            ->where('assigned_date', DeliveryBoyRouteAssignment::STANDING_DATE)
             ->with('deliveryBoy')
             ->get()
             ->keyBy('route_id');

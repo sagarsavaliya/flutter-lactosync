@@ -272,6 +272,9 @@ Route::prefix('delivery-boy/v1')->group(function (): void {
         // S8-12 — Route sheet (packing view)
         Route::get('route-sheet', [DeliveryBoyController::class, 'routeSheet']);
 
+        Route::get('cash-collections', [DeliveryBoyController::class, 'cashCollections']);
+        Route::post('mark-delivered', [DeliveryBoyController::class, 'markDelivered']);
+
         // S8-13 — Skip delivery
         Route::post('skip-delivery', [DeliveryBoyController::class, 'skipDelivery']);
     });

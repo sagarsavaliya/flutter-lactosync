@@ -65,7 +65,7 @@ class CustomerOrderRepository {
   Future<void> updateQty(
     String date,
     int subscriptionLineId,
-    int qty,
+    double qty,
   ) async {
     final response = await _dio.put<Map<String, dynamic>>(
       '/customer/v1/orders/$date/qty',

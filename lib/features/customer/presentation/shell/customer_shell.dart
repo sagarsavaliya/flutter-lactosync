@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../widgets/customer_dashboard_styles.dart';
 import '../../../owner/presentation/widgets/dashboard/dashboard_styles.dart';
+import '../../../../core/widgets/app_screen_safe_area.dart';
 
 class CustomerShell extends StatelessWidget {
   const CustomerShell({super.key, required this.child});
@@ -31,7 +32,10 @@ class CustomerShell extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: CusDashColors.background,
-      body: child,
+      body: AppScreenSafeArea(
+        bottom: false,
+        child: child,
+      ),
       bottomNavigationBar: _CusNavBar(
         currentIndex: index,
         onTap: (i) => context.go(_tabs[i].path),

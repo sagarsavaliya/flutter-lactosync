@@ -1,45 +1,40 @@
 # PROJECT STATUS — LactoSync
-**Last Updated:** 2026-06-15 | **Overall:** 🟢 Synced — customer app redesign starting
+**Last Updated:** 2026-06-16 | **Overall:** 🟢 Customer orders edit flow fixed — device test pending
 
 ---
 
 ### 🏗️ Technical
-- **API:** Live — https://flutterapi.lactosync.com
-- **App:** v4.11.1+39 · owner polish committed + git synced
-- **Git:** `main` aligned with `origin/main` after merge sync
+- **API:** Live — https://flutterapi.lactosync.com ✅ (no new deploy today)
+- **App:** v4.11.1+39 · local changes: customer My Orders “next delivery” edit card
+- **APK:** rebuild needed after device test — `flutter build apk --release`
 
 ### 🎨 Product / Design
 - Owner redesign (frames 1–14): ✅ complete
-- **Customer app redesign:** 🔲 **active** — shell exists; full frame-by-frame polish next
-- Delivery boy shells: ✅ (owner DNA)
-- Reference: `stitch_dairyease_premium.zip` (untracked design export)
+- **Customer app:** My Orders — NEXT DELIVERY card (edit tomorrow when today skipped); order card accent styling
+- **Delivery boy:** ✅ 4-screen flow (prior batch)
+- Reference: `stitch_dairyease_premium.zip`
 
 ### 💼 Sales / 📣 Marketing — not active
 
 ---
 
-## ✅ Ready for device test
-| Item | Value |
-|------|-------|
-| APK | `build/app/outputs/flutter-apk/app-release.apk` |
-| Version | 4.11.1+39 |
-| API | https://flutterapi.lactosync.com |
+## ✅ Completed 2026-06-16
+- **Customer My Orders:** when today is skipped, show **NEXT DELIVERY** card (e.g. 17th) with **Edit** — change qty or skip tomorrow; morning/evening shift rules respected
+- **Customer:** profile qty parse fix; order card left-accent design; removed full upcoming list (single next card only)
 
-## Consumption rule (CEO confirmed 2026-06-14)
-**THIS MONTH** = billable litres + amount from 1st of month through **today** (pending + delivered).
+## ✅ Completed 2026-06-15 (multi-app)
+- **Owner:** quick action → add customer; calendar legend; bill detail; routes UI; standing route assignments
+- **Customer:** safe area; edit/skip stepper; calendar drag; profile fix
+- **Delivery boy:** route-sheet parser; shift toggle; manifest fallback
+- **Deployed:** standing routes + delivery-boy endpoints on VPS
 
 ## Farenidham spot-check
 | Farm | Mobile | PIN |
 |------|--------|-----|
 | Farenidham Gaushala | 9998866008 | 1234 |
 
-## ✅ Completed this week
-- Owner polish: toasts, billing UX, invoice print/share, customer forms
-- Delivery boy forgot-PIN API + screens
-- Git synced for redesign handoff
-
-## 🔲 Next — Customer app redesign
-1. Audit customer screens vs design reference (dashboard, orders, payments, profile, vacation)
-2. Apply owner redesign DNA (`CustomerDetailColors`, cards, typography)
-3. Chrome debug via **LactoSync — Chrome (debug)** launch config (not localhost:8080)
-4. Device test after first screen batch
+## 🔲 Next (when you resume)
+1. Hot-restart customer app → My Orders → confirm **17 Jun Edit** for 8141302341
+2. Device test all three apps (owner + customer + delivery boy)
+3. Rebuild release APK when testing passes
+4. Customer app frame-by-frame polish vs design reference

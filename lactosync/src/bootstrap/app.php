@@ -73,4 +73,25 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 429);
             }
         });
+
+        $exceptions->render(function (
+            \Illuminate\Database\UniqueConstraintViolationException $e,
+            Request $request,
+        ) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            $message = str_contains($e->getMessage(), 'customers_farm_contact_unique')
+                ? 'A customer with this mobile number already exists on your farm.'
+                : 'A record with this value already exists.';
+
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'DUPLICATE',
+                    'message' => $message,
+                ],
+            ], 422);
+        });
     })->create();

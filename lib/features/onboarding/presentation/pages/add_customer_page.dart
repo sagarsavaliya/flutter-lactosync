@@ -18,6 +18,7 @@ import '../../../../core/widgets/redesign_scaffold.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../owner/presentation/providers/owner_provider.dart';
 import '../providers/onboarding_provider.dart';
+import '../widgets/customer_saved_sheet.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 
 class AddCustomerPage extends ConsumerStatefulWidget {
@@ -131,17 +132,21 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
 
     setState(() => _loading = true);
     try {
-      await ref.read(onboardingRepositoryProvider).saveCustomer({
+      final result = await ref.read(onboardingRepositoryProvider).saveCustomer({
         'first_name': _firstController.text.trim(),
         'last_name': _lastController.text.trim(),
         'delivery_type': _deliveryType,
         if (!_isWalkIn) 'address_line': _addressController.text.trim(),
+        if (_isWalkIn) 'address_line': 'Walk-in customer',
         'area': _areaController.text.trim().isEmpty ? null : _areaController.text.trim(),
         'landmark':
             _landmarkController.text.trim().isEmpty ? null : _landmarkController.text.trim(),
         if (!_isWalkIn) 'city': _cityController.text.trim(),
+        if (_isWalkIn) 'city': 'Walk-in',
         if (!_isWalkIn) 'state': _selectedState ?? '',
+        if (_isWalkIn) 'state': 'NA',
         if (!_isWalkIn) 'zip': _zipController.text.trim(),
+        if (_isWalkIn) 'zip': '000000',
         'contact': _contactController.text.trim(),
         'whatsapp_enabled': _whatsappEnabled,
         'secondary_contact': _secondaryController.text.trim().isEmpty
@@ -151,10 +156,23 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       });
       ref.invalidate(authSessionProvider);
       if (!mounted) return;
-      if (widget.returnToFork) {
-        context.go('/onboarding/customer-saved');
-      } else {
+
+      if (!widget.returnToFork) {
         context.go('/onboarding/dashboard');
+        return;
+      }
+
+      final action = await showCustomerSavedSheet(context, customer: result.customer);
+      if (!mounted) return;
+
+      switch (action) {
+        case CustomerSavedAction.setupSubscription:
+          ref.invalidate(subscriptionBootstrapProvider);
+          openSubscriptionForCustomer(context, result.customer);
+        case CustomerSavedAction.addAnother:
+          _resetFormForAnotherCustomer();
+        case null:
+          break;
       }
     } catch (e) {
       if (!mounted) return;
@@ -162,6 +180,27 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _resetFormForAnotherCustomer() {
+    _formKey.currentState?.reset();
+    _firstController.clear();
+    _lastController.clear();
+    _addressController.clear();
+    _areaController.clear();
+    _landmarkController.clear();
+    _cityController.clear();
+    _zipController.clear();
+    _contactController.clear();
+    _secondaryController.clear();
+    setState(() {
+      _deliveryType = 'home_delivery';
+      _selectedState = null;
+      _whatsappEnabled = true;
+      _isActive = true;
+      _prefillApplied = false;
+    });
+    _loadFarmAddressPrefill();
   }
 
   Widget get _whatsappToggle => Row(

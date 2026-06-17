@@ -37,6 +37,8 @@ class ClearEndedVacations extends Command
             ->get();
 
         foreach ($customers as $customer) {
+            $resumeFrom = $customer->vacation_end->copy()->addDay()->toDateString();
+
             // Clear vacation first so generateForFarm treats this customer as active.
             $customer->update([
                 'vacation_start' => null,
@@ -64,7 +66,7 @@ class ClearEndedVacations extends Command
             try {
                 app(CustomerWhatsAppNotifier::class)->subscriptionResumed(
                     $customer,
-                    $today->toDateString(),
+                    $resumeFrom,
                     $customer->farm,
                 );
             } catch (\Throwable $e) {

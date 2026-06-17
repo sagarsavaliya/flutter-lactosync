@@ -228,26 +228,32 @@ class _RoutesShiftTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: DashboardSpace.page),
-      child: TabBar(
-        controller: controller,
-        indicatorColor: CustomerDetailColors.accent,
-        indicatorWeight: 3,
-        labelColor: CustomerDetailColors.accent,
-        unselectedLabelColor: CustomerDetailColors.iconMuted,
-        labelStyle: AppText.cardTitle.copyWith(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
+      child: SizedBox(
+        height: 32,
+        child: TabBar(
+          controller: controller,
+          tabAlignment: TabAlignment.fill,
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicatorColor: CustomerDetailColors.accent,
+          indicatorWeight: 2.5,
+          labelColor: CustomerDetailColors.accent,
+          unselectedLabelColor: CustomerDetailColors.iconMuted,
+          labelStyle: AppText.cardTitle.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+          unselectedLabelStyle: AppText.cardTitle.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: CustomerDetailColors.iconMuted,
+          ),
+          dividerColor: CustomerDetailColors.border,
+          labelPadding: const EdgeInsets.only(bottom: 4),
+          tabs: const [
+            Tab(text: 'Morning'),
+            Tab(text: 'Evening'),
+          ],
         ),
-        unselectedLabelStyle: AppText.cardTitle.copyWith(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: CustomerDetailColors.iconMuted,
-        ),
-        dividerColor: CustomerDetailColors.border,
-        tabs: const [
-          Tab(text: 'Morning'),
-          Tab(text: 'Evening'),
-        ],
       ),
     );
   }
@@ -343,7 +349,7 @@ class _RouteCardState extends State<_RouteCard> {
                                 Text(
                                   route.name,
                                   style: AppText.cardTitle.copyWith(
-                                    fontSize: 19,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w700,
                                     color: CustomerDetailColors.onSurface,
                                     height: 1.15,

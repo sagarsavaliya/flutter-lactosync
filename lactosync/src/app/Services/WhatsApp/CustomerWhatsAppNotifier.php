@@ -35,8 +35,9 @@ use RuntimeException;
  *     {{3}} payment date  {{4}} invoice no  {{5}} payment method
  *     {{6}} balance due (no ₹ — template has it)
  *
- *   lacto_sync_delivery_paused
- *     {{1}} customer name  {{2}} stop date  {{3}} resume date  {{4}} farm name
+ *   lacto_sync_delivery_paused  (lacto_sync_vacation_set)
+ *     {{1}} customer name  {{2}} stop date  {{3}} resume date (day after vacation_end)
+ *     {{4}} farm name
  *
  *   lacto_sync_qty_change
  *     {{1}} customer name  {{2}} product  {{3}} qty  {{4}} shift  {{5}} rate
@@ -147,21 +148,23 @@ class CustomerWhatsAppNotifier
 
     public function deliveryPaused(
         Customer $customer,
-        string $stopDate,
-        string $resumeDate,
+        string $vacationStart,
+        string $vacationEnd,
         Farm $farm,
     ): void {
         if (! $customer->whatsapp_enabled) {
             return;
         }
 
+        $resumeDate = Carbon::parse($vacationEnd)->addDay();
+
         $this->fire(
             $customer->contact,
             config('services.whatsapp.template_delivery_paused', 'lacto_sync_delivery_paused'),
             [
                 $customer->fullName(),
-                Carbon::parse($stopDate)->format('d M Y'),
-                Carbon::parse($resumeDate)->format('d M Y'),
+                Carbon::parse($vacationStart)->format('d M Y'),
+                $resumeDate->format('d M Y'),
                 $farm->name,
             ],
             'delivery_paused',

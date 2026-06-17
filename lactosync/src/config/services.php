@@ -48,6 +48,12 @@ return [
         'template_qty_change'        => env('WHATSAPP_TEMPLATE_QTY_CHANGE',        'lacto_sync_subscription_updated'),
         'template_sub_resumed'       => env('WHATSAPP_TEMPLATE_SUB_RESUMED',       'lacto_sync_vacation_ended'),
 
+        'template_owner_vacation_set'     => env('WHATSAPP_TEMPLATE_OWNER_VACATION_SET',     'lacto_sync_owner_vacation_set'),
+        'template_owner_vacation_cleared' => env('WHATSAPP_TEMPLATE_OWNER_VACATION_CLEARED', 'lacto_sync_owner_vacation_cleared'),
+        'template_owner_qty_change'       => env('WHATSAPP_TEMPLATE_OWNER_QTY_CHANGE',       'lacto_sync_owner_qty_change'),
+        'template_owner_day_skipped'      => env('WHATSAPP_TEMPLATE_OWNER_DAY_SKIPPED',      'lacto_sync_owner_day_skipped'),
+        'template_owner_address_updated'  => env('WHATSAPP_TEMPLATE_OWNER_ADDRESS_UPDATED',  'lacto_sync_owner_address_updated'),
+
         'template_language'  => env('WHATSAPP_TEMPLATE_LANGUAGE', 'en'),
         'graph_version'      => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),
         'otp_button_type'    => env('WHATSAPP_OTP_BUTTON_TYPE', 'url'),

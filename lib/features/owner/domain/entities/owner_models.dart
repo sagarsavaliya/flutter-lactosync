@@ -1,3 +1,5 @@
+import '../../../../core/utils/api_json.dart';
+
 class OwnerDashboardStats {
   const OwnerDashboardStats({
     required this.customers,
@@ -535,6 +537,7 @@ class OwnerInvoice {
     required this.id,
     required this.customerId,
     required this.customerName,
+    this.customerAddress = '',
     required this.billingMonth,
     required this.invoiceNumber,
     required this.totalAmount,
@@ -552,6 +555,7 @@ class OwnerInvoice {
   final int id;
   final int customerId;
   final String customerName;
+  final String customerAddress;
   final String billingMonth;
   final String invoiceNumber;
   final double totalAmount;
@@ -570,6 +574,7 @@ class OwnerInvoice {
       id: json['id'] as int,
       customerId: json['customer_id'] as int,
       customerName: json['customer_name'] as String? ?? '',
+      customerAddress: json['customer_address'] as String? ?? '',
       billingMonth: json['billing_month'] as String? ?? '',
       invoiceNumber: json['invoice_number'] as String? ?? '',
       totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0,
@@ -1172,9 +1177,9 @@ class ConsumptionRow {
   factory ConsumptionRow.fromJson(Map<String, dynamic> json) {
     return ConsumptionRow(
       productName: json['product_name'] as String? ?? '',
-      unitRate: (json['unit_rate'] as num?)?.toDouble() ?? 0,
-      totalQuantity: (json['total_quantity'] as num?)?.toDouble() ?? 0,
-      lineTotal: (json['line_total'] as num?)?.toDouble() ?? 0,
+      unitRate: parseApiDouble(json['unit_rate']),
+      totalQuantity: parseApiDouble(json['total_quantity']),
+      lineTotal: parseApiDouble(json['line_total']),
     );
   }
 }

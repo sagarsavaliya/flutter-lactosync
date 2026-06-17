@@ -17,8 +17,8 @@ import '../../features/customer/presentation/pages/customer_profile_page.dart';
 import '../../features/customer/presentation/pages/customer_set_pin_page.dart';
 import '../../features/customer/presentation/pages/customer_vacation_page.dart';
 import '../../features/customer/presentation/shell/customer_shell.dart';
+import '../../features/onboarding/domain/entities/onboarding_models.dart';
 import '../../features/onboarding/presentation/pages/add_customer_page.dart';
-import '../../features/onboarding/presentation/pages/customer_saved_page.dart';
 import '../../features/onboarding/presentation/pages/farm_details_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_dashboard_page.dart';
 import '../../features/onboarding/presentation/pages/product_setup_page.dart';
@@ -33,12 +33,14 @@ import '../../features/owner/presentation/pages/customer_detail_page.dart';
 import '../../features/owner/presentation/pages/edit_customer_page.dart';
 import '../../features/owner/presentation/pages/customers_list_page.dart';
 import '../../features/owner/presentation/pages/daily_orders_page.dart';
+import '../../features/delivery_boy/presentation/pages/delivery_boy_cash_page.dart';
 import '../../features/delivery_boy/presentation/pages/delivery_boy_forgot_pin_page.dart';
-import '../../features/delivery_boy/presentation/pages/delivery_boy_home_page.dart';
 import '../../features/delivery_boy/presentation/pages/delivery_boy_login_page.dart';
+import '../../features/delivery_boy/presentation/pages/delivery_boy_pickup_page.dart';
+import '../../features/delivery_boy/presentation/pages/delivery_boy_profile_page.dart';
 import '../../features/delivery_boy/presentation/pages/delivery_boy_reset_pin_page.dart';
-import '../../features/delivery_boy/presentation/pages/delivery_boy_route_sheet_page.dart';
 import '../../features/delivery_boy/presentation/pages/delivery_boy_set_pin_page.dart';
+import '../../features/delivery_boy/presentation/pages/delivery_boy_stops_page.dart';
 import '../../features/delivery_boy/presentation/shell/delivery_boy_shell.dart';
 import '../../features/owner/presentation/pages/delivery_boys_page.dart';
 import '../../features/owner/presentation/pages/invoice_detail_page.dart';
@@ -131,7 +133,7 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/onboarding/customer-saved',
       name: 'customerSaved',
-      builder: (context, state) => const CustomerSavedPage(),
+      redirect: (_, __) => '/onboarding/customer',
     ),
     GoRoute(
       path: '/onboarding/subscription',
@@ -139,7 +141,19 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>? ?? {};
         final lockedId = extra['lockedCustomerId'] as int?;
-        return SubscriptionPage(lockedCustomerId: lockedId);
+        final rawCustomer = extra['prefilledCustomer'];
+        CustomerItem? prefilledCustomer;
+        if (rawCustomer is CustomerItem) {
+          prefilledCustomer = rawCustomer;
+        } else if (rawCustomer is Map) {
+          prefilledCustomer = CustomerItem.fromJson(
+            Map<String, dynamic>.from(rawCustomer),
+          );
+        }
+        return SubscriptionPage(
+          lockedCustomerId: lockedId,
+          prefilledCustomer: prefilledCustomer,
+        );
       },
     ),
     GoRoute(
@@ -328,12 +342,28 @@ final appRouter = GoRouter(
       builder: (context, state, child) => DeliveryBoyShell(child: child),
       routes: [
         GoRoute(
+          path: '/delivery-boy/pickup',
+          builder: (context, state) => const DeliveryBoyPickupPage(),
+        ),
+        GoRoute(
+          path: '/delivery-boy/stops',
+          builder: (context, state) => const DeliveryBoyStopsPage(),
+        ),
+        GoRoute(
+          path: '/delivery-boy/cash',
+          builder: (context, state) => const DeliveryBoyCashPage(),
+        ),
+        GoRoute(
+          path: '/delivery-boy/profile',
+          builder: (context, state) => const DeliveryBoyProfilePage(),
+        ),
+        GoRoute(
           path: '/delivery-boy/home',
-          builder: (context, state) => const DeliveryBoyHomePage(),
+          redirect: (_, __) => '/delivery-boy/pickup',
         ),
         GoRoute(
           path: '/delivery-boy/route-sheet',
-          builder: (context, state) => const DeliveryBoyRouteSheetPage(),
+          redirect: (_, __) => '/delivery-boy/stops',
         ),
       ],
     ),

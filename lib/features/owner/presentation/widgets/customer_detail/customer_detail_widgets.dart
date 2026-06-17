@@ -1610,7 +1610,7 @@ class _DeliveryCalendarHeatmap extends StatelessWidget {
             children: cells,
           ),
           const SizedBox(height: 13),
-          const _CalendarLegend(),
+          _CalendarLegend(line: line),
         ],
       ),
     );
@@ -1711,20 +1711,52 @@ class _CalendarDayCell extends StatelessWidget {
 }
 
 class _CalendarLegend extends StatelessWidget {
-  const _CalendarLegend();
+  const _CalendarLegend({required this.line});
+
+  final SubscriptionLineDetail line;
+
+  String _qtyLabel(double qty) {
+    if (qty == qty.roundToDouble()) return '${qty.toInt()} L';
+    if (qty == 0.5) return '0.5 L';
+    return '${qty.toStringAsFixed(1)} L';
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 14,
-      runSpacing: 8,
-      children: const [
-        _LegendItem(color: CustomerDetailColors.calHalfBg, border: CustomerDetailColors.calHalfBorder, label: '0.5 L'),
-        _LegendItem(color: CustomerDetailColors.accent, label: '1 L', filled: true),
-        _LegendItem(color: CustomerDetailColors.calSkippedBg, border: CustomerDetailColors.calSkippedBorder, label: 'Skipped'),
-        _LegendItem(color: CustomerDetailColors.surface, border: CustomerDetailColors.calFutureBorder, label: 'Scheduled', dashed: true),
-      ],
-    );
+    final qty = line.quantity;
+    final items = <Widget>[
+      if (qty > 0 && qty < 1)
+        _LegendItem(
+          color: CustomerDetailColors.calHalfBg,
+          border: CustomerDetailColors.calHalfBorder,
+          label: _qtyLabel(qty),
+        )
+      else if (qty >= 1)
+        _LegendItem(
+          color: CustomerDetailColors.accent,
+          label: _qtyLabel(qty),
+          filled: true,
+        )
+      else
+        _LegendItem(
+          color: CustomerDetailColors.calHalfBg,
+          border: CustomerDetailColors.calHalfBorder,
+          label: _qtyLabel(qty),
+        ),
+      const _LegendItem(
+        color: CustomerDetailColors.calSkippedBg,
+        border: CustomerDetailColors.calSkippedBorder,
+        label: 'Skipped',
+      ),
+      const _LegendItem(
+        color: CustomerDetailColors.surface,
+        border: CustomerDetailColors.calFutureBorder,
+        label: 'Scheduled',
+        dashed: true,
+      ),
+    ];
+
+    return Wrap(spacing: 14, runSpacing: 8, children: items);
   }
 }
 

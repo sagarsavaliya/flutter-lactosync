@@ -10,6 +10,7 @@ use App\Models\DailyOrderLog;
 use App\Models\SubscriptionLine;
 use App\Support\ApiResponse;
 use App\Services\Billing\ConsumptionAggregator;
+use App\Services\Notifications\CustomerAppOwnerAlertService;
 use App\Support\DeliveryLogPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class OrderController extends Controller
 {
     public function __construct(
         private readonly ConsumptionAggregator $consumptionAggregator,
+        private readonly CustomerAppOwnerAlertService $ownerAlerts,
     ) {}
     /**
      * GET /api/customer/v1/orders?month=YYYY-MM
@@ -149,7 +151,7 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'subscription_line_id' => ['required', 'integer'],
-            'qty'                  => ['required', 'integer', 'min:0'],
+            'qty'                  => ['required', 'numeric', 'min:0', 'max:99'],
         ]);
 
         /** @var Customer $customer */
@@ -179,7 +181,7 @@ class OrderController extends Controller
         }
 
         $billingMonth = $deliveryDate->format('Y-m');
-        $qty          = (int) $validated['qty'];
+        $qty          = round((float) $validated['qty'], 2);
 
         // Upsert the DailyOrderLog record.
         $existing = DailyOrderLog::query()
@@ -189,7 +191,7 @@ class OrderController extends Controller
             ->first();
 
         if ($existing !== null) {
-            $newStatus = $qty === 0
+            $newStatus = $qty <= 0
                 ? OrderLogStatus::Skipped->value
                 : ($existing->status === OrderLogStatus::Delivered ? $existing->status->value : OrderLogStatus::Pending->value);
 
@@ -198,7 +200,7 @@ class OrderController extends Controller
                 'status'    => $newStatus,
             ]);
         } else {
-            $newStatus = $qty === 0
+            $newStatus = $qty <= 0
                 ? OrderLogStatus::Skipped->value
                 : OrderLogStatus::Pending->value;
 
@@ -220,6 +222,8 @@ class OrderController extends Controller
                 'billing_month'        => $billingMonth,
             ]);
         }
+
+        $this->ownerAlerts->qtyChanged($customer, $deliveryDate->toDateString(), $line, $qty);
 
         return ApiResponse::success([
             'updated' => true,
@@ -340,6 +344,8 @@ class OrderController extends Controller
                 ]);
             }
         }
+
+        $this->ownerAlerts->daySkipped($customer, $dateStr);
 
         return ApiResponse::success([
             'skipped' => true,
