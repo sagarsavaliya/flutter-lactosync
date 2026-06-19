@@ -18,6 +18,8 @@ import {
   ToggleLeft,
   ToggleRight,
   Layers,
+  Upload,
+  Download,
 } from 'lucide-react'
 import AdminShell from '../components/layout/AdminShell'
 import { Card, CardContent, CardTitle } from '../components/ui/card'
@@ -390,6 +392,7 @@ export default function TenantDetailPage() {
   const [planModalType, setPlanModalType] = useState<'assign' | 'change' | 'pause' | 'resume' | null>(null)
   const [editProfileOpen, setEditProfileOpen] = useState(false)
   const [savingModules, setSavingModules] = useState<string | null>(null)
+  const [importingBootstrap, setImportingBootstrap] = useState(false)
 
   const { data: tenant, isLoading, isError, refetch } = useQuery<TenantDetail>({
     queryKey: ['tenant', id],
@@ -436,6 +439,90 @@ export default function TenantDetailPage() {
       toast({ title: 'Failed to delete payment.', variant: 'destructive' })
     } finally {
       setDeletePayment(null)
+    }
+  }
+
+  const handleDownloadBootstrapTemplate = async () => {
+    try {
+      const response = await apiClient.get('/api/admin/v1/tenants/bootstrap-template', {
+        responseType: 'blob',
+      })
+      const rawType = response.headers['content-type']
+      const contentType = typeof rawType === 'string' ? rawType : ''
+      if (contentType.includes('application/json')) {
+        const text = await (response.data as Blob).text()
+        const payload = JSON.parse(text) as { message?: string; error?: { message?: string } }
+        throw new Error(payload.error?.message ?? payload.message ?? 'Download failed')
+      }
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'LactoSync_Tenant_Bootstrap_Template.xlsx'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      toast({ title: 'Template downloaded', description: 'Open the workbook and fill each sheet in order.' })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Could not download the bootstrap workbook template.'
+      toast({
+        title: 'Download failed',
+        description: msg,
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleBootstrapImport = async (file: File) => {
+    try {
+      setImportingBootstrap(true)
+      const formData = new FormData()
+      formData.append('file', file)
+      const response = await apiClient.post(`/api/admin/v1/tenants/${id}/bootstrap-import`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+
+      const data = response.data?.data as
+        | {
+            farm_updated?: boolean
+            products_created?: number
+            customers_created?: number
+            subscriptions_created?: number
+            subscription_lines_created?: number
+            routes_created?: number
+            route_customers_created?: number
+            warnings?: string[]
+          }
+        | undefined
+
+      const createdSummary = [
+        `${data?.products_created ?? 0} products`,
+        `${data?.customers_created ?? 0} customers`,
+        `${data?.subscriptions_created ?? 0} subscriptions`,
+        `${data?.subscription_lines_created ?? 0} lines`,
+        `${data?.routes_created ?? 0} routes`,
+      ].join(', ')
+
+      toast({
+        title: 'Bootstrap import completed',
+        description: data?.warnings?.length
+          ? `${createdSummary}. ${data.warnings.length} warning(s): ${data.warnings.slice(0, 2).join(' | ')}`
+          : createdSummary,
+      })
+
+      queryClient.invalidateQueries({ queryKey: ['tenant', id] })
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message
+      toast({
+        title: 'Import failed',
+        description: msg || 'Could not import template. Please check file format and try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setImportingBootstrap(false)
     }
   }
 
@@ -827,6 +914,49 @@ export default function TenantDetailPage() {
                 ))}
               </div>
             )}
+          </Card>
+
+          {/* Tenant Bootstrap Import */}
+          <Card className="p-5 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Upload className="w-4 h-4 text-green-700" />
+              <CardTitle className="text-sm font-semibold text-gray-700">Day-1 Data Bootstrap</CardTitle>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              Download the guided multi-sheet Excel workbook, fill each tab in order, then upload to auto-setup this farm.
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => void handleDownloadBootstrapTemplate()}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Excel workbook template
+              </Button>
+              <Label
+                htmlFor="tenant-bootstrap-upload"
+                className="inline-flex h-9 w-full cursor-pointer items-center justify-start rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {importingBootstrap ? 'Uploading and importing…' : 'Upload filled Excel workbook'}
+              </Label>
+              <Input
+                id="tenant-bootstrap-upload"
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                disabled={importingBootstrap}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    void handleBootstrapImport(file)
+                  }
+                  e.currentTarget.value = ''
+                }}
+              />
+            </div>
           </Card>
 
           {/* Payment Summary card */}

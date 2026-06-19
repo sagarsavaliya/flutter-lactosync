@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { useAuthStore } from '../stores/authStore'
 
 import LoginPage from '../pages/LoginPage'
@@ -11,6 +12,23 @@ import CouponsPage from '../pages/CouponsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
+  const [hydrated, setHydrated] = useState(useAuthStore.persist.hasHydrated())
+
+  useEffect(() => {
+    if (hydrated) return
+    const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true))
+    setHydrated(useAuthStore.persist.hasHydrated())
+    return unsub
+  }, [hydrated])
+
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F4F7F5] text-sm text-gray-500">
+        Loading…
+      </div>
+    )
+  }
+
   if (!token) return <Navigate to="/login" replace />
   return <>{children}</>
 }

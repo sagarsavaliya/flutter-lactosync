@@ -537,6 +537,9 @@ class _CusDashDeliveryCalendarState extends ConsumerState<CusDashDeliveryCalenda
     final strideY = cellSize + _mainSpacing;
     final col = (pos.dx / strideX).floor().clamp(0, 6);
     final row = (pos.dy / strideY).floor().clamp(0, rowCount - 1);
+    // Ignore taps in the horizontal gap between columns.
+    final xInStride = pos.dx - col * strideX;
+    if (xInStride > cellSize) return null;
     // Ignore taps in the vertical gap between rows.
     final yInStride = pos.dy - row * strideY;
     if (yInStride > cellSize) return null;
@@ -544,6 +547,86 @@ class _CusDashDeliveryCalendarState extends ConsumerState<CusDashDeliveryCalenda
     if (index < leading || index >= leading + daysInMonth) return null;
     final d = index - leading + 1;
     return DateTime(widget.month.year, widget.month.month, d);
+  }
+
+  Widget _buildCalendarGrid({
+    required double cellSize,
+    required int leading,
+    required int daysInMonth,
+    required int rowCount,
+    required DateTime today,
+    required Map<int, Map<String, dynamic>> byDate,
+    required VacationData? vacation,
+  }) {
+    final rows = <Widget>[];
+    for (var row = 0; row < rowCount; row++) {
+      final cells = <Widget>[];
+      for (var col = 0; col < 7; col++) {
+        final index = row * 7 + col;
+        Widget cell;
+        if (index < leading || index >= leading + daysInMonth) {
+          cell = const SizedBox.shrink();
+        } else {
+          final d = index - leading + 1;
+          final date = DateTime(widget.month.year, widget.month.month, d);
+          final apiStatus = byDate[d]?['status'] as String?;
+          cell = _CusDashCalCell(
+            day: d,
+            date: date,
+            today: today,
+            dayData: byDate[d],
+            isVacation: _isVacationDay(date, vacation, apiStatus),
+            isSelected: _isInSelection(date),
+          );
+        }
+        cells.add(
+          SizedBox(
+            width: cellSize,
+            height: cellSize,
+            child: cell,
+          ),
+        );
+        if (col < 6) {
+          cells.add(SizedBox(width: _crossSpacing));
+        }
+      }
+      rows.add(Row(children: cells));
+      if (row < rowCount - 1) {
+        rows.add(SizedBox(height: _mainSpacing));
+      }
+    }
+
+    final gridHeight = cellSize * rowCount + _mainSpacing * (rowCount - 1);
+
+    return SizedBox(
+      height: gridHeight,
+      child: Stack(
+        children: [
+          Column(mainAxisSize: MainAxisSize.min, children: rows),
+          Positioned.fill(
+            child: Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (e) => _onPointerDown(
+                e.localPosition,
+                cellSize,
+                leading,
+                daysInMonth,
+                rowCount,
+              ),
+              onPointerMove: (e) => _onPointerMove(
+                e.localPosition,
+                cellSize,
+                leading,
+                daysInMonth,
+                rowCount,
+              ),
+              onPointerUp: (_) => _onPointerUp(),
+              onPointerCancel: (_) => setState(() => _clearSelection()),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _clearSelection() {
@@ -811,60 +894,15 @@ class _CusDashDeliveryCalendarState extends ConsumerState<CusDashDeliveryCalenda
             builder: (context, constraints) {
               final cellSize = (constraints.maxWidth - _crossSpacing * 6) / 7;
               final rowCount = ((leading + daysInMonth + 6) / 7).ceil();
-              final gridHeight =
-                  cellSize * rowCount + _mainSpacing * (rowCount - 1);
 
-              return SizedBox(
-                height: gridHeight,
-                child: Stack(
-                  children: [
-                    GridView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 7,
-                        mainAxisSpacing: _mainSpacing,
-                        crossAxisSpacing: _crossSpacing,
-                        childAspectRatio: 1,
-                      ),
-                      itemCount: leading + daysInMonth,
-                      itemBuilder: (_, index) {
-                        if (index < leading) return const SizedBox.shrink();
-                        final d = index - leading + 1;
-                        final date = DateTime(widget.month.year, widget.month.month, d);
-                        final apiStatus = byDate[d]?['status'] as String?;
-                        return _CusDashCalCell(
-                          day: d,
-                          date: date,
-                          today: today,
-                          dayData: byDate[d],
-                          isVacation: _isVacationDay(date, vacation, apiStatus),
-                          isSelected: _isInSelection(date),
-                        );
-                      },
-                    ),
-                    Positioned.fill(
-                      child: Listener(
-                        behavior: HitTestBehavior.translucent,
-                        onPointerDown: (e) => _onPointerDown(
-                          e.localPosition,
-                          cellSize,
-                          leading,
-                          daysInMonth,
-                          rowCount,
-                        ),
-                        onPointerMove: (e) => _onPointerMove(
-                          e.localPosition,
-                          cellSize,
-                          leading,
-                          daysInMonth,
-                          rowCount,
-                        ),
-                        onPointerUp: (_) => _onPointerUp(),
-                        onPointerCancel: (_) => setState(() => _clearSelection()),
-                      ),
-                    ),
-                  ],
-                ),
+              return _buildCalendarGrid(
+                cellSize: cellSize,
+                leading: leading,
+                daysInMonth: daysInMonth,
+                rowCount: rowCount,
+                today: today,
+                byDate: byDate,
+                vacation: vacation,
               );
             },
           ),

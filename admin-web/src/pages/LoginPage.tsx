@@ -19,7 +19,21 @@ type ErrorType = 'invalid' | 'locked' | 'network' | null
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { setAuth } = useAuthStore()
+  const { setAuth, token } = useAuthStore()
+  const [hydrated, setHydrated] = useState(useAuthStore.persist.hasHydrated())
+
+  useEffect(() => {
+    if (hydrated) return
+    const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true))
+    setHydrated(useAuthStore.persist.hasHydrated())
+    return unsub
+  }, [hydrated])
+
+  useEffect(() => {
+    if (hydrated && token) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [hydrated, token, navigate])
 
   const [email, setEmail] = useState('')
   const [pin, setPin] = useState<string[]>(Array(6).fill(''))

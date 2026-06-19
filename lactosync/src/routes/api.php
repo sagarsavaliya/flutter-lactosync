@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Admin\V1\PlanController as AdminPlanController;
 use App\Http\Controllers\Api\Admin\V1\CouponController as AdminCouponController;
 use App\Http\Controllers\Api\Admin\V1\TenantController as AdminTenantController;
 use App\Http\Controllers\Api\Admin\V1\TenantModuleController as AdminTenantModuleController;
+use App\Http\Controllers\Api\Admin\V1\TenantBootstrapImportController as AdminTenantBootstrapImportController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DeliveryBoyAuthController;
 use App\Http\Controllers\Api\V1\DeliveryBoyController;
@@ -42,6 +43,7 @@ Route::prefix('admin/v1')->group(function (): void {
         Route::get('dashboard', [AdminDashboardController::class, 'index']);
 
         // Tenant management (T1-10)
+        Route::get('tenants/bootstrap-template', [AdminTenantBootstrapImportController::class, 'downloadTemplate']);
         Route::get('tenants', [AdminTenantController::class, 'index']);
         Route::get('tenants/{id}', [AdminTenantController::class, 'show']);
         Route::post('tenants/{id}/plan-assign', [AdminTenantController::class, 'planAssign']);
@@ -49,6 +51,7 @@ Route::prefix('admin/v1')->group(function (): void {
         Route::post('tenants/{id}/plan-pause', [AdminTenantController::class, 'planPause']);
         Route::post('tenants/{id}/plan-resume', [AdminTenantController::class, 'planResume']);
         Route::put('tenants/{id}/profile', [AdminTenantController::class, 'updateProfile']);
+        Route::post('tenants/{id}/bootstrap-import', [AdminTenantBootstrapImportController::class, 'store']);
 
         // Plan management (T1-11)
         Route::get('plans', [AdminPlanController::class, 'index']);

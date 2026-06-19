@@ -6,8 +6,8 @@ set -euo pipefail
 # Prerequisites: ssh key auth to VPS, rsync installed locally
 
 VPS_USER="${VPS_USER:-root}"
-VPS_HOST="${VPS_HOST:-YOUR_VPS_IP}"
-VPS_PATH="/var/www/lactosync-admin"
+VPS_HOST="${VPS_HOST:-hostinger-vps}"
+VPS_PATH="/var/www/lactosync_flutter_app/admin-web-dist"
 
 echo "==> Building admin panel..."
 npm run build
