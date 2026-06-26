@@ -78,6 +78,11 @@ final farmActivitiesProvider = FutureProvider.autoDispose<List<FarmActivity>>((r
   return ref.watch(ownerRepositoryProvider).fetchActivities();
 });
 
+final communicationsProvider =
+    FutureProvider.autoDispose.family<List<CommunicationMessage>, CommunicationsQuery>((ref, query) {
+  return ref.watch(ownerRepositoryProvider).fetchCommunications(query);
+});
+
 final customerDetailProvider =
 
     FutureProvider.autoDispose.family<CustomerDetailResult, CustomerDetailQuery>((ref, query) {

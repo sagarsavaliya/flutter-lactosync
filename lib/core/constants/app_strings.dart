@@ -307,6 +307,18 @@ abstract final class AppStrings {
   static const activityRestore = 'Restore';
   static const activityRestored = 'Item restored';
   static const profileActivity = 'Activity log';
+  static const profileCommunications = 'Communications';
+  static const communicationsTitle = 'Communications';
+  static const communicationsEmpty = 'No WhatsApp messages yet';
+  static const communicationsSearchHint = 'Search customer or message';
+  static const communicationsStatusAll = 'All';
+  static const communicationsStatusSent = 'Sent';
+  static const communicationsStatusDelivered = 'Delivered';
+  static const communicationsStatusRead = 'Read';
+  static const communicationsStatusFailed = 'Failed';
+  static const communicationsStatusSimulated = 'Simulated';
+  static const communicationsSortNewest = 'Newest first';
+  static const communicationsSortOldest = 'Oldest first';
   static const editSubscriptionTitle = 'Edit subscription';
   static const saveChanges = 'Save changes';
   static const customerInfoTitle = 'Customer';
@@ -422,11 +434,11 @@ abstract final class AppStrings {
   static const recordPaymentSuccess = 'Payment recorded';
 
   // Order schedule settings
-  static const settingsOrderScheduleSection = 'Customer change window';
-  static const settingsMorningOrderTime = 'Morning delivery — changes until';
-  static const settingsEveningOrderTime = 'Evening delivery — changes until';
+  static const settingsOrderScheduleSection = 'Daily order schedule';
+  static const settingsMorningOrderTime = 'Morning orders at';
+  static const settingsEveningOrderTime = 'Evening orders at';
   static const settingsOrderScheduleHint =
-      'Customers can edit or skip their next delivery until this time, even after the order is created.';
+      'Orders are created at these times. Customers can also edit or skip until the same cut-off, even after the order is created.';
 
   // Settings — profile cards (S6-11/12)
   static const settingsEditFarmTitle = 'Edit farm details';

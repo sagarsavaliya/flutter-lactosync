@@ -277,6 +277,8 @@ class _ProfileAvatar extends StatelessWidget {
 
         const PopupMenuItem(value: 'activity', child: Text(AppStrings.profileActivity)),
 
+        const PopupMenuItem(value: 'communications', child: Text(AppStrings.profileCommunications)),
+
         const PopupMenuItem(value: 'settings', child: Text(AppStrings.navSettings)),
 
         const PopupMenuItem(value: 'signout', child: Text(AppStrings.signOut)),
@@ -294,6 +296,10 @@ class _ProfileAvatar extends StatelessWidget {
           case 'activity':
 
             context.push('/owner/activity');
+
+          case 'communications':
+
+            context.push('/owner/communications');
 
           case 'settings':
 

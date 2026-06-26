@@ -1,14 +1,13 @@
 # PROJECT STATUS — LactoSync
-**Last Updated:** 2026-06-17 | **Overall:** 🟢 Bootstrap template v2 + calendar drag fix shipped
+**Last Updated:** 2026-06-26 | **Overall:** 🟢 Phase 2 Communications screen built — APK rebuild + deploy test
 
 ---
 
 ### 🏗️ Technical
-- **API:** Live — https://flutterapi.lactosync.com ✅ (deployed 2026-06-17 · health OK)
-- **Super Admin:** Live — https://superadmin.lactosync.com ✅ (Day-1 Bootstrap UI deployed 2026-06-17)
-- **App:** v4.11.3+41 · calendar drag fix (rebuild APK to test)
-- **APK:** `build/app/outputs/flutter-apk/app-release.apk` (57.9MB)
-- **Perf plan:** parked → `memory/PERFORMANCE_PLAN.md` (Phase 1 awaits approval)
+- **API:** Live — https://flutterapi.lactosync.com ✅ Phase 1 deployed
+- **Branch:** `feature/phase-1-audit-whatsapp-tracking` (+ Phase 2 Flutter on same branch)
+- **Phase 2:** ✅ Communications screen — profile menu · search · status filters · sort · tap → customer
+- **App:** needs **APK rebuild** for Activity Log + Communications UI
 
 ### 🎨 Product / Design
 - Owner redesign (frames 1–14): ✅ complete
@@ -36,6 +35,6 @@
 | Farenidham Gaushala | 9998866008 | 1234 |
 
 ## 🔲 Next (when you resume)
-1. Device test all three apps (owner + customer + delivery boy)
-2. Say **"start performance Phase 1"** to kick off `memory/PERFORMANCE_PLAN.md`
-3. Customer app frame-by-frame polish vs design reference
+1. **Rebuild owner APK** — test Communications + Activity Log on device
+2. **Meta webhook** (if not done) — delivery status updates in Communications
+3. Say **"start Phase 3"** — customer product search/filter + dashboard milk-prep drill-down

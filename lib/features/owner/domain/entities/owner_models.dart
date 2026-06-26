@@ -1282,3 +1282,117 @@ class FarmActivity {
 
   String get displayText => description ?? '$actionLabel · $entityTypeLabel';
 }
+
+enum CommunicationSort {
+  newest,
+  oldest,
+  customerAsc,
+  customerDesc,
+}
+
+class CommunicationsQuery {
+  const CommunicationsQuery({
+    this.search = '',
+    this.status = '',
+  });
+
+  final String search;
+  final String status;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CommunicationsQuery &&
+          other.search == search &&
+          other.status == status;
+
+  @override
+  int get hashCode => Object.hash(search, status);
+}
+
+class CommunicationMessage {
+  const CommunicationMessage({
+    required this.id,
+    this.customerId,
+    this.customerName,
+    required this.recipientMobile,
+    required this.messageType,
+    this.templateName,
+    this.preview,
+    required this.status,
+    this.failureReason,
+    this.sentAt,
+    this.deliveredAt,
+    this.readAt,
+    this.failedAt,
+    this.createdAt,
+  });
+
+  final int id;
+  final int? customerId;
+  final String? customerName;
+  final String recipientMobile;
+  final String messageType;
+  final String? templateName;
+  final String? preview;
+  final String status;
+  final String? failureReason;
+  final String? sentAt;
+  final String? deliveredAt;
+  final String? readAt;
+  final String? failedAt;
+  final String? createdAt;
+
+  factory CommunicationMessage.fromJson(Map<String, dynamic> json) {
+    return CommunicationMessage(
+      id: json['id'] as int,
+      customerId: json['customer_id'] as int?,
+      customerName: json['customer_name'] as String?,
+      recipientMobile: json['recipient_mobile'] as String? ?? '',
+      messageType: json['message_type'] as String? ?? '',
+      templateName: json['template_name'] as String?,
+      preview: json['preview'] as String?,
+      status: json['status'] as String? ?? 'pending',
+      failureReason: json['failure_reason'] as String?,
+      sentAt: json['sent_at'] as String?,
+      deliveredAt: json['delivered_at'] as String?,
+      readAt: json['read_at'] as String?,
+      failedAt: json['failed_at'] as String?,
+      createdAt: json['created_at'] as String?,
+    );
+  }
+
+  String get displayName {
+    final name = customerName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return recipientMobile;
+  }
+
+  String get headline => preview?.trim().isNotEmpty == true
+      ? preview!.trim()
+      : (templateName?.trim().isNotEmpty == true ? templateName! : typeLabel);
+
+  String get typeLabel => switch (messageType) {
+        'bill' => 'Monthly bill',
+        'payment_confirmed' => 'Payment receipt',
+        'order_log' => 'Order log',
+        'delivery_paused' => 'Vacation set',
+        'qty_change' => 'Qty change',
+        'sub_resumed' => 'Subscription resumed',
+        'upi_qr' => 'UPI QR',
+        'otp' => 'OTP',
+        _ => messageType.replaceAll('_', ' '),
+      };
+
+  String get statusLabel => switch (status) {
+        'sent' => 'Sent',
+        'delivered' => 'Delivered',
+        'read' => 'Read',
+        'failed' => 'Failed',
+        'simulated' => 'Simulated',
+        'pending' => 'Pending',
+        _ => status,
+      };
+
+  String? get primaryTimestamp => readAt ?? deliveredAt ?? sentAt ?? createdAt;
+}

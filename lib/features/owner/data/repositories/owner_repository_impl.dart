@@ -429,6 +429,22 @@ class OwnerRepositoryImpl implements OwnerRepository {
     await _dio.post<Map<String, dynamic>>('/owner/activities/$activityLogId/restore');
   }
 
+  @override
+  Future<List<CommunicationMessage>> fetchCommunications(CommunicationsQuery query) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/owner/communications',
+      queryParameters: {
+        if (query.search.isNotEmpty) 'search': query.search,
+        if (query.status.isNotEmpty) 'status': query.status,
+      },
+    );
+    final body = _readData(response.data);
+    final list = body['messages'] as List<dynamic>? ?? [];
+    return list
+        .map((e) => CommunicationMessage.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
   // ── Milk types ────────────────────────────────────────────────────────────
 
   @override

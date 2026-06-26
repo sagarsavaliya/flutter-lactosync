@@ -28,6 +28,7 @@ import '../../features/onboarding/presentation/pages/signup_otp_page.dart';
 import '../../features/onboarding/presentation/pages/signup_page.dart';
 import '../../features/onboarding/presentation/pages/subscription_page.dart';
 import '../../features/owner/presentation/pages/activity_page.dart';
+import '../../features/owner/presentation/pages/communications_page.dart';
 import '../../features/owner/presentation/pages/billing_page.dart';
 import '../../features/owner/presentation/pages/customer_detail_page.dart';
 import '../../features/owner/presentation/pages/edit_customer_page.dart';
@@ -230,6 +231,10 @@ final appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       path: '/owner/activity',
       builder: (context, state) => const ActivityPage(),
+    ),
+    GoRoute(
+      path: '/owner/communications',
+      builder: (context, state) => const CommunicationsPage(),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

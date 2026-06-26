@@ -110,6 +110,8 @@ abstract class OwnerRepository {
 
   Future<void> restoreActivity(int activityLogId);
 
+  Future<List<CommunicationMessage>> fetchCommunications(CommunicationsQuery query);
+
   // ── Milk types ────────────────────────────────────────────────────────────
   Future<List<MilkTypeItem>> fetchMilkTypes();
   Future<MilkTypeItem> addMilkType(String name);
