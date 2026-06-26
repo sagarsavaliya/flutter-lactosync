@@ -89,14 +89,16 @@ return new class extends Migration
         if ($plasticProductName !== null) {
             DB::table('daily_order_logs')
                 ->where('product_id', $glassProductId)
-                ->where('status', 'pending')
                 ->update([
                     'product_id'   => $plasticProductId,
                     'product_name' => $plasticProductName,
                 ]);
         }
 
-        DB::table('products')->where('id', $glassProductId)->delete();
+        // Deactivate instead of delete — historical billing rows may still reference the product.
+        DB::table('products')
+            ->where('id', $glassProductId)
+            ->update(['is_active' => false]);
 
         DB::table('farm_container_type_visibility')->insertOrIgnore([
             'farm_id'           => $farmId,
