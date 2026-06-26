@@ -215,7 +215,7 @@ class ProductFormFields extends StatelessWidget {
   Set<int> _defaultSizeIds(String kind) {
     final keys = kind == 'glass_bottle'
         ? {'1L', '500ml'}
-        : {'2L', '1.5L', '1L', '500ml'};
+        : {'1.5L', '1L', '500ml'};
     return _visibleContainers
         .where((t) => t.kind == kind && keys.contains(t.sizeKey))
         .map((t) => t.id)

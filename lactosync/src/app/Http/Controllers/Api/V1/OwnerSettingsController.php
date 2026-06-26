@@ -123,15 +123,16 @@ class OwnerSettingsController extends Controller
             return ApiResponse::error('NOT_FOUND', 'Product not found.', 404);
         }
 
-        $inUse = $product->subscriptionLines()
+        $inUseCount = $product->subscriptionLines()
             ->whereHas('subscription', fn ($q) => $q->whereNull('deleted_at'))
-            ->exists();
+            ->count();
 
-        if ($inUse) {
+        if ($inUseCount > 0) {
             return ApiResponse::error(
                 'PRODUCT_IN_USE',
-                'This product has active subscriptions and cannot be deleted.',
+                "This product can't be deleted — it's currently in use with {$inUseCount} subscription".($inUseCount === 1 ? '' : 's').'.',
                 422,
+                ['subscription_count' => $inUseCount],
             );
         }
 

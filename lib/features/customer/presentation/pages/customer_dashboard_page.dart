@@ -423,15 +423,18 @@ _NextDelivery? _findNextDelivery(
     if (d.isBefore(minEditableDate)) continue;
 
     final status = day['status'] as String? ?? 'no_record';
-    if (status == 'skipped' || status == 'vacation') continue;
+    if (status == 'vacation') continue;
     if (status == 'delivered' && !d.isAfter(todayDate)) continue;
+
+    final canEdit = day['can_edit'] as bool? ??
+        (status == 'expected' || status == 'skipped');
+
+    if (!canEdit) continue;
 
     final isTomorrow = d.difference(todayDate).inDays == 1;
     final dateLabel = isTomorrow
         ? 'Tomorrow'
         : DateFormat('EEE d MMM').format(d);
-
-    final canEdit = status == 'expected' && !d.isBefore(minEditableDate);
 
     return _NextDelivery(
       date: d,

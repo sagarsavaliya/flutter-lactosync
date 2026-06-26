@@ -9,6 +9,7 @@ import '../../../owner/presentation/widgets/customer_detail/customer_detail_widg
 import '../../../../core/widgets/app_text_field.dart';
 import '../../data/repositories/customer_vacation_repository.dart';
 import '../providers/customer_vacation_provider.dart';
+import '../providers/customer_dashboard_provider.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 
 class CustomerVacationPage extends ConsumerStatefulWidget {
@@ -156,6 +157,14 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
                 onCancel: _onCancelVacation,
               );
             }
+            final dashData = ref.watch(customerDashboardProvider).valueOrNull;
+            final subs = (dashData?['active_subscriptions'] as List?)
+                    ?.cast<Map<String, dynamic>>() ??
+                [];
+            final shift = subs.isNotEmpty
+                ? (subs.first['shift'] as String? ?? 'morning')
+                : 'morning';
+            final shiftLabel = shift == 'evening' ? 'evening' : 'morning';
             return _NoVacationBody(
               startController: _startController,
               endController: _endController,
@@ -164,6 +173,7 @@ class _CustomerVacationPageState extends ConsumerState<CustomerVacationPage> {
               startError: _startError,
               endError: _endError,
               isSetting: _isSetting,
+              deliveryShiftLabel: shiftLabel,
               onPickStart: _pickStartDate,
               onPickEnd: _pickEndDate,
               onSetVacation: _onSetVacation,
@@ -184,6 +194,7 @@ class _NoVacationBody extends StatelessWidget {
     required this.startError,
     required this.endError,
     required this.isSetting,
+    required this.deliveryShiftLabel,
     required this.onPickStart,
     required this.onPickEnd,
     required this.onSetVacation,
@@ -196,11 +207,19 @@ class _NoVacationBody extends StatelessWidget {
   final String? startError;
   final String? endError;
   final bool isSetting;
+  final String deliveryShiftLabel;
   final VoidCallback onPickStart;
   final VoidCallback onPickEnd;
   final VoidCallback onSetVacation;
 
   bool get _canSubmit => vacationStart != null && vacationEnd != null;
+
+  String? get _nextDeliveryNote {
+    if (vacationEnd == null) return null;
+    final resume = vacationEnd!.add(const Duration(days: 1));
+    final fmt = DateFormat('d MMM yyyy');
+    return 'Next delivery: ${fmt.format(resume)} ($deliveryShiftLabel shift)';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -275,7 +294,7 @@ class _NoVacationBody extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Pause deliveries for a date range.',
+                  'Pause deliveries for a date range. No milk is delivered on the days you select.',
                   style: AppText.meta.copyWith(color: CustomerDetailColors.onSurfaceVariant),
                 ),
                 const SizedBox(height: 20),
@@ -283,8 +302,8 @@ class _NoVacationBody extends StatelessWidget {
                   onTap: onPickStart,
                   child: AbsorbPointer(
                     child: AppTextField(
-                      label: 'From',
-                      hint: 'Select date',
+                      label: 'Pause deliveries from',
+                      hint: 'First day without delivery',
                       controller: startController,
                       errorText: startError,
                       suffixIcon: LucideIcons.calendar,
@@ -296,14 +315,25 @@ class _NoVacationBody extends StatelessWidget {
                   onTap: onPickEnd,
                   child: AbsorbPointer(
                     child: AppTextField(
-                      label: 'Until',
-                      hint: 'Select date',
+                      label: 'Last day without delivery',
+                      hint: 'Last paused day (inclusive)',
                       controller: endController,
                       errorText: endError,
                       suffixIcon: LucideIcons.calendar,
                     ),
                   ),
                 ),
+                if (_nextDeliveryNote != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _nextDeliveryNote!,
+                    style: AppText.meta.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: CustomerDetailColors.accent,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: (_canSubmit && !isSetting) ? onSetVacation : null,
@@ -348,6 +378,12 @@ class _VacationActiveBody extends StatelessWidget {
     return '$start – $end';
   }
 
+  String get _resumeLabel {
+    final end = DateTime.parse(vacation.end!);
+    final resume = end.add(const Duration(days: 1));
+    return 'Next delivery from ${_displayFmt.format(resume)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -387,8 +423,16 @@ class _VacationActiveBody extends StatelessWidget {
                 Text(_formattedRange, style: AppText.body.copyWith(color: CustomerDetailColors.bodyInk)),
                 const SizedBox(height: 4),
                 Text(
-                  'Deliveries paused during this period.',
+                  'No deliveries on these dates.',
                   style: AppText.meta.copyWith(color: CustomerDetailColors.onSurfaceVariant),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _resumeLabel,
+                  style: AppText.meta.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: CustomerDetailColors.accent,
+                  ),
                 ),
               ],
             ),

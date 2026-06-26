@@ -503,179 +503,13 @@ class _CusDashDeliveryCalendarState extends ConsumerState<CusDashDeliveryCalenda
   static const _crossSpacing = 6.0;
   static const _mainSpacing = 6.0;
 
-  DateTime? _rangeStart;
-  DateTime? _rangeEnd;
-  bool _dragging = false;
-
   DateTime get _today {
     final n = DateTime.now();
     return DateTime(n.year, n.month, n.day);
   }
 
-  DateTime get _minSelectable => _today.add(const Duration(days: 1));
-
   String get _monthKey =>
       '${widget.month.year}-${widget.month.month.toString().padLeft(2, '0')}';
-
-  bool _canSelect(DateTime date) => !date.isBefore(_minSelectable);
-
-  bool _isInSelection(DateTime date) {
-    if (_rangeStart == null || _rangeEnd == null) return false;
-    final lo = _rangeStart!.isBefore(_rangeEnd!) ? _rangeStart! : _rangeEnd!;
-    final hi = _rangeStart!.isBefore(_rangeEnd!) ? _rangeEnd! : _rangeStart!;
-    return !date.isBefore(lo) && !date.isAfter(hi);
-  }
-
-  DateTime? _posToDate(
-    Offset pos,
-    double cellSize,
-    int leading,
-    int daysInMonth,
-    int rowCount,
-  ) {
-    final strideX = cellSize + _crossSpacing;
-    final strideY = cellSize + _mainSpacing;
-    final col = (pos.dx / strideX).floor().clamp(0, 6);
-    final row = (pos.dy / strideY).floor().clamp(0, rowCount - 1);
-    // Ignore taps in the horizontal gap between columns.
-    final xInStride = pos.dx - col * strideX;
-    if (xInStride > cellSize) return null;
-    // Ignore taps in the vertical gap between rows.
-    final yInStride = pos.dy - row * strideY;
-    if (yInStride > cellSize) return null;
-    final index = row * 7 + col;
-    if (index < leading || index >= leading + daysInMonth) return null;
-    final d = index - leading + 1;
-    return DateTime(widget.month.year, widget.month.month, d);
-  }
-
-  Widget _buildCalendarGrid({
-    required double cellSize,
-    required int leading,
-    required int daysInMonth,
-    required int rowCount,
-    required DateTime today,
-    required Map<int, Map<String, dynamic>> byDate,
-    required VacationData? vacation,
-  }) {
-    final rows = <Widget>[];
-    for (var row = 0; row < rowCount; row++) {
-      final cells = <Widget>[];
-      for (var col = 0; col < 7; col++) {
-        final index = row * 7 + col;
-        Widget cell;
-        if (index < leading || index >= leading + daysInMonth) {
-          cell = const SizedBox.shrink();
-        } else {
-          final d = index - leading + 1;
-          final date = DateTime(widget.month.year, widget.month.month, d);
-          final apiStatus = byDate[d]?['status'] as String?;
-          cell = _CusDashCalCell(
-            day: d,
-            date: date,
-            today: today,
-            dayData: byDate[d],
-            isVacation: _isVacationDay(date, vacation, apiStatus),
-            isSelected: _isInSelection(date),
-          );
-        }
-        cells.add(
-          SizedBox(
-            width: cellSize,
-            height: cellSize,
-            child: cell,
-          ),
-        );
-        if (col < 6) {
-          cells.add(SizedBox(width: _crossSpacing));
-        }
-      }
-      rows.add(Row(children: cells));
-      if (row < rowCount - 1) {
-        rows.add(SizedBox(height: _mainSpacing));
-      }
-    }
-
-    final gridHeight = cellSize * rowCount + _mainSpacing * (rowCount - 1);
-
-    return SizedBox(
-      height: gridHeight,
-      child: Stack(
-        children: [
-          Column(mainAxisSize: MainAxisSize.min, children: rows),
-          Positioned.fill(
-            child: Listener(
-              behavior: HitTestBehavior.translucent,
-              onPointerDown: (e) => _onPointerDown(
-                e.localPosition,
-                cellSize,
-                leading,
-                daysInMonth,
-                rowCount,
-              ),
-              onPointerMove: (e) => _onPointerMove(
-                e.localPosition,
-                cellSize,
-                leading,
-                daysInMonth,
-                rowCount,
-              ),
-              onPointerUp: (_) => _onPointerUp(),
-              onPointerCancel: (_) => setState(() => _clearSelection()),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _clearSelection() {
-    _rangeStart = null;
-    _rangeEnd = null;
-    _dragging = false;
-  }
-
-  void _onPointerDown(
-    Offset pos,
-    double cellSize,
-    int leading,
-    int daysInMonth,
-    int rowCount,
-  ) {
-    final vacation = ref.read(customerVacationProvider).valueOrNull;
-    if (vacation?.hasVacation == true) {
-      AppSnackBar.show(
-        context,
-        'Clear your current vacation before setting a new one.',
-      );
-      return;
-    }
-
-    final date = _posToDate(pos, cellSize, leading, daysInMonth, rowCount);
-    if (date == null || !_canSelect(date)) return;
-    setState(() {
-      _dragging = true;
-      _rangeStart = date;
-      _rangeEnd = date;
-    });
-  }
-
-  void _onPointerMove(
-    Offset pos,
-    double cellSize,
-    int leading,
-    int daysInMonth,
-    int rowCount,
-  ) {
-    if (!_dragging) return;
-    final date = _posToDate(pos, cellSize, leading, daysInMonth, rowCount);
-    if (date == null || !_canSelect(date)) return;
-    if (_sameDay(_rangeEnd, date)) return;
-    setState(() => _rangeEnd = date);
-  }
-
-  bool _sameDay(DateTime? a, DateTime b) =>
-      a != null && a.year == b.year && a.month == b.month && a.day == b.day;
 
   bool _isVacationDay(DateTime date, VacationData? vacation, String? apiStatus) {
     if (apiStatus == 'vacation') return true;
@@ -747,46 +581,48 @@ class _CusDashDeliveryCalendarState extends ConsumerState<CusDashDeliveryCalenda
     await _refreshAfterVacationChange();
   }
 
-  Future<void> _onPointerUp() async {
-    if (!_dragging) return;
-    final start = _rangeStart;
-    final end = _rangeEnd;
-    setState(() => _dragging = false);
-
-    if (start == null || end == null) {
-      setState(() => _clearSelection());
-      return;
+  Widget _buildCalendarGrid({
+    required double cellSize,
+    required int leading,
+    required int daysInMonth,
+    required int rowCount,
+    required DateTime today,
+    required Map<int, Map<String, dynamic>> byDate,
+    required VacationData? vacation,
+  }) {
+    final rows = <Widget>[];
+    for (var row = 0; row < rowCount; row++) {
+      final cells = <Widget>[];
+      for (var col = 0; col < 7; col++) {
+        final index = row * 7 + col;
+        Widget cell;
+        if (index < leading || index >= leading + daysInMonth) {
+          cell = const SizedBox.shrink();
+        } else {
+          final d = index - leading + 1;
+          final date = DateTime(widget.month.year, widget.month.month, d);
+          final apiStatus = byDate[d]?['status'] as String?;
+          cell = _CusDashCalCell(
+            day: d,
+            date: date,
+            today: today,
+            dayData: byDate[d],
+            isVacation: _isVacationDay(date, vacation, apiStatus),
+          );
+        }
+        cells.add(SizedBox(width: cellSize, height: cellSize, child: cell));
+        if (col < 6) {
+          cells.add(SizedBox(width: _crossSpacing));
+        }
+      }
+      rows.add(Row(children: cells));
+      if (row < rowCount - 1) {
+        rows.add(SizedBox(height: _mainSpacing));
+      }
     }
 
-    final stopFrom = start.isBefore(end) ? start : end;
-    final stopUntil = start.isBefore(end) ? end : start;
-    final resumeOn = stopUntil.add(const Duration(days: 1));
-
-    final confirmed = await showCusVacationConfirmDialog(
-      context: context,
-      stopFrom: stopFrom,
-      resumeOn: resumeOn,
-    );
-
-    if (!mounted) return;
-    setState(() => _clearSelection());
-
-    if (confirmed != true) return;
-
-    final apiFmt = DateFormat('yyyy-MM-dd');
-    final error = await ref.read(customerVacationProvider.notifier).setVacation(
-          apiFmt.format(stopFrom),
-          apiFmt.format(stopUntil),
-        );
-
-    if (!mounted) return;
-    if (error != null) {
-      AppSnackBar.showError(context, error);
-      return;
-    }
-
-    AppSnackBar.show(context, 'Vacation set for selected dates.');
-    await _refreshAfterVacationChange();
+    final gridHeight = cellSize * rowCount + _mainSpacing * (rowCount - 1);
+    return SizedBox(height: gridHeight, child: Column(children: rows));
   }
 
   @override
@@ -856,8 +692,8 @@ class _CusDashDeliveryCalendarState extends ConsumerState<CusDashDeliveryCalenda
           const SizedBox(height: 6),
           Text(
             hasVacation
-                ? 'Vacation is active — clear it below to set new dates'
-                : 'Drag across future dates to mark vacation',
+                ? 'Vacation is active — clear it below or use Vacation mode to change dates'
+                : 'Use Vacation mode to pause deliveries for a date range',
             style: AppText.meta.copyWith(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -998,12 +834,12 @@ Future<bool?> showCusVacationConfirmDialog({
         mainAxisSize: MainAxisSize.min,
         children: [
           _CusVacationDateRow(
-            label: 'Delivery stop from',
+            label: 'Pause deliveries from',
             value: fmt.format(stopFrom),
           ),
           const SizedBox(height: 12),
           _CusVacationDateRow(
-            label: 'Start delivery on',
+            label: 'Next delivery from',
             value: fmt.format(resumeOn),
           ),
         ],
@@ -1125,7 +961,6 @@ class _CusDashCalCell extends StatelessWidget {
     required this.today,
     required this.dayData,
     this.isVacation = false,
-    this.isSelected = false,
   });
 
   final int day;
@@ -1133,7 +968,6 @@ class _CusDashCalCell extends StatelessWidget {
   final DateTime today;
   final Map<String, dynamic>? dayData;
   final bool isVacation;
-  final bool isSelected;
 
   double _totalQty() {
     final entries = (dayData?['entries'] as List?)?.cast<Map<String, dynamic>>() ?? [];
@@ -1227,22 +1061,13 @@ class _CusDashCalCell extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? const Color(0xFF5C7EAE) : borderColor,
-          width: isSelected ? 2 : borderWidth,
+          color: borderColor,
+          width: borderWidth,
         ),
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          if (isSelected)
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: const Color(0xFF5C7EAE).withValues(alpha: 0.22),
-                ),
-              ),
-            ),
           if (day <= 31)
             Positioned(
               top: 4,

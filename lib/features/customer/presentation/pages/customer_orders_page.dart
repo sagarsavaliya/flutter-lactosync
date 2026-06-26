@@ -43,13 +43,14 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
     required bool allowEdit,
   }) {
     final status = day['status'] as String? ?? 'no_record';
+    final canEdit = day['can_edit'] as bool? ?? false;
     final repo = ref.read(customerOrderRepositoryProvider);
     final onSaved = () {
       ref.invalidate(customerOrdersProvider(_monthKey));
       ref.invalidate(customerDashboardProvider);
     };
 
-    if (status == 'expected' && allowEdit) {
+    if (allowEdit && canEdit && (status == 'expected' || status == 'skipped')) {
       showCustomerOrderDayEditSheet(
         context: context,
         day: day,
@@ -57,34 +58,6 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
         onSaved: onSaved,
       );
       return;
-    }
-
-    if (status == 'skipped' && allowEdit) {
-      final dateStr = day['date'] as String? ?? '';
-      final parsed = DateTime.tryParse(dateStr);
-      if (parsed != null) {
-        final dashData = ref.read(customerDashboardProvider).value;
-        final subs = (dashData?['active_subscriptions'] as List?)
-                ?.cast<Map<String, dynamic>>() ??
-            [];
-        final shift = subs.isNotEmpty
-            ? (subs.first['shift'] as String? ?? 'morning')
-            : 'morning';
-        final today = cusTodayDate();
-        final d = DateTime(parsed.year, parsed.month, parsed.day);
-        final minEditable = shift == 'evening'
-            ? today
-            : today.add(const Duration(days: 1));
-        if (!d.isBefore(minEditable)) {
-          showCustomerOrderDayEditSheet(
-            context: context,
-            day: day,
-            repository: repo,
-            onSaved: onSaved,
-          );
-          return;
-        }
-      }
     }
 
     if (status == 'expected' ||
@@ -227,11 +200,11 @@ class _CustomerOrdersPageState extends ConsumerState<CustomerOrdersPage> {
                                   isToday: isToday,
                                   onTap: () => _openDaySheet(
                                     nextEditableDay,
-                                    allowEdit: true,
+                                    allowEdit: nextEditableDay['can_edit'] as bool? ?? true,
                                   ),
                                   onEdit: () => _openDaySheet(
                                     nextEditableDay,
-                                    allowEdit: true,
+                                    allowEdit: nextEditableDay['can_edit'] as bool? ?? true,
                                   ),
                                 );
                               },

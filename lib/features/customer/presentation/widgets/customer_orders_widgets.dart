@@ -692,7 +692,10 @@ String? cusNextEditableUpcomingDate(
 
   for (final day in upcoming) {
     final status = day['status'] as String? ?? '';
-    if (status != 'expected' && status != 'skipped') continue;
+    if (status == 'vacation' || status == 'delivered') continue;
+    final canEdit = day['can_edit'] as bool? ??
+        (status == 'expected' || status == 'skipped');
+    if (!canEdit) continue;
     final parsed = DateTime.tryParse(day['date'] as String? ?? '');
     if (parsed == null) continue;
     final d = DateTime(parsed.year, parsed.month, parsed.day);

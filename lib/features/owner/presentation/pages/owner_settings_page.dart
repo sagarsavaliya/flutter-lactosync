@@ -298,6 +298,16 @@ class _OwnerSettingsPageState extends ConsumerState<OwnerSettingsPage> {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 4, right: 4),
+              child: Text(
+                AppStrings.settingsOrderScheduleHint,
+                style: AppText.meta.copyWith(
+                  fontSize: 12,
+                  color: CustomerDetailColors.onSurfaceVariant,
+                ),
+              ),
+            ),
 
             // ── OR-08: Products ──────────────────────────────────────────
             const SizedBox(height: AppSpace.lg),
@@ -879,6 +889,9 @@ class _MilkTypesSectionState extends ConsumerState<_MilkTypesSection> {
     try {
       await widget.repository.deleteMilkType(item.id);
       ref.invalidate(milkTypesProvider);
+      if (mounted) {
+        AppSnackBar.show(context, AppStrings.settingsMilkTypeRemoved);
+      }
     } on ApiException catch (e) {
       if (mounted) {
         final msg = e.code == 'TYPE_IN_USE'
@@ -1552,7 +1565,13 @@ class _AddContainerTypeSheetState extends State<_AddContainerTypeSheet> {
                 ),
               ),
               ActionChip(
-                label: const Text('+ Add size'),
+                label: Text(
+                  '+ Add size',
+                  style: AppText.meta.copyWith(
+                    color: CustomerDetailColors.accent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 backgroundColor:
                     isDark ? AppColors.darkSurface : AppColors.surface,
                 side: BorderSide(

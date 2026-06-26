@@ -67,7 +67,7 @@ final class TenantBootstrapWorkbookSpec
     {
         return [
             'glass bottle' => [0.5, 1.0],
-            'plastic bag' => [0.5, 1.0, 1.5, 2.0],
+            'plastic bag' => [0.5, 1.0, 1.5],
             'bulk container' => [4.0, 5.0, 6.0],
         ];
     }

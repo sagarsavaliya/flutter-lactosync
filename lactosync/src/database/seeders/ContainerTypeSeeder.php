@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Defaults:
  *   Glass Bottle   — 500ml, 1L
- *   Plastic Bag    — 500ml, 1L, 1.5L, 2L
+ *   Plastic Bag    — 500ml, 1L, 1.5L
  *   Bulk Container — 4L, 5L, 6L  (for walk-in / wholesale)
  *
  * Safe to re-run: uses updateOrCreate / insertOrIgnore patterns throughout.
@@ -32,7 +32,7 @@ class ContainerTypeSeeder extends Seeder
         ],
         [
             'name'  => 'Plastic Bag',
-            'sizes' => [0.5, 1.0, 1.5, 2.0],
+            'sizes' => [0.5, 1.0, 1.5],
         ],
         [
             'name'  => 'Bulk Container',

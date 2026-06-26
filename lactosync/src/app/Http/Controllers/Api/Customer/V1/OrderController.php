@@ -100,10 +100,13 @@ class OrderController extends Controller
                 ];
             })->values()->all();
 
+            $canEdit = $this->canEditDay($dayStatus, $cursor, $today, $entries);
+
             $days[] = [
-                'date'    => $dateStr,
-                'status'  => $dayStatus,
-                'entries' => $entries,
+                'date'     => $dateStr,
+                'status'   => $dayStatus,
+                'entries'  => $entries,
+                'can_edit' => $canEdit,
             ];
 
             $cursor->addDay();
@@ -195,9 +198,12 @@ class OrderController extends Controller
                 ? OrderLogStatus::Skipped->value
                 : ($existing->status === OrderLogStatus::Delivered ? $existing->status->value : OrderLogStatus::Pending->value);
 
+            $unitRate = (float) ($line->effective_rate ?? $line->unit_rate);
             $existing->update([
-                'quantity'  => $qty,
-                'status'    => $newStatus,
+                'quantity'   => $qty,
+                'status'     => $newStatus,
+                'unit_rate'  => $unitRate,
+                'line_total' => DailyOrderLog::computeLineTotal($qty, $unitRate),
             ]);
         } else {
             $newStatus = $qty <= 0
@@ -288,6 +294,23 @@ class OrderController extends Controller
             return ApiResponse::error('ALREADY_DELIVERED', 'Cannot skip a day that has already been delivered.', 422);
         }
 
+        $customer->loadMissing('farm');
+        $activeLines = $customer
+            ->subscriptionLines()
+            ->whereHas('subscription', fn ($q) => $q->where('status', 'active'))
+            ->with('product')
+            ->get();
+
+        foreach ($activeLines as $line) {
+            $shift = $line->shift instanceof DeliveryShift
+                ? $line->shift->value
+                : (string) $line->shift;
+
+            if ($this->isEntryLocked($shift, $deliveryDate, $today, $customer->farm)) {
+                return ApiResponse::error('LOCKED', 'Order already submitted — changes are locked.', 422);
+            }
+        }
+
         // Idempotent: if all logs for this date are already skipped (and there's at least one), return success.
         $existingLogs = DailyOrderLog::query()
             ->where('customer_id', $customer->id)
@@ -300,14 +323,6 @@ class OrderController extends Controller
         if ($allSkipped) {
             return ApiResponse::success(['skipped' => true]);
         }
-
-        // Load all active subscription lines for this customer.
-        $customer->loadMissing('farm');
-        $activeLines = $customer
-            ->subscriptionLines()
-            ->whereHas('subscription', fn ($q) => $q->where('status', 'active'))
-            ->with('product')
-            ->get();
 
         // Upsert a skipped log for each subscription line.
         foreach ($activeLines as $line) {
@@ -466,5 +481,33 @@ class OrderController extends Controller
         $cutoff = Carbon::parse($farm->evening_order_time)->setDateFrom($now);
 
         return $now->gte($cutoff);
+    }
+
+    /**
+     * Whether the customer can still change qty or skip/un-skip this day.
+     *
+     * @param list<array{locked: bool}> $entries
+     */
+    private function canEditDay(
+        string $dayStatus,
+        Carbon $date,
+        Carbon $today,
+        array $entries,
+    ): bool {
+        if (in_array($dayStatus, ['delivered', 'vacation', 'no_record'], true)) {
+            return false;
+        }
+
+        if ($date->lt($today)) {
+            return false;
+        }
+
+        foreach ($entries as $entry) {
+            if (($entry['locked'] ?? true) === false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

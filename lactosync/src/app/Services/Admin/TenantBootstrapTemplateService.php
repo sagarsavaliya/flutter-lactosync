@@ -115,7 +115,7 @@ class TenantBootstrapTemplateService
         $this->writeHeaderRow($sheet, $headers);
         $sheet->fromArray([
             ['Buffalo Milk', 'Buffalo', 80, 'Glass Bottle', '500ml, 1L', 1],
-            ['Cow Milk', 'Cow', 65, 'Plastic Bag', '500ml, 1L, 1.5L, 2L', 1],
+            ['Cow Milk', 'Cow', 65, 'Plastic Bag', '500ml, 1L, 1.5L', 1],
         ], null, 'A2');
         $sheet->freezePane('A2');
         $this->autoSizeColumns($sheet, count($headers));
@@ -242,7 +242,7 @@ class TenantBootstrapTemplateService
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '166534']],
         ]);
         $sheet->setCellValue('I2', '500ml, 1L');
-        $sheet->setCellValue('I3', '500ml, 1L, 1.5L, 2L');
+        $sheet->setCellValue('I3', '500ml, 1L, 1.5L');
         $sheet->setCellValue('I4', '4L, 5L, 6L');
 
         $sheet->getColumnDimension('A')->setWidth(42);

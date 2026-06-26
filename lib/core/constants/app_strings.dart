@@ -422,11 +422,11 @@ abstract final class AppStrings {
   static const recordPaymentSuccess = 'Payment recorded';
 
   // Order schedule settings
-  static const settingsOrderScheduleSection = 'Daily order schedule';
-  static const settingsMorningOrderTime = 'Morning orders at';
-  static const settingsEveningOrderTime = 'Evening orders at';
+  static const settingsOrderScheduleSection = 'Customer change window';
+  static const settingsMorningOrderTime = 'Morning delivery — changes until';
+  static const settingsEveningOrderTime = 'Evening delivery — changes until';
   static const settingsOrderScheduleHint =
-      'Orders are created automatically at these times for active subscriptions.';
+      'Customers can edit or skip their next delivery until this time, even after the order is created.';
 
   // Settings — profile cards (S6-11/12)
   static const settingsEditFarmTitle = 'Edit farm details';
@@ -462,6 +462,7 @@ abstract final class AppStrings {
   static const settingsDeleteTypeBlocked =
       'Cannot delete — this type is used by a product. Update those products first.';
   static const settingsMilkTypeAdded = 'Milk type added';
+  static const settingsMilkTypeRemoved = 'Milk type removed';
   static const settingsContainerTypeAdded = 'Container type added';
   static const settingsMaterialLabel = 'Material';
   static const settingsMaterialHint = 'Select material';
@@ -491,6 +492,8 @@ abstract final class AppStrings {
   static const settingsProductRemoveTitle = 'Remove product?';
   static const settingsProductRemoveConfirm = 'Remove';
   static const settingsProductRemoved = 'Product removed.';
+  static const settingsProductDeleteBlocked =
+      "This product can't be deleted — it's currently in use with subscriptions.";
   static const settingsProductAdded = 'Product added.';
   static const settingsProductUpdated = 'Product updated.';
   static const settingsProductAddTitle = 'Add product';
