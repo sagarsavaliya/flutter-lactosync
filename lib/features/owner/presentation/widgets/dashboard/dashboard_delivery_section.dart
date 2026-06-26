@@ -13,6 +13,7 @@ class DashboardDeliverySection extends StatelessWidget {
     required this.totalLiters,
     required this.statusTag,
     required this.cards,
+    this.onProductTap,
   });
 
   final String title;
@@ -20,6 +21,7 @@ class DashboardDeliverySection extends StatelessWidget {
   final double totalLiters;
   final String statusTag;
   final List<MilkPreparationContainerCard> cards;
+  final void Function(MilkPreparationProductRow product)? onProductTap;
 
   static const _ink = Color(0xFF1E2A1E);
   static const _greenDark = Color(0xFF1E5233);
@@ -100,7 +102,7 @@ class DashboardDeliverySection extends StatelessWidget {
               ],
             ),
           ),
-          PackingContainerGroups(cards: cards),
+          PackingContainerGroups(cards: cards, onProductTap: onProductTap),
         ],
       ),
     );

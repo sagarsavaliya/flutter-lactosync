@@ -123,9 +123,16 @@ class OwnerController extends Controller
         $search = trim((string) $request->query('search', ''));
         $status = (string) $request->query('status', 'all');
         $sort = (string) $request->query('sort', 'name_asc');
+        $productId = $request->query('product_id');
         $today = Carbon::today()->toDateString();
 
         $query = Customer::query()->where('farm_id', $farmId);
+
+        if ($productId !== null && $productId !== '') {
+            $query->whereHas('subscriptionLines', function ($q) use ($productId) {
+                $q->where('product_id', (int) $productId);
+            });
+        }
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -998,6 +1005,7 @@ class OwnerController extends Controller
         $date = $request->query('date', Carbon::today()->toDateString());
         $shift = (string) $request->query('shift', 'all');
         $status = (string) $request->query('status', 'all');
+        $productId = $request->query('product_id');
 
         $query = DailyOrderLog::query()
             ->where('farm_id', $owner->farm_id)
@@ -1005,6 +1013,10 @@ class OwnerController extends Controller
             ->with('customer')
             ->orderBy('shift')
             ->orderBy('product_name');
+
+        if ($productId !== null && $productId !== '') {
+            $query->where('product_id', (int) $productId);
+        }
 
         if ($shift !== 'all') {
             $query->where('shift', $shift);
@@ -1021,6 +1033,10 @@ class OwnerController extends Controller
 
         if ($shift !== 'all') {
             $summaryQuery->where('shift', $shift);
+        }
+
+        if ($productId !== null && $productId !== '') {
+            $summaryQuery->where('product_id', (int) $productId);
         }
 
         $allForDate = $summaryQuery->get();

@@ -204,6 +204,10 @@ abstract final class AppStrings {
   static const milkPrepEmpty = 'No containers needed for this shift';
   static const customersScreenTitle = 'Customers';
   static const customersEmpty = 'No customers found';
+  static const customersFilterAllProducts = 'All products';
+  static const milkPrepCustomersEmpty = 'No customers for this product today';
+  static const milkPrepQtySortHigh = 'Quantity high to low';
+  static const milkPrepQtySortLow = 'Quantity low to high';
   static const searchCustomersHint = 'Search name, mobile or address';
   static const sortLabel = 'Sort';
   static const sortNameAsc = 'Name A → Z';

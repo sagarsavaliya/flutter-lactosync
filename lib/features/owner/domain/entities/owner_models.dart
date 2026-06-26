@@ -319,11 +319,13 @@ class CustomersQuery {
     this.search = '',
     this.status = CustomerStatusFilter.all,
     this.sort = CustomerSort.nameAsc,
+    this.productId,
   });
 
   final String search;
   final CustomerStatusFilter status;
   final CustomerSort sort;
+  final int? productId;
 
   String get statusParam => switch (status) {
         CustomerStatusFilter.active => 'active',
@@ -343,10 +345,11 @@ class CustomersQuery {
       other is CustomersQuery &&
       other.search == search &&
       other.status == status &&
-      other.sort == sort;
+      other.sort == sort &&
+      other.productId == productId;
 
   @override
-  int get hashCode => Object.hash(search, status, sort);
+  int get hashCode => Object.hash(search, status, sort, productId);
 }
 
 enum DeliveryShiftFilter { all, morning, evening }
@@ -462,11 +465,13 @@ class DailyOrdersQuery {
     required this.date,
     this.shift = DeliveryShiftFilter.all,
     this.status = OrderStatusFilter.all,
+    this.productId,
   });
 
   final DateTime date;
   final DeliveryShiftFilter shift;
   final OrderStatusFilter status;
+  final int? productId;
 
   String get dateParam =>
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -489,10 +494,11 @@ class DailyOrdersQuery {
       other is DailyOrdersQuery &&
       other.dateParam == dateParam &&
       other.shift == shift &&
-      other.status == status;
+      other.status == status &&
+      other.productId == productId;
 
   @override
-  int get hashCode => Object.hash(dateParam, shift, status);
+  int get hashCode => Object.hash(dateParam, shift, status, productId);
 }
 
 class BillingSummary {

@@ -9,10 +9,12 @@ class PackingContainerGroups extends StatelessWidget {
     super.key,
     required this.cards,
     this.chipBackground = const Color(0xFFF7F9F2),
+    this.onProductTap,
   });
 
   final List<MilkPreparationContainerCard> cards;
   final Color chipBackground;
+  final void Function(MilkPreparationProductRow product)? onProductTap;
 
   static const _muted = Color(0xFF8C938A);
   static const _tanBg = Color(0xFFF1E2C9);
@@ -99,6 +101,9 @@ class PackingContainerGroups extends StatelessWidget {
                       product: card.products[i],
                       sizes: card.sizes,
                       chipBackground: chipBackground,
+                      onTap: onProductTap == null
+                          ? null
+                          : () => onProductTap!(card.products[i]),
                     ),
                     if (i < card.products.length - 1)
                       const Divider(height: 1, thickness: 1, color: _border),
@@ -119,11 +124,13 @@ class PackingProductRow extends StatelessWidget {
     required this.product,
     required this.sizes,
     this.chipBackground = const Color(0xFFF7F9F2),
+    this.onTap,
   });
 
   final MilkPreparationProductRow product;
   final List<MilkPreparationSizeColumn> sizes;
   final Color chipBackground;
+  final VoidCallback? onTap;
 
   static const _green = Color(0xFF2E6E45);
   static const _greenDark = Color(0xFF1E5233);
@@ -165,78 +172,90 @@ class PackingProductRow extends StatelessWidget {
 
     return Opacity(
       opacity: empty ? 0.5 : 1,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: empty ? null : onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 9,
-                  height: 9,
-                  decoration: BoxDecoration(
-                    color: _dotColor(parsed.animal),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  parsed.rate == null ? parsed.animal : parsed.animal,
-                  style: AppText.cardTitle.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: _greenDark,
-                  ),
-                ),
-                if (parsed.rate != null) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    '₹${parsed.rate}',
-                    style: AppText.meta.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: _muted,
+                Row(
+                  children: [
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: _dotColor(parsed.animal),
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                ],
-                const Spacer(),
-                Text(
-                  _litersLabel(),
-                  style: AppText.cardTitle.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: empty ? _faded : _green,
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        parsed.rate == null ? parsed.animal : parsed.animal,
+                        style: AppText.cardTitle.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: _greenDark,
+                        ),
+                      ),
+                    ),
+                    if (parsed.rate != null) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '₹${parsed.rate}',
+                        style: AppText.meta.copyWith(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: _muted,
+                        ),
+                      ),
+                    ],
+                    Text(
+                      _litersLabel(),
+                      style: AppText.cardTitle.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: empty ? _faded : _green,
+                      ),
+                    ),
+                    if (!empty && onTap != null) ...[
+                      const SizedBox(width: 4),
+                      Icon(Icons.chevron_right, size: 18, color: _muted),
+                    ],
+                  ],
                 ),
+                const SizedBox(height: 10),
+                if (empty)
+                  Text(
+                    'No packing today',
+                    style: AppText.meta.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      fontStyle: FontStyle.italic,
+                      color: _faded,
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 7,
+                    runSpacing: 7,
+                    children: [
+                      for (final size in sizes)
+                        if ((product.counts[size.key] ?? 0) > 0)
+                          PackingSizeCountChip(
+                            label: size.label,
+                            count: product.counts[size.key]!,
+                            background: chipBackground,
+                          ),
+                    ],
+                  ),
               ],
             ),
-            const SizedBox(height: 10),
-            if (empty)
-              Text(
-                'No packing today',
-                style: AppText.meta.copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  fontStyle: FontStyle.italic,
-                  color: _faded,
-                ),
-              )
-            else
-              Wrap(
-                spacing: 7,
-                runSpacing: 7,
-                children: [
-                  for (final size in sizes)
-                    if ((product.counts[size.key] ?? 0) > 0)
-                      PackingSizeCountChip(
-                        label: size.label,
-                        count: product.counts[size.key]!,
-                        background: chipBackground,
-                      ),
-                ],
-              ),
-          ],
+          ),
         ),
       ),
     );

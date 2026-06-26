@@ -1,13 +1,13 @@
 # PROJECT STATUS — LactoSync
-**Last Updated:** 2026-06-26 | **Overall:** 🟢 Phase 2 Communications screen built — APK rebuild + deploy test
+**Last Updated:** 2026-06-26 | **Overall:** 🟢 Phase 3 complete — deploy API + rebuild APK
 
 ---
 
 ### 🏗️ Technical
-- **API:** Live — https://flutterapi.lactosync.com ✅ Phase 1 deployed
-- **Branch:** `feature/phase-1-audit-whatsapp-tracking` (+ Phase 2 Flutter on same branch)
-- **Phase 2:** ✅ Communications screen — profile menu · search · status filters · sort · tap → customer
-- **App:** needs **APK rebuild** for Activity Log + Communications UI
+- **API:** Phase 1 live · **Phase 3 API** (`product_id` filters) needs deploy
+- **Branch:** `feature/phase-1-audit-whatsapp-tracking` (Phases 1–3)
+- **Phase 3:** ✅ Customers product filter chips · dashboard milk-prep tap → customer list (qty + address)
+- **App:** rebuild APK for Phases 2–3 UI
 
 ### 🎨 Product / Design
 - Owner redesign (frames 1–14): ✅ complete
@@ -35,6 +35,6 @@
 | Farenidham Gaushala | 9998866008 | 1234 |
 
 ## 🔲 Next (when you resume)
-1. **Rebuild owner APK** — test Communications + Activity Log on device
-2. **Meta webhook** (if not done) — delivery status updates in Communications
-3. Say **"start Phase 3"** — customer product search/filter + dashboard milk-prep drill-down
+1. **Deploy Phase 3 API** — `product_id` on customers + daily-orders endpoints
+2. **Rebuild/install APK** — test milk-prep tap + customer product filter
+3. Say **"start Phase 4"** — subscriptions screen from dashboard count

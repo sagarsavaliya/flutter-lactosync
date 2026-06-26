@@ -29,6 +29,7 @@ import '../../features/onboarding/presentation/pages/signup_page.dart';
 import '../../features/onboarding/presentation/pages/subscription_page.dart';
 import '../../features/owner/presentation/pages/activity_page.dart';
 import '../../features/owner/presentation/pages/communications_page.dart';
+import '../../features/owner/presentation/pages/milk_prep_customers_page.dart';
 import '../../features/owner/presentation/pages/billing_page.dart';
 import '../../features/owner/presentation/pages/customer_detail_page.dart';
 import '../../features/owner/presentation/pages/edit_customer_page.dart';
@@ -235,6 +236,18 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/owner/communications',
       builder: (context, state) => const CommunicationsPage(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/owner/milk-prep/customers',
+      builder: (context, state) {
+        final params = state.uri.queryParameters;
+        return MilkPrepCustomersPage(
+          shift: params['shift'] ?? 'morning',
+          productId: int.tryParse(params['product_id'] ?? '') ?? 0,
+          productName: Uri.decodeComponent(params['product_name'] ?? ''),
+        );
+      },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

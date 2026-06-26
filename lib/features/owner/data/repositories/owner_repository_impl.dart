@@ -58,6 +58,7 @@ class OwnerRepositoryImpl implements OwnerRepository {
           if (query.search.isNotEmpty) 'search': query.search,
           'status': query.statusParam,
           'sort': query.sortParam,
+          if (query.productId != null) 'product_id': query.productId,
         },
       );
       return CustomersListResult.fromJson(_readData(response.data));
@@ -139,6 +140,7 @@ class OwnerRepositoryImpl implements OwnerRepository {
           'date': query.dateParam,
           'shift': query.shiftParam,
           'status': query.statusParam,
+          if (query.productId != null) 'product_id': query.productId,
         },
       );
       return DailyOrdersResult.fromJson(_readData(response.data));

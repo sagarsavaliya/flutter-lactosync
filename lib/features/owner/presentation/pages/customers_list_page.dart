@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/owner_models.dart';
+import '../../domain/entities/settings_models.dart';
 import '../providers/owner_provider.dart';
 import '../widgets/customer_list_styles.dart';
 import '../widgets/customers_list_tile.dart';
@@ -40,6 +41,7 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
   CustomerSort _sort = CustomerSort.nameAsc;
   Timer? _debounce;
   String _search = '';
+  int? _productId;
 
   @override
   void dispose() {
@@ -56,7 +58,11 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
     });
   }
 
-  CustomersQuery get _query => CustomersQuery(search: _search, sort: _sort);
+  CustomersQuery get _query => CustomersQuery(
+        search: _search,
+        sort: _sort,
+        productId: _productId,
+      );
 
   Future<void> _refreshList() async {
     ref.invalidate(customersListProvider(_query));
@@ -186,6 +192,7 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
   @override
   Widget build(BuildContext context) {
     final listAsync = ref.watch(customersListProvider(_query));
+    final productsAsync = ref.watch(ownerProductsProvider);
 
     return ColoredBox(
       color: CustomerListColors.background,
@@ -203,6 +210,43 @@ class _CustomersListPageState extends ConsumerState<CustomersListPage> {
                   onChanged: _onSearchChanged,
                   onSort: _showSortMenu,
                 ),
+              ),
+              productsAsync.when(
+                loading: () => const SizedBox(height: 40),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (products) {
+                  if (products.isEmpty) return const SizedBox.shrink();
+                  return SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(AppStrings.customersFilterAllProducts),
+                            selected: _productId == null,
+                            showCheckmark: false,
+                            onSelected: (_) => setState(() => _productId = null),
+                          ),
+                        ),
+                        for (final OwnerProduct product in products)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: FilterChip(
+                              label: Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                              selected: _productId == product.id,
+                              showCheckmark: false,
+                              onSelected: (_) => setState(() {
+                                _productId = _productId == product.id ? null : product.id;
+                              }),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
               ),
               Expanded(
                 child: listAsync.when(

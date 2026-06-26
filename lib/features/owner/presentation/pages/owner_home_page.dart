@@ -103,6 +103,9 @@ class OwnerHomePage extends ConsumerWidget {
                               stats.milkPreparation!.morningTotalLiters,
                           statusTag: AppStrings.dashboardToday,
                           cards: stats.milkPreparation!.morning,
+                          onProductTap: (product) => context.push(
+                            '/owner/milk-prep/customers?shift=morning&product_id=${product.productId}&product_name=${Uri.encodeComponent(product.productName)}',
+                          ),
                         ),
                         DashboardDeliverySection(
                           title: AppStrings.milkPrepEveningTitle,
@@ -111,6 +114,9 @@ class OwnerHomePage extends ConsumerWidget {
                               stats.milkPreparation!.eveningTotalLiters,
                           statusTag: AppStrings.dashboardScheduled,
                           cards: stats.milkPreparation!.evening,
+                          onProductTap: (product) => context.push(
+                            '/owner/milk-prep/customers?shift=evening&product_id=${product.productId}&product_name=${Uri.encodeComponent(product.productName)}',
+                          ),
                         ),
                       ],
                       const SizedBox(height: 18),
