@@ -1233,6 +1233,7 @@ class FarmActivity {
     required this.entityLabel,
     required this.createdAt,
     required this.canRestore,
+    this.description,
     this.meta,
   });
 
@@ -1243,6 +1244,7 @@ class FarmActivity {
   final String entityLabel;
   final String? createdAt;
   final bool canRestore;
+  final String? description;
   final Map<String, dynamic>? meta;
 
   factory FarmActivity.fromJson(Map<String, dynamic> json) {
@@ -1254,19 +1256,29 @@ class FarmActivity {
       entityLabel: json['entity_label'] as String? ?? '',
       createdAt: json['created_at'] as String?,
       canRestore: json['can_restore'] as bool? ?? false,
+      description: json['description'] as String?,
       meta: json['meta'] != null ? Map<String, dynamic>.from(json['meta'] as Map) : null,
     );
   }
 
   String get actionLabel => switch (action) {
+        'created' => 'Added',
+        'updated' => 'Updated',
         'deleted' => 'Deleted',
         'restored' => 'Restored',
+        'sent' => 'Sent',
         _ => action,
       };
 
   String get entityTypeLabel => switch (entityType) {
         'customer' => 'Customer',
         'subscription' => 'Subscription',
+        'subscription_line' => 'Subscription',
+        'payment' => 'Payment',
+        'invoice' => 'Bill',
+        'product' => 'Product',
         _ => entityType,
       };
+
+  String get displayText => description ?? '$actionLabel · $entityTypeLabel';
 }

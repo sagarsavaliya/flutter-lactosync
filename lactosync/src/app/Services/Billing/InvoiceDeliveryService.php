@@ -4,7 +4,9 @@ namespace App\Services\Billing;
 
 use App\Models\FarmOwner;
 use App\Models\Invoice;
+use App\Services\Activity\FarmActivityLogger;
 use App\Services\Notifications\OwnerNotificationService;
+use App\Services\WhatsApp\WhatsAppLogContext;
 use App\Services\WhatsApp\WhatsAppService;
 use Illuminate\Support\Carbon;
 use RuntimeException;
@@ -15,6 +17,7 @@ class InvoiceDeliveryService
         private readonly BillImageService $billImages,
         private readonly WhatsAppService $whatsApp,
         private readonly OwnerNotificationService $notifications,
+        private readonly FarmActivityLogger $activityLogger,
     ) {}
 
     /**
@@ -44,11 +47,20 @@ class InvoiceDeliveryService
             : 'N/A';
 
         $billImage = $this->billImages->generate($invoice, $owner);
+        $template = config('services.whatsapp.template_bill', 'lacto_sync_monthly_bill');
 
-        // Send bill image as the template header — one message instead of two
+        $context = WhatsAppLogContext::forCustomer(
+            $owner->farm_id,
+            $customer->id,
+            'bill',
+            $template,
+            "{$monthLabel} bill",
+            ['invoice_id' => $invoice->id],
+        );
+
         $this->whatsApp->sendTemplateWithImageHeader(
             $customer->contact,
-            config('services.whatsapp.template_bill', 'lacto_sync_monthly_bill'),
+            $template,
             $billImage,
             [
                 $customer->fullName(),
@@ -58,6 +70,8 @@ class InvoiceDeliveryService
                 $dueDate,
                 $owner->farm->name,
             ],
+            'en',
+            $context,
         );
 
         $invoice->forceFill([
@@ -66,6 +80,17 @@ class InvoiceDeliveryService
         ])->save();
 
         $this->notifications->billSent($owner, $invoice->fresh(['customer']));
+
+        $this->activityLogger->logSent(
+            $owner,
+            'invoice',
+            $invoice->id,
+            $customer->fullName(),
+            [
+                'invoice_number' => $invoice->invoice_number,
+                'billing_month' => $invoice->billing_month,
+            ],
+        );
 
         return [
             'invoice_id' => $invoice->id,

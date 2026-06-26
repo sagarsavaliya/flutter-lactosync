@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\OwnerDeliveryController;
 use App\Http\Controllers\Api\V1\OwnerModuleController;
 use App\Http\Controllers\Api\V1\OwnerProductTypesController;
 use App\Http\Controllers\Api\V1\OwnerSettingsController;
+use App\Http\Controllers\Api\V1\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // ---------------------------------------------------------------------------
@@ -87,6 +88,11 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/health', HealthController::class);
 
+    Route::prefix('webhooks/whatsapp')->group(function (): void {
+        Route::get('/', [WhatsAppWebhookController::class, 'verify']);
+        Route::post('/', [WhatsAppWebhookController::class, 'receive']);
+    });
+
     Route::prefix('auth')->group(function () use ($otpSendThrottle) {
         Route::post('/signup/send-otp', [AuthController::class, 'signupSendOtp'])
             ->middleware($otpSendThrottle);
@@ -123,6 +129,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/dashboard', [OwnerController::class, 'dashboard']);
             Route::get('/activities', [OwnerController::class, 'activities']);
             Route::post('/activities/{activityLog}/restore', [OwnerController::class, 'restoreActivity']);
+            Route::get('/communications', [OwnerController::class, 'communications']);
             Route::get('/customers', [OwnerController::class, 'customers']);
             Route::get('/customers/{customer}', [OwnerController::class, 'customerDetail']);
             Route::patch('/customers/{customer}', [OwnerController::class, 'updateCustomer']);

@@ -12,6 +12,7 @@ use App\Models\FarmMilkTypeVisibility;
 use App\Models\FarmOwner;
 use App\Models\MilkType;
 use App\Models\Product;
+use App\Services\Activity\FarmActivityLogger;
 use App\Support\ApiResponse;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,8 @@ use Illuminate\Http\Request;
 
 class OwnerProductTypesController extends Controller
 {
+    public function __construct(private readonly FarmActivityLogger $activityLogger) {}
+
     // ─────────────────────────────────────────────────────────────────────
     // Products
     // ─────────────────────────────────────────────────────────────────────
@@ -77,6 +80,14 @@ class OwnerProductTypesController extends Controller
         ]);
 
         $product->load(['milkType', 'containerType.sizes']);
+
+        $this->activityLogger->logCreated(
+            $owner,
+            'product',
+            $product->id,
+            $product->name,
+            ['rate' => $product->rate],
+        );
 
         return ApiResponse::success(['product' => $this->productPayload($product)], null, 201);
     }

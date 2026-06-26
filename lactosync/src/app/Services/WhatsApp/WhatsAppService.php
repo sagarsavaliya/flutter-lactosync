@@ -3,13 +3,16 @@
 namespace App\Services\WhatsApp;
 
 use App\Support\WhatsAppRecipient;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class WhatsAppService
 {
-    public function sendOtp(string $mobileTenDigits, string $otp): void
+    public function __construct(private readonly WhatsAppMessageRecorder $recorder) {}
+
+    public function sendOtp(string $mobileTenDigits, string $otp, ?WhatsAppLogContext $context = null): void
     {
         $to = WhatsAppRecipient::toApiFormat($mobileTenDigits);
         $token = config('services.whatsapp.token');
@@ -21,6 +24,9 @@ class WhatsAppService
 
         $version = config('services.whatsapp.graph_version', 'v21.0');
         $url = "https://graph.facebook.com/{$version}/{$phoneNumberId}/messages";
+        $template = config('services.whatsapp.template_otp', 'lacto_sync_otp');
+
+        $logContext = $context ?? new WhatsAppLogContext(null, null, 'otp', $template, 'OTP');
 
         $response = Http::withToken($token)
             ->timeout(8)
@@ -30,7 +36,7 @@ class WhatsAppService
                 'to' => $to,
                 'type' => 'template',
                 'template' => [
-                    'name' => config('services.whatsapp.template_otp', 'lacto_sync_otp'),
+                    'name' => $template,
                     'language' => [
                         'code' => config('services.whatsapp.template_language', 'en'),
                     ],
@@ -38,16 +44,7 @@ class WhatsAppService
                 ],
             ]);
 
-        if (! $response->successful()) {
-            $body = $response->json();
-            Log::error('WhatsApp OTP send failed', [
-                'mobile' => $mobileTenDigits,
-                'status' => $response->status(),
-                'body' => $body,
-            ]);
-
-            throw new RuntimeException('We could not send the OTP on WhatsApp. Please try again in a moment.');
-        }
+        $this->handleApiResponse($response, $mobileTenDigits, $logContext, 'We could not send the OTP on WhatsApp. Please try again in a moment.');
     }
 
     /**
@@ -96,6 +93,7 @@ class WhatsAppService
         string $absolutePath,
         string $filename,
         ?string $caption = null,
+        ?WhatsAppLogContext $context = null,
     ): void {
         $to = WhatsAppRecipient::toApiFormat($mobileTenDigits);
 
@@ -103,7 +101,10 @@ class WhatsAppService
             throw new RuntimeException('Document file is missing.');
         }
 
-        if (config('services.whatsapp.simulate_documents', false)) {
+        $logContext = $context ?? new WhatsAppLogContext(null, null, 'document', null, $filename);
+
+        if ($this->isSimulateMode()) {
+            $this->recordSimulated($mobileTenDigits, $logContext);
             Log::info('WhatsApp document simulated', [
                 'mobile' => $to,
                 'filename' => $filename,
@@ -158,17 +159,16 @@ class WhatsAppService
 
         $response = Http::withToken($token)->timeout(12)->post($messageUrl, $payload);
 
-        if (! $response->successful()) {
-            Log::error('WhatsApp document send failed', ['body' => $response->json()]);
-            throw new RuntimeException($this->humanError($response->json(), 'Could not send bill on WhatsApp.'));
-        }
+        $this->handleApiResponse($response, $mobileTenDigits, $logContext, 'Could not send bill on WhatsApp.');
     }
 
-    public function sendText(string $mobileTenDigits, string $message): void
+    public function sendText(string $mobileTenDigits, string $message, ?WhatsAppLogContext $context = null): void
     {
         $to = WhatsAppRecipient::toApiFormat($mobileTenDigits);
+        $logContext = $context ?? new WhatsAppLogContext(null, null, 'text', null, mb_substr($message, 0, 120));
 
-        if (config('services.whatsapp.simulate_documents', false)) {
+        if ($this->isSimulateMode()) {
+            $this->recordSimulated($mobileTenDigits, $logContext);
             Log::info('WhatsApp text simulated', [
                 'mobile' => $to,
                 'message' => $message,
@@ -197,16 +197,14 @@ class WhatsAppService
             ],
         ]);
 
-        if (! $response->successful()) {
-            Log::error('WhatsApp text send failed', ['body' => $response->json()]);
-            throw new RuntimeException($this->humanError($response->json(), 'Could not send WhatsApp message.'));
-        }
+        $this->handleApiResponse($response, $mobileTenDigits, $logContext, 'Could not send WhatsApp message.');
     }
 
     public function sendImage(
         string $mobileTenDigits,
         string $absolutePath,
         ?string $caption = null,
+        ?WhatsAppLogContext $context = null,
     ): void {
         $to = WhatsAppRecipient::toApiFormat($mobileTenDigits);
 
@@ -214,7 +212,10 @@ class WhatsAppService
             throw new RuntimeException('Image file is missing.');
         }
 
-        if (config('services.whatsapp.simulate_documents', false)) {
+        $logContext = $context ?? new WhatsAppLogContext(null, null, 'image', null, basename($absolutePath));
+
+        if ($this->isSimulateMode()) {
+            $this->recordSimulated($mobileTenDigits, $logContext);
             Log::info('WhatsApp image simulated', [
                 'mobile' => $to,
                 'path' => $absolutePath,
@@ -270,10 +271,7 @@ class WhatsAppService
 
         $response = Http::withToken($token)->timeout(12)->post($messageUrl, $payload);
 
-        if (! $response->successful()) {
-            Log::error('WhatsApp image send failed', ['body' => $response->json()]);
-            throw new RuntimeException($this->humanError($response->json(), 'Could not send image on WhatsApp.'));
-        }
+        $this->handleApiResponse($response, $mobileTenDigits, $logContext, 'Could not send image on WhatsApp.');
     }
 
     /**
@@ -301,9 +299,8 @@ class WhatsAppService
 
     /**
      * Send a template that has an IMAGE header component.
-     * Uploads the image first to get a media ID, then sends the template in one call.
      *
-     * @param  list<string>  $bodyParams  Ordered body variable values ({{1}}, {{2}}, …)
+     * @param  list<string>  $bodyParams
      */
     public function sendTemplateWithImageHeader(
         string $mobileTenDigits,
@@ -311,16 +308,21 @@ class WhatsAppService
         string $imageAbsolutePath,
         array $bodyParams,
         string $language = 'en',
+        ?WhatsAppLogContext $context = null,
     ): void {
         $to = WhatsAppRecipient::toApiFormat($mobileTenDigits);
+        $preview = implode(' · ', array_slice($bodyParams, 0, 3));
+        $logContext = $context ?? new WhatsAppLogContext(null, null, 'template_image', $templateName, $preview);
 
-        if (config('services.whatsapp.simulate_documents', false)) {
+        if ($this->isSimulateMode()) {
+            $this->recordSimulated($mobileTenDigits, $logContext);
             Log::info('WhatsApp template+image simulated', [
                 'mobile'   => $to,
                 'template' => $templateName,
                 'image'    => basename($imageAbsolutePath),
                 'params'   => $bodyParams,
             ]);
+
             return;
         }
 
@@ -370,36 +372,31 @@ class WhatsAppService
                 ],
             ]);
 
-        if (! $response->successful()) {
-            Log::error('WhatsApp template+image send failed', [
-                'mobile'   => $mobileTenDigits,
-                'template' => $templateName,
-                'status'   => $response->status(),
-                'body'     => $response->json(),
-            ]);
-            throw new RuntimeException($this->humanError($response->json(), 'Could not send WhatsApp notification.'));
-        }
+        $this->handleApiResponse($response, $mobileTenDigits, $logContext, 'Could not send WhatsApp notification.');
     }
 
     /**
-     * Send a pre-approved WhatsApp Business template message.
-     *
-     * @param  list<string>  $params  Ordered body variable values ({{1}}, {{2}}, …)
+     * @param  list<string>  $params
      */
     public function sendTemplate(
         string $mobileTenDigits,
         string $templateName,
         array $params,
         string $language = 'en',
+        ?WhatsAppLogContext $context = null,
     ): void {
         $to = WhatsAppRecipient::toApiFormat($mobileTenDigits);
+        $preview = implode(' · ', array_slice($params, 0, 3));
+        $logContext = $context ?? new WhatsAppLogContext(null, null, 'template', $templateName, $preview);
 
-        if (config('services.whatsapp.simulate_documents', false)) {
+        if ($this->isSimulateMode()) {
+            $this->recordSimulated($mobileTenDigits, $logContext);
             Log::info('WhatsApp template simulated', [
                 'mobile'   => $to,
                 'template' => $templateName,
                 'params'   => $params,
             ]);
+
             return;
         }
 
@@ -437,15 +434,67 @@ class WhatsAppService
                 ],
             ]);
 
+        $this->handleApiResponse($response, $mobileTenDigits, $logContext, 'Could not send WhatsApp notification.');
+    }
+
+    private function isSimulateMode(): bool
+    {
+        return (bool) config('services.whatsapp.simulate_documents', false);
+    }
+
+    private function recordSimulated(string $mobileTenDigits, WhatsAppLogContext $context): void
+    {
+        $this->recorder->recordOutbound(
+            $mobileTenDigits,
+            $context->messageType,
+            null,
+            'simulated',
+            $context,
+        );
+    }
+
+    private function handleApiResponse(
+        Response $response,
+        string $mobileTenDigits,
+        WhatsAppLogContext $context,
+        string $fallbackError,
+    ): void {
         if (! $response->successful()) {
-            Log::error('WhatsApp template send failed', [
-                'mobile'   => $mobileTenDigits,
-                'template' => $templateName,
-                'status'   => $response->status(),
-                'body'     => $response->json(),
+            $body = $response->json();
+            Log::error('WhatsApp send failed', [
+                'mobile' => $mobileTenDigits,
+                'type' => $context->messageType,
+                'status' => $response->status(),
+                'body' => $body,
             ]);
-            throw new RuntimeException($this->humanError($response->json(), 'Could not send WhatsApp notification.'));
+
+            $this->recorder->recordOutbound(
+                $mobileTenDigits,
+                $context->messageType,
+                null,
+                'failed',
+                $context,
+                $this->humanError(is_array($body) ? $body : null, $fallbackError),
+            );
+
+            throw new RuntimeException($this->humanError(is_array($body) ? $body : null, $fallbackError));
         }
+
+        $wamid = $this->extractWamid($response);
+        $this->recorder->recordOutbound(
+            $mobileTenDigits,
+            $context->messageType,
+            $wamid,
+            'sent',
+            $context,
+        );
+    }
+
+    private function extractWamid(Response $response): ?string
+    {
+        $id = $response->json('messages.0.id');
+
+        return is_string($id) && $id !== '' ? $id : null;
     }
 
     /**

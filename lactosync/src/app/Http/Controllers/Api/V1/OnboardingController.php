@@ -15,6 +15,7 @@ use App\Models\SubscriptionLine;
 use App\Models\MilkType;
 use App\Services\Catalog\ProductConfigurator;
 use App\Services\Onboarding\OnboardingService;
+use App\Services\Activity\FarmActivityLogger;
 use App\Support\ApiResponse;
 use App\Support\ProductPayload;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +27,7 @@ class OnboardingController extends Controller
     public function __construct(
         private readonly OnboardingService $onboarding,
         private readonly ProductConfigurator $productConfigurator,
+        private readonly FarmActivityLogger $activityLogger,
     ) {}
 
     public function status(Request $request): JsonResponse
@@ -147,6 +149,13 @@ class OnboardingController extends Controller
         $owner->loadMissing('farm');
 
         $customer = $owner->farm->customers()->create($request->validated());
+        $this->activityLogger->logCreated(
+            $owner,
+            'customer',
+            $customer->id,
+            $customer->fullName(),
+            ['contact' => $customer->contact],
+        );
         $this->onboarding->advanceAfterCustomer($owner);
 
         return ApiResponse::success([
@@ -223,6 +232,14 @@ class OnboardingController extends Controller
 
             return $subscription->load(['lines.product', 'customer']);
         });
+
+        $this->activityLogger->logCreated(
+            $owner,
+            'subscription',
+            $subscription->id,
+            $customer->fullName(),
+            ['customer_id' => $customer->id],
+        );
 
         $this->onboarding->markCompleted($owner);
 

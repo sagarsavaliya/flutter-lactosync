@@ -12,47 +12,12 @@ use RuntimeException;
 
 /**
  * Sends approved WhatsApp template notifications to customers.
- *
- * All methods are fire-and-forget: exceptions are caught and logged so that
- * a WhatsApp failure never blocks the owner's action (saving vacation dates,
- * recording payment, etc.).
- *
- * Template names are read from config/services.php (via env vars).
- * Language defaults to 'en' but can be overridden per-template via env.
- *
- * Template parameter mapping (must match approved template order on Meta):
- *
- *   lacto_sync_bill
- *     {{1}} customer name  {{2}} billing month  {{3}} amount  {{4}} bill no
- *     {{5}} due date  {{6}} farm name
- *
- *   lacto_sync_order_log
- *     {{1}} customer name  {{2}} billing month  {{3}} product  {{4}} shift
- *     {{5}} period  {{6}} farm name
- *
- *   lacto_sync_payment_receipt
- *     {{1}} customer name  {{2}} amount (no ₹ — template has it)
- *     {{3}} payment date  {{4}} invoice no  {{5}} payment method
- *     {{6}} balance due (no ₹ — template has it)
- *
- *   lacto_sync_delivery_paused  (lacto_sync_vacation_set)
- *     {{1}} customer name  {{2}} stop date  {{3}} resume date (day after vacation_end)
- *     {{4}} farm name
- *
- *   lacto_sync_qty_change
- *     {{1}} customer name  {{2}} product  {{3}} qty  {{4}} shift  {{5}} rate
- *     {{6}} effective from  {{7}} farm name
- *
- *   lacto_sync_sub_resumed
- *     {{1}} customer name  {{2}} from date  {{3}} farm name
  */
 class CustomerWhatsAppNotifier
 {
     private const LANG = 'en';
 
     public function __construct(private readonly WhatsAppService $whatsApp) {}
-
-    // -------------------------------------------------------------------------
 
     public function billReady(Customer $customer, Invoice $invoice, Farm $farm): void
     {
@@ -64,10 +29,12 @@ class CustomerWhatsAppNotifier
         $dueDate    = $invoice->due_date
             ? Carbon::parse($invoice->due_date)->format('d M Y')
             : 'N/A';
+        $template = config('services.whatsapp.template_bill', 'lacto_sync_bill');
 
         $this->fire(
-            $customer->contact,
-            config('services.whatsapp.template_bill', 'lacto_sync_bill'),
+            $customer,
+            $farm,
+            $template,
             [
                 $customer->fullName(),
                 $monthLabel,
@@ -77,10 +44,10 @@ class CustomerWhatsAppNotifier
                 $farm->name,
             ],
             'bill',
+            "{$monthLabel} bill",
+            ['invoice_id' => $invoice->id],
         );
     }
-
-    // -------------------------------------------------------------------------
 
     public function orderLog(
         Customer $customer,
@@ -95,10 +62,12 @@ class CustomerWhatsAppNotifier
         }
 
         $monthLabel = Carbon::createFromFormat('Y-m', $billingMonth)->format('F Y');
+        $template = config('services.whatsapp.template_order_log', 'lacto_sync_order_log');
 
         $this->fire(
-            $customer->contact,
-            config('services.whatsapp.template_order_log', 'lacto_sync_order_log'),
+            $customer,
+            $farm,
+            $template,
             [
                 $customer->fullName(),
                 $monthLabel,
@@ -108,16 +77,16 @@ class CustomerWhatsAppNotifier
                 $farm->name,
             ],
             'order_log',
+            "{$monthLabel} order log",
         );
     }
-
-    // -------------------------------------------------------------------------
 
     public function paymentConfirmed(
         Customer $customer,
         Invoice $invoice,
         float $amount,
         string $paymentMethod,
+        Farm $farm,
     ): void {
         if (! $customer->whatsapp_enabled) {
             return;
@@ -128,10 +97,12 @@ class CustomerWhatsAppNotifier
             'cash' => 'Cash',
             default => ucfirst($paymentMethod),
         };
+        $template = config('services.whatsapp.template_payment_confirmed', 'lacto_sync_payment_receipt');
 
         $this->fire(
-            $customer->contact,
-            config('services.whatsapp.template_payment_confirmed', 'lacto_sync_payment_receipt'),
+            $customer,
+            $farm,
+            $template,
             [
                 $customer->fullName(),
                 number_format($amount, 0),
@@ -141,10 +112,10 @@ class CustomerWhatsAppNotifier
                 number_format((float) $invoice->balance_due, 0),
             ],
             'payment_confirmed',
+            'Payment receipt',
+            ['invoice_id' => $invoice->id, 'amount' => $amount],
         );
     }
-
-    // -------------------------------------------------------------------------
 
     public function deliveryPaused(
         Customer $customer,
@@ -157,10 +128,12 @@ class CustomerWhatsAppNotifier
         }
 
         $resumeDate = Carbon::parse($vacationEnd)->addDay();
+        $template = config('services.whatsapp.template_delivery_paused', 'lacto_sync_delivery_paused');
 
         $this->fire(
-            $customer->contact,
-            config('services.whatsapp.template_delivery_paused', 'lacto_sync_delivery_paused'),
+            $customer,
+            $farm,
+            $template,
             [
                 $customer->fullName(),
                 Carbon::parse($vacationStart)->format('d M Y'),
@@ -168,10 +141,9 @@ class CustomerWhatsAppNotifier
                 $farm->name,
             ],
             'delivery_paused',
+            'Vacation set',
         );
     }
-
-    // -------------------------------------------------------------------------
 
     public function qtyChanged(
         Customer $customer,
@@ -188,10 +160,12 @@ class CustomerWhatsAppNotifier
         $qty  = number_format((float) $line->quantity, 1);
         $rate = number_format((float) $line->unit_rate, 0);
         $date = Carbon::parse($effectiveFrom)->format('d M Y');
+        $template = config('services.whatsapp.template_qty_change', 'lacto_sync_qty_change');
 
         $this->fire(
-            $customer->contact,
-            config('services.whatsapp.template_qty_change', 'lacto_sync_qty_change'),
+            $customer,
+            $farm,
+            $template,
             [
                 $customer->fullName(),
                 $productName,
@@ -202,10 +176,10 @@ class CustomerWhatsAppNotifier
                 $farm->name,
             ],
             'qty_change',
+            "{$productName} qty {$qty}",
+            ['subscription_line_id' => $line->id],
         );
     }
-
-    // -------------------------------------------------------------------------
 
     public function subscriptionResumed(
         Customer $customer,
@@ -216,30 +190,46 @@ class CustomerWhatsAppNotifier
             return;
         }
 
+        $template = config('services.whatsapp.template_sub_resumed', 'lacto_sync_sub_resumed');
+
         $this->fire(
-            $customer->contact,
-            config('services.whatsapp.template_sub_resumed', 'lacto_sync_sub_resumed'),
+            $customer,
+            $farm,
+            $template,
             [
                 $customer->fullName(),
                 Carbon::parse($fromDate)->format('d M Y'),
                 $farm->name,
             ],
             'sub_resumed',
+            'Subscription resumed',
         );
     }
 
-    // =========================================================================
-    // Private helpers
-    // =========================================================================
+    /** @param list<string> $params @param array<string, mixed> $meta */
+    private function fire(
+        Customer $customer,
+        Farm $farm,
+        string $template,
+        array $params,
+        string $messageType,
+        ?string $preview = null,
+        array $meta = [],
+    ): void {
+        $context = WhatsAppLogContext::forCustomer(
+            $farm->id,
+            $customer->id,
+            $messageType,
+            $template,
+            $preview,
+            $meta,
+        );
 
-    /** @param list<string> $params */
-    private function fire(string $mobile, string $template, array $params, string $label): void
-    {
         try {
-            $this->whatsApp->sendTemplate($mobile, $template, $params, self::LANG);
+            $this->whatsApp->sendTemplate($customer->contact, $template, $params, self::LANG, $context);
         } catch (RuntimeException $e) {
-            Log::warning("WhatsApp {$label} notification failed", [
-                'mobile'   => $mobile,
+            Log::warning("WhatsApp {$messageType} notification failed", [
+                'mobile'   => $customer->contact,
                 'template' => $template,
                 'error'    => $e->getMessage(),
             ]);

@@ -13,24 +13,6 @@ use RuntimeException;
 /**
  * Sends approved WhatsApp template notifications to farm owners when customers
  * change orders, vacation, or profile from the customer app.
- *
- * Template parameter mapping (must match approved template order on Meta):
- *
- *   lacto_sync_owner_vacation_set
- *     {{1}} customer name  {{2}} stop date  {{3}} resume date  {{4}} farm name
- *
- *   lacto_sync_owner_vacation_cleared
- *     {{1}} customer name  {{2}} short address  {{3}} farm name
- *
- *   lacto_sync_owner_qty_change
- *     {{1}} customer name  {{2}} delivery date  {{3}} product with rate
- *     {{4}} subscribed qty (no L)  {{5}} required qty (no L)  {{6}} farm name
- *
- *   lacto_sync_owner_day_skipped
- *     {{1}} customer name  {{2}} short address  {{3}} skip date  {{4}} farm name
- *
- *   lacto_sync_owner_address_updated
- *     {{1}} customer name  {{2}} new address  {{3}} farm name
  */
 class OwnerWhatsAppNotifier
 {
@@ -46,10 +28,13 @@ class OwnerWhatsAppNotifier
         Farm $farm,
     ): void {
         $resumeDate = Carbon::parse($vacationEnd)->addDay();
+        $template = config('services.whatsapp.template_owner_vacation_set', 'lacto_sync_owner_vacation_set');
 
         $this->fire(
+            $farm,
+            $customer,
             $owner->mobile,
-            config('services.whatsapp.template_owner_vacation_set', 'lacto_sync_owner_vacation_set'),
+            $template,
             [
                 $customer->fullName(),
                 Carbon::parse($vacationStart)->format('d M Y'),
@@ -57,20 +42,26 @@ class OwnerWhatsAppNotifier
                 $farm->name,
             ],
             'owner_vacation_set',
+            'Customer vacation set',
         );
     }
 
     public function vacationCleared(FarmOwner $owner, Customer $customer, Farm $farm): void
     {
+        $template = config('services.whatsapp.template_owner_vacation_cleared', 'lacto_sync_owner_vacation_cleared');
+
         $this->fire(
+            $farm,
+            $customer,
             $owner->mobile,
-            config('services.whatsapp.template_owner_vacation_cleared', 'lacto_sync_owner_vacation_cleared'),
+            $template,
             [
                 $customer->fullName(),
                 $customer->shortAddress(),
                 $farm->name,
             ],
             'owner_vacation_cleared',
+            'Customer vacation cleared',
         );
     }
 
@@ -85,10 +76,13 @@ class OwnerWhatsAppNotifier
         $productName = $line->product?->name ?? 'Milk';
         $rate = number_format((float) ($line->effective_rate ?? $line->unit_rate), 0);
         $productLabel = "{$productName} - ₹{$rate}/L";
+        $template = config('services.whatsapp.template_owner_qty_change', 'lacto_sync_owner_qty_change');
 
         $this->fire(
+            $farm,
+            $customer,
             $owner->mobile,
-            config('services.whatsapp.template_owner_qty_change', 'lacto_sync_owner_qty_change'),
+            $template,
             [
                 $customer->fullName(),
                 Carbon::parse($deliveryDate)->format('d M Y'),
@@ -98,6 +92,7 @@ class OwnerWhatsAppNotifier
                 $farm->name,
             ],
             'owner_qty_change',
+            'Customer qty change',
         );
     }
 
@@ -107,9 +102,13 @@ class OwnerWhatsAppNotifier
         string $deliveryDate,
         Farm $farm,
     ): void {
+        $template = config('services.whatsapp.template_owner_day_skipped', 'lacto_sync_owner_day_skipped');
+
         $this->fire(
+            $farm,
+            $customer,
             $owner->mobile,
-            config('services.whatsapp.template_owner_day_skipped', 'lacto_sync_owner_day_skipped'),
+            $template,
             [
                 $customer->fullName(),
                 $customer->shortAddress(),
@@ -117,6 +116,7 @@ class OwnerWhatsAppNotifier
                 $farm->name,
             ],
             'owner_day_skipped',
+            'Customer skipped day',
         );
     }
 
@@ -126,29 +126,49 @@ class OwnerWhatsAppNotifier
         string $addressSummary,
         Farm $farm,
     ): void {
+        $template = config('services.whatsapp.template_owner_address_updated', 'lacto_sync_owner_address_updated');
+
         $this->fire(
+            $farm,
+            $customer,
             $owner->mobile,
-            config('services.whatsapp.template_owner_address_updated', 'lacto_sync_owner_address_updated'),
+            $template,
             [
                 $customer->fullName(),
                 $addressSummary,
                 $farm->name,
             ],
             'owner_address_updated',
+            'Customer address updated',
         );
     }
 
     /** @param list<string> $params */
-    private function fire(string $mobile, string $template, array $params, string $label): void
-    {
+    private function fire(
+        Farm $farm,
+        ?Customer $customer,
+        string $mobile,
+        string $template,
+        array $params,
+        string $messageType,
+        ?string $preview = null,
+    ): void {
         if ($mobile === '') {
             return;
         }
 
+        $context = new WhatsAppLogContext(
+            $farm->id,
+            $customer?->id,
+            $messageType,
+            $template,
+            $preview,
+        );
+
         try {
-            $this->whatsApp->sendTemplate($mobile, $template, $params, self::LANG);
+            $this->whatsApp->sendTemplate($mobile, $template, $params, self::LANG, $context);
         } catch (RuntimeException $e) {
-            Log::warning("WhatsApp owner {$label} notification failed", [
+            Log::warning("WhatsApp owner {$messageType} notification failed", [
                 'mobile'   => $mobile,
                 'template' => $template,
                 'error'    => $e->getMessage(),

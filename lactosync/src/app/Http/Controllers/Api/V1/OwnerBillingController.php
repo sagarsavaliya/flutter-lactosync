@@ -14,7 +14,9 @@ use App\Enums\PaymentType;
 use App\Services\Billing\InvoiceDeliveryService;
 use App\Services\Billing\MonthlyInvoiceGenerator;
 use App\Services\Billing\UpiQrImageService;
+use App\Services\Activity\FarmActivityLogger;
 use App\Services\WhatsApp\CustomerWhatsAppNotifier;
+use App\Services\WhatsApp\WhatsAppLogContext;
 use App\Services\WhatsApp\WhatsAppService;
 use App\Support\ApiResponse;
 use App\Support\SentLabel;
@@ -29,6 +31,7 @@ class OwnerBillingController extends Controller
     public function __construct(
         private readonly InvoiceDeliveryService $delivery,
         private readonly MonthlyInvoiceGenerator $invoiceGenerator,
+        private readonly FarmActivityLogger $activityLogger,
     ) {}
 
     public function generateInvoice(Request $request): JsonResponse
@@ -138,6 +141,7 @@ class OwnerBillingController extends Controller
                     $invoice,
                     $amount,
                     $validated['payment_method'],
+                    $owner->farm,
                 );
                 $receiptSent = true;
             } catch (RuntimeException $e) {
@@ -149,6 +153,18 @@ class OwnerBillingController extends Controller
                 ]);
             }
         }
+
+        $this->activityLogger->logCreated(
+            $owner,
+            'payment',
+            $payment->id,
+            $customer?->fullName() ?? 'Customer',
+            [
+                'invoice_id' => $invoice->id,
+                'amount' => $amount,
+                'payment_method' => $validated['payment_method'],
+            ],
+        );
 
         $payload = [
             'payment_id' => $payment->id,
@@ -207,10 +223,19 @@ class OwnerBillingController extends Controller
 
         try {
             $imagePath = $qrImages->generateForFarm($owner->farm, $amount);
+            $context = WhatsAppLogContext::forCustomer(
+                $owner->farm_id,
+                $customer->id,
+                'upi_qr',
+                null,
+                'UPI QR code',
+                isset($validated['invoice_id']) ? ['invoice_id' => $validated['invoice_id']] : [],
+            );
             $whatsApp->sendImage(
                 $customer->contact,
                 $imagePath,
                 'Pay '.$owner->farm->name.' via UPI. Scan this QR code.',
+                $context,
             );
         } catch (RuntimeException $e) {
             return ApiResponse::error('SEND_FAILED', $e->getMessage(), 422);

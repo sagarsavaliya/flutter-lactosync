@@ -17,7 +17,9 @@ use App\Models\Product;
 use App\Models\FarmActivityLog;
 use App\Models\Subscription;
 use App\Models\SubscriptionLine;
+use App\Models\WhatsAppMessage;
 use App\Services\Activity\FarmActivityLogger;
+use App\Services\Activity\FarmActivityPresenter;
 use App\Services\Billing\ConsumptionAggregator;
 use App\Services\Billing\MonthlyInvoiceGenerator;
 use App\Support\BillingGuard;
@@ -27,6 +29,7 @@ use App\Services\Operations\DeliveryLogUpdateService;
 use App\Services\Operations\MilkLogImageService;
 use App\Services\Operations\MilkPreparationSummaryBuilder;
 use App\Services\WhatsApp\CustomerWhatsAppNotifier;
+use App\Services\WhatsApp\WhatsAppLogContext;
 use App\Services\WhatsApp\WhatsAppService;
 use App\Support\ApiResponse;
 use App\Support\DeliveryLogPresenter;
@@ -305,6 +308,16 @@ class OwnerController extends Controller
         }
         // ────────────────────────────────────────────────────────────────────
 
+        if ($validated !== []) {
+            $this->activityLogger->logUpdated(
+                $owner,
+                'customer',
+                $customer->id,
+                $customer->fullName(),
+                ['fields' => array_keys($validated)],
+            );
+        }
+
         return ApiResponse::success($this->customerPayload($customer->fresh()));
     }
 
@@ -361,6 +374,17 @@ class OwnerController extends Controller
 
         $line->load('product');
 
+        $this->activityLogger->logUpdated(
+            $owner,
+            'subscription_line',
+            $line->id,
+            $subscription->customer?->fullName() ?? 'Customer',
+            [
+                'fields' => array_keys($validated),
+                'customer_id' => $subscription->customer_id,
+            ],
+        );
+
         // WhatsApp notification for quantity / product change
         $customer = $subscription->customer;
         if ($customer !== null) {
@@ -414,7 +438,20 @@ class OwnerController extends Controller
             );
         }
 
+        $line->load('product');
+        $subscription->loadMissing('customer');
+        $customerName = $subscription->customer?->fullName() ?? 'Customer';
+        $productName = $line->product?->name ?? 'Product';
+
         $line->delete();
+
+        $this->activityLogger->logDeleted(
+            $owner,
+            'subscription_line',
+            $line->id,
+            $customerName,
+            ['product' => $productName, 'customer_id' => $subscription->customer_id],
+        );
 
         return ApiResponse::success(['deleted' => true]);
     }
@@ -461,6 +498,14 @@ class OwnerController extends Controller
 
             return $subscription->load(['lines.product', 'customer']);
         });
+
+        $this->activityLogger->logCreated(
+            $owner,
+            'subscription',
+            $subscription->id,
+            $customer->fullName(),
+            ['customer_id' => $customer->id],
+        );
 
         return ApiResponse::success([
             'subscription' => [
@@ -569,6 +614,7 @@ class OwnerController extends Controller
                 'entity_type' => $log->entity_type,
                 'entity_id' => $log->entity_id,
                 'entity_label' => $log->entity_label,
+                'description' => FarmActivityPresenter::describe($log),
                 'meta' => $log->meta,
                 'created_at' => $log->created_at?->toIso8601String(),
                 'can_restore' => $log->action === 'deleted'
@@ -576,6 +622,56 @@ class OwnerController extends Controller
             ]);
 
         return ApiResponse::success(['activities' => $items]);
+    }
+
+    public function communications(Request $request): JsonResponse
+    {
+        /** @var FarmOwner $owner */
+        $owner = $request->user();
+
+        $status = $request->query('status');
+        $search = trim((string) $request->query('search', ''));
+
+        $query = WhatsAppMessage::query()
+            ->where('farm_id', $owner->farm_id)
+            ->with('customer')
+            ->orderByDesc('created_at')
+            ->limit(200);
+
+        if (is_string($status) && $status !== '') {
+            $query->where('status', $status);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('recipient_mobile', 'like', "%{$search}%")
+                    ->orWhere('preview', 'like', "%{$search}%")
+                    ->orWhere('template_name', 'like', "%{$search}%")
+                    ->orWhereHas('customer', fn ($cq) => $cq
+                        ->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('contact', 'like', "%{$search}%"));
+            });
+        }
+
+        $messages = $query->get()->map(fn (WhatsAppMessage $message) => [
+            'id' => $message->id,
+            'customer_id' => $message->customer_id,
+            'customer_name' => $message->customer?->fullName(),
+            'recipient_mobile' => $message->recipient_mobile,
+            'message_type' => $message->message_type,
+            'template_name' => $message->template_name,
+            'preview' => $message->preview,
+            'status' => $message->status,
+            'failure_reason' => $message->failure_reason,
+            'sent_at' => $message->sent_at?->toIso8601String(),
+            'delivered_at' => $message->delivered_at?->toIso8601String(),
+            'read_at' => $message->read_at?->toIso8601String(),
+            'failed_at' => $message->failed_at?->toIso8601String(),
+            'created_at' => $message->created_at?->toIso8601String(),
+        ]);
+
+        return ApiResponse::success(['messages' => $messages]);
     }
 
     public function restoreActivity(Request $request, FarmActivityLog $activityLog): JsonResponse
@@ -668,9 +764,19 @@ class OwnerController extends Controller
             $period      = "{$monthStart} – {$monthEnd}";
 
             // Send log image as the template header — one message instead of two
+            $template = config('services.whatsapp.template_order_log', 'lacto_sync_order_log');
+            $context = WhatsAppLogContext::forCustomer(
+                $owner->farm_id,
+                $customer->id,
+                'order_log',
+                $template,
+                "{$monthLabel} order log",
+                ['billing_month' => $billingMonth],
+            );
+
             $whatsApp->sendTemplateWithImageHeader(
                 $customer->contact,
-                config('services.whatsapp.template_order_log', 'lacto_sync_order_log'),
+                $template,
                 $imagePath,
                 [
                     $customer->fullName(),
@@ -680,6 +786,8 @@ class OwnerController extends Controller
                     $period,
                     $owner->farm->name,
                 ],
+                'en',
+                $context,
             );
         } catch (RuntimeException $e) {
             return ApiResponse::error('SEND_FAILED', $e->getMessage(), 422);

@@ -58,6 +58,7 @@ return [
         'graph_version'      => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),
         'otp_button_type'    => env('WHATSAPP_OTP_BUTTON_TYPE', 'url'),
         'simulate_documents' => env('WHATSAPP_SIMULATE_DOCUMENTS', env('APP_ENV') === 'local'),
+        'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
     ],
 
 ];

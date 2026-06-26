@@ -10,6 +10,21 @@ use Illuminate\Support\Carbon;
 
 class FarmActivityLogger
 {
+    public function logCreated(FarmOwner $owner, string $entityType, int $entityId, string $label, array $meta = []): void
+    {
+        $this->write($owner, 'created', $entityType, $entityId, $label, $meta);
+    }
+
+    public function logUpdated(FarmOwner $owner, string $entityType, int $entityId, string $label, array $meta = []): void
+    {
+        $this->write($owner, 'updated', $entityType, $entityId, $label, $meta);
+    }
+
+    public function logSent(FarmOwner $owner, string $entityType, int $entityId, string $label, array $meta = []): void
+    {
+        $this->write($owner, 'sent', $entityType, $entityId, $label, $meta);
+    }
+
     public function logDeleted(FarmOwner $owner, string $entityType, int $entityId, string $label, array $meta = []): void
     {
         $this->write($owner, 'deleted', $entityType, $entityId, $label, $meta);

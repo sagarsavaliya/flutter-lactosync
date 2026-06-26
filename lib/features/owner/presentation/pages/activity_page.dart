@@ -91,6 +91,34 @@ class ActivityPage extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final item = items[index];
                 final isDelete = item.action == 'deleted';
+                final isCreate = item.action == 'created';
+                final isSent = item.action == 'sent';
+
+                final Color iconBg;
+                final Color iconColor;
+                final IconData icon;
+
+                if (isDelete) {
+                  iconBg = CustomerDetailColors.dangerBg;
+                  iconColor = CustomerDetailColors.danger;
+                  icon = LucideIcons.trash2;
+                } else if (isCreate) {
+                  iconBg = CustomerDetailColors.successBg;
+                  iconColor = CustomerDetailColors.success;
+                  icon = LucideIcons.userPlus;
+                } else if (isSent) {
+                  iconBg = const Color(0xFFE8F4FD);
+                  iconColor = const Color(0xFF1A73E8);
+                  icon = LucideIcons.send;
+                } else if (item.action == 'updated') {
+                  iconBg = const Color(0xFFFFF4E5);
+                  iconColor = const Color(0xFFE65100);
+                  icon = LucideIcons.pencil;
+                } else {
+                  iconBg = CustomerDetailColors.successBg;
+                  iconColor = CustomerDetailColors.success;
+                  icon = LucideIcons.rotateCcw;
+                }
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 9),
@@ -104,15 +132,13 @@ class ActivityPage extends ConsumerWidget {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: isDelete
-                                ? CustomerDetailColors.dangerBg
-                                : CustomerDetailColors.successBg,
+                            color: iconBg,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            isDelete ? LucideIcons.trash2 : LucideIcons.rotateCcw,
+                            icon,
                             size: 18,
-                            color: isDelete ? CustomerDetailColors.danger : CustomerDetailColors.success,
+                            color: iconColor,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -121,14 +147,16 @@ class ActivityPage extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${item.actionLabel} · ${item.entityTypeLabel}',
+                                item.displayText,
                                 style: AppText.cardTitle.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: CustomerDetailColors.onSurface,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(item.entityLabel, style: AppText.body.copyWith(color: CustomerDetailColors.bodyInk)),
+                              if (item.description == null) ...[
+                                const SizedBox(height: 4),
+                                Text(item.entityLabel, style: AppText.body.copyWith(color: CustomerDetailColors.bodyInk)),
+                              ],
                               if (item.createdAt != null) ...[
                                 const SizedBox(height: 4),
                                 Text(
